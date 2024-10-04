@@ -1,6 +1,6 @@
-#include "utils.hpp"
 #include "cmd-parser.hpp"
 #include "semantics.hpp"
+#include "lexer.hpp"
 
 int main(int argc, char **argv) {
 
@@ -8,8 +8,13 @@ int main(int argc, char **argv) {
      return 0;	  
   }
 
-  Func f(true, "add", ObjType::FUNC, true, {"i32", "i32"}, "i32");
+  std::string test = "# this is a comment.\n"
+	             "+ * < ( ) int x = 5;";
 
-  write(&f);
+  Lexer L(test);
+  L.Tokenize();
+ // Func f(false, "add", ObjType::FUNC, true, {"i32"}, "i32");
+
+  //f.write();
 
 }

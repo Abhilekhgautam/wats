@@ -1,13 +1,29 @@
 #include "lexer.hpp"
+#include "utils.hpp"
+
 #include <stdexcept>
 #include <format>
 #include <iostream>
 
+std::map<std::string, TokenType> Lexer::keywords = {
+    {"export", TokenType::EXPORT},
+    {"function", TokenType::FUNCTION},
+    {"where", TokenType::WHERE},
+    {"from", TokenType::FROM},
+    {"import", TokenType::IMPORT},
+    {"i32", TokenType::I32},
+    {"i64", TokenType::I64},
+    {"f32", TokenType::F32},
+    {"f64", TokenType::F64}	
+};
+
 Lexer::Lexer(std::string str){
-  column = 0;
+  column = 1;
   line = 1;
   current_scan_position = 0;
   source_code = str;
+
+  source_code_by_line = split_str(str);
 }
 
 bool Lexer::IsAtEnd(){
@@ -62,53 +78,108 @@ void Lexer::ScanToken(const char c){
 		  column = column + 1;     
 		  break;
 	       }
-     case '+': {AddToken(Token::PLUS); column = column + 1;  break;}
-     case '-': {AddToken(Token::MINUS); column = column + 1;  break;}
-     case '*': {AddToken(Token::MUL); column = column + 1;  break;}
-     case '/': {AddToken(Token::DIV); column = column + 1;  break;}
-     case '%': {AddToken(Token::MOD); column = column + 1;  break;}
-     case '(': {AddToken(Token::OPEN_PARENTHESIS); column = column + 1;  break;}
-     case ')': {AddToken(Token::CLOSE_PARENTHESIS); column = column + 1;  break;}
-     case '{': {AddToken(Token::OPEN_CURLY); column = column + 1;  break;}
-     case '}': {AddToken(Token::CLOSE_CURLY); column = column + 1;  break;}
-     case '[': {AddToken(Token::OPEN_SQUARE); column = column + 1;  break;}
-     case ']': {AddToken(Token::CLOSE_SQUARE); column = column + 1;  break;}
+     case '+': {
+		  AddToken(Token{TokenType::PLUS, line, column, c}); 
+		  column = column + 1; 
+		  break;
+	       }
+     case '-': {
+		  AddToken(Token{TokenType::MINUS, line, column, c});
+		  column = column + 1;  
+		  break;
+	       }
+     case '*': {
+		 AddToken(Token{TokenType::MUL, line, column,  c});
+		 column = column + 1; 
+		 break;
+	       }
+     case '/': {
+		 AddToken(Token{TokenType::DIV, line, column, c}); 
+		 column = column + 1;
+		 break;
+	       }
+     case '%': {
+		 AddToken({TokenType::MOD, line, column, c}); 
+		 column = column + 1; 
+		 break;
+	       }
+     case '(': {
+		 AddToken(Token{TokenType::OPEN_PARENTHESIS, line, column, c}); 
+		 column = column + 1; 
+		 break;
+	       }
+     case ')': {
+		 AddToken(Token{TokenType::CLOSE_PARENTHESIS, line, column, c}); 
+		 column = column + 1; 
+		 break;
+	       }
+     case '{': {
+		 AddToken(Token{TokenType::OPEN_CURLY, line, column, c});
+		 column = column + 1;
+		 break;
+	       }
+     case '}': {
+		 AddToken(Token{TokenType::CLOSE_CURLY, line, column, c}); 
+		 column = column + 1;
+		 break;
+	       }
+     case '[': {
+		 AddToken(Token{TokenType::OPEN_SQUARE, line, column, c});
+		 column = column + 1; 
+		 break;
+	       }
+     case ']': {
+		 AddToken(Token{TokenType::CLOSE_SQUARE, line, column, c});
+		 column = column + 1; 
+		 break;
+	       }
      case '#': {
 		 while (!(Peek() == '\n')){
 	           ConsumeNext(); // skip comment;		 
 		 }       
-		 AddToken(Token::HASH);
+		 AddToken(Token{TokenType::HASH, line, column, c});
 		 column = column + 1;
 		 break;
 	       }
-     case ',': {AddToken(Token::COMMA); column = column + 1;  break;}
+     case ',': {
+		 AddToken(Token{TokenType::COMMA, line, column, c}); 
+		 column = column + 1; 
+		 break;
+	       }
      case '=': {
-		 if (Peek() == '=') {AddToken(Token::EQ); ConsumeNext(); column = column + 2;}
-		 else {AddToken(Token::ASSIGN); column = column + 1;}
+		 if (Peek() == '=') {
+	            AddToken(Token{TokenType::EQ, line, column, "=="}); 
+		    ConsumeNext(); 
+		    column = column + 2;
+		 }
+		 else {
+	            AddToken(Token{TokenType::ASSIGN, line,column, c}); 
+		    column = column + 1;
+		 }
 
 		 break;
 
 	       }
      case '<': {
 		 if (Peek() == '=') {
-		     AddToken(Token::LTE); 
+		     AddToken(Token{TokenType::LTE, line, column, "<="}); 
 		     ConsumeNext() ; 
 	             column = column + 2;
 		 }
 		 else {
-		    AddToken(Token::LT); 
+		    AddToken(Token{TokenType::LT, line, column, c}); 
                     column = column + 1;
 		 }
 		 break;
 	       }
      case '>': {
 		 if (Peek() == '=') {
-		    AddToken(Token::GTE);
+		    AddToken(Token{TokenType::GTE, line, column, ">="});
 		    ConsumeNext();
 		    column = column + 2;
 		 }
 	         else {
-		    AddToken(Token::GT);
+		    AddToken(Token{TokenType::GT, line, column, c});
 		    ConsumeNext();
 		    column = column + 1;
 		 }
@@ -117,28 +188,37 @@ void Lexer::ScanToken(const char c){
 	       }
      case '!': {
 		 if (Peek() == '=') {
-		    AddToken(Token::NEQ);
+		    AddToken(Token{TokenType::NEQ, line, column, "!="});
 		    ConsumeNext();
-		    column = column + 1;
+		    column = column + 2;
 		 }
 		 else {
-		    AddToken(Token::NOT);
+		    AddToken(Token{TokenType::NOT, line, column, c});
 		    column = column + 1;
 		 }
 		 break;
 	       }
      default: 
+	   // handle numbers
            if (isdigit(c)){
+	      std::string number = std::format("{}{}",c,Number());
+	      AddToken(Token{TokenType::NUMBER, line, column, number});
 	      column = column + 1;
-	      [[maybe_unused]]std::string number = std::format("{}{}",c,Number());
-	      AddToken(Token::NUMBER);
-	   } else if (isalnum(c)){
+	   } else if (isalnum(c)){ // handle id and keywords
+	     std::string id = std::format("{}{}",c, Identifier());
+	     
+	     auto found = keywords.find(id);
+
+	     if (found != keywords.end()){    
+		AddToken(Token{found->second, line, column, found->first});     
+	     }
+	     else AddToken(Token{TokenType::ID, line, column, id});
+	     
 	     column = column + 1;
-	     [[maybe_unused]]std::string id = std::format("{}{}",c, Identifier());
-	     AddToken(Token::ID);
+	   
 	   }else{
-	     std::string err_msg = std::format("Unkown Token: {}", c);
-	     error(err_msg);
+	     std::string err_msg = std::format("Unkown Token: '{}'", c);
+	     Error(err_msg);
 	   }
   }	
 }
@@ -176,9 +256,19 @@ std::string Lexer::Identifier(){
 
 }
 
+void Lexer::Error(const std::string& err_msg){
+  std::cout << source_code_by_line[line - 1] << '\n';
+  color("green", setArrow(column), true);
+  std::cout << "[ " << line << ":" << column <<  " ] ";
+  color("red", "Error: ");
+  color("blue", err_msg);
 
-
-void Lexer::error(const std::string& err_msg){
-  std::cout << "[ " << line << ":" << column <<  " ] " << err_msg;	
   std::exit(0);
+}
+
+
+void Lexer::Debug(){
+  for (const auto& elt: token_vec){
+    std::cout << elt << '\n';	  
+  }	
 }

@@ -1,7 +1,10 @@
 #ifndef TOKEN_HPP
 #define TOKEN_HPP
 
-enum class Token{
+#include <string>
+#include <iostream>
+
+enum class TokenType{
   PLUS = '+',
   MINUS = '-',
   MUL = '*',
@@ -26,6 +29,35 @@ enum class Token{
   HASH,
   ASSIGN,
   NUMBER,
+
+  // Keywords
+  EXPORT,
+  IMPORT,
+  I32,
+  I64,
+  F32,
+  F64,
+  LOOP,
+  FUNCTION,
+  CONST,
+  WHERE,
+  FROM
 };
 
+class Token{
+  public:
+    Token(TokenType tok_type, std::size_t line, std::size_t pos, std::string tok_value): tok_type(tok_type), line(line), pos(pos), tok_value(tok_value){}
+    
+    Token(TokenType tok_type, std::size_t line, std::size_t pos, char tok_value): tok_type(tok_type), line(line), pos(pos), tok_value(std::string{tok_value}){}
+    
+    friend std::ostream& operator << (std::ostream& os, Token tok){
+	os << "line: " << tok.line << "col: " << tok.pos << " "<< tok.tok_value;    
+	return os;
+    }
+  private:
+    TokenType tok_type;
+    std::size_t line;
+    std::size_t pos;
+    std::string tok_value;
+};
 #endif

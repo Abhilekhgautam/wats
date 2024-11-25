@@ -15,7 +15,7 @@ std::vector<std::string> split_str(const std::string &text,
 #ifdef _WIN32
 
     #include <windows.h>
-    inline void color(std::string color, std::string line, bool newLine = false) {
+    inline void Color(std::string color, std::string line, bool newLine = false) {
         HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
         int col = 7;
 
@@ -34,7 +34,7 @@ std::vector<std::string> split_str(const std::string &text,
 
 #else
 
-    inline void color(std::string color, std::string line, bool newLine = false) {
+    inline void Color(std::string color, std::string line, bool newLine = false) {
         std::string col = "\033[0m";
 
         if (color == "blue") col = "\033[0;34m";
@@ -49,12 +49,22 @@ std::vector<std::string> split_str(const std::string &text,
 
 
 #endif
-inline std::string setArrow(std::size_t pos){
+inline std::string SetArrow(std::size_t pos){
     std::string arrows;
-    for(int i = 0 ; i < pos - 1; ++i)
+    for(size_t i = 0 ; i < pos - 1; ++i)
        arrows += ' ';
     arrows += '^';
     return arrows;
+}
+
+inline std::string SetPlus(std::size_t pos, std::size_t times){
+   std::string plus;
+   for(size_t i = 0 ; i < pos - 1 ; ++i)
+       plus += ' ';
+   for(int i = 0 ; i < times ; ++i)
+       plus += '+';
+
+   return plus;
 }
 #endif
 

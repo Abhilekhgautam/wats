@@ -1,27 +1,17 @@
 # Wats
 
-Wats is designed to be a higher level WAT (WebAssembly Text Format) format. It is a transpiler which converts Wats program to Wat format.
+Wats is an experimental language designed to provide excellent error reporting along with modern programming languge features.
 
 # Example: 
 
 Following is a Wats program:
 
 ```
-export function add (i32 x, i32 y ) return i32 {
-   return x + y
+function test() {
+   for i in 1 to 50 {
+     # do sth in the loop here
+   }
 }
 
 ```
 
-This program is transpiled to :
-
-```wat
-(func (export "add") (param $x i32) (param $y i32) (result i32)
-
-   local.get $x
-   local.get $y
-   i32.add
-
-)
-
-```

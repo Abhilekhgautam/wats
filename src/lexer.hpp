@@ -13,6 +13,9 @@ class Lexer{
     void Tokenize();
     // Write the given error msg to stdout
     void Error(const std::string& err_msg);
+    
+    const std::vector<Token>& GetTokens();
+    const std::vector<std::string>& GetSourceCode();
     // Print the Token Information
     void Debug();
   private:
@@ -28,7 +31,6 @@ class Lexer{
     std::vector<Token> token_vec;
     
     static std::map<std::string, TokenType> keywords;
-
     // Check if the Lexer reached the end of string
     bool IsAtEnd();
     void ScanToken(const char c);

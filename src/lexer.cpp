@@ -14,7 +14,17 @@ std::map<std::string, TokenType> Lexer::keywords = {
     {"i32", TokenType::I32},
     {"i64", TokenType::I64},
     {"f32", TokenType::F32},
-    {"f64", TokenType::F64}	
+    {"f64", TokenType::F64},
+    {"let", TokenType::LET},
+    {"const", TokenType::CONST},
+    {"to", TokenType::TO},
+    {"in", TokenType::IN},
+    {"for", TokenType::FOR},
+    {"while", TokenType::WHILE},
+    {"loop", TokenType::LOOP},
+    {"match", TokenType::MATCH},
+    {"if", TokenType::IF},
+    {"else", TokenType::ELSE}
 };
 
 Lexer::Lexer(std::string str){
@@ -70,6 +80,7 @@ void Lexer::AddToken(Token tok){
 void Lexer::ScanToken(const char c){
   switch(c){
      case '\n': {
+		  // AddToken(Token{TokenType::NEW_LINE, line, column, c}); 
 		  line = line + 1;
 		  column = 1;
 		  break;
@@ -137,7 +148,6 @@ void Lexer::ScanToken(const char c){
 		 while (!(Peek() == '\n')){
 	           ConsumeNext(); // skip comment;		 
 		 }       
-		 AddToken(Token{TokenType::HASH, line, column, c});
 		 column = column + 1;
 		 break;
 	       }
@@ -150,6 +160,10 @@ void Lexer::ScanToken(const char c){
 		 if (Peek() == '=') {
 	            AddToken(Token{TokenType::EQ, line, column, "=="}); 
 		    ConsumeNext(); 
+		    column = column + 2;
+		 } else if (Peek() == '>') {
+                    AddToken(Token{TokenType::ARROW, line, column + 1, "=>"});
+		    ConsumeNext();
 		    column = column + 2;
 		 }
 		 else {
@@ -258,14 +272,21 @@ std::string Lexer::Identifier(){
 
 void Lexer::Error(const std::string& err_msg){
   std::cout << source_code_by_line[line - 1] << '\n';
-  color("green", setArrow(column), true);
+  Color("green", SetArrow(column), true);
   std::cout << "[ " << line << ":" << column <<  " ] ";
-  color("red", "Error: ");
-  color("blue", err_msg);
+  Color("red", "Error: ");
+  Color("blue", err_msg);
 
   std::exit(0);
 }
 
+const std::vector<Token>& Lexer::GetTokens(){
+    return token_vec;	
+}
+
+const std::vector<std::string>& Lexer::GetSourceCode(){
+    return source_code_by_line;
+}
 
 void Lexer::Debug(){
   for (const auto& elt: token_vec){

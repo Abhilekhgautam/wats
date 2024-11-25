@@ -12,6 +12,7 @@ TARGET = $(BIN_DIR)/app
 
 # Find all .cpp files in src directory
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+HDRS = $(wildcard $(SRC_DIR/*.hpp)
 
 # Convert source files to object files
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))

@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#define GENERATE_POSITION token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1
+
 void Parser::Parse(){
   ParseStatements();
 }
@@ -70,17 +72,14 @@ bool Parser::ParseFunctionWithRetType(){
 	 Peek(TokenType::FUNCTION) && ConsumeNext() && 
          (
 	  (Peek(TokenType::ID) && ConsumeNext()) || 
-	  Expected("Expected an Identifier (Function Name) after the 'function' keyword", 
-	            token_vec[current_parser_position].GetLine(),
-		    token_vec[current_parser_position].GetColumn() + 1)
+	  Expected("Expected an Identifier (Function Name) after the 'function' keyword", GENERATE_POSITION)
 	 ) &&
 
 	 (
 	  (Peek(TokenType::OPEN_PARENTHESIS) && ConsumeNext()) ||
-	  Expected("Expected a '(' after the function name",
-		  token_vec[current_parser_position].GetLine(),
-		  token_vec[current_parser_position].GetColumn() + 1)
-	 ) &&
+	  (Expected("You forgot to name your function.", GENERATE_POSITION) && 
+	   DidYouMean("your_function_name", GENERATE_POSITION)
+	  )) &&
 
 	 Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext() &&
 	 Peek(TokenType::I32) && ConsumeNext() && 
@@ -97,20 +96,18 @@ bool Parser::ParseFunctionWithoutRetType(){
          (
 	  (Peek(TokenType::ID) && ConsumeNext()) || 
 	  (Expected("You forgot to name your function.", 
-	            token_vec[current_parser_position].GetLine(),
-		    token_vec[current_parser_position].GetColumn() + 1) && 
-	   DidYouMean("your_function_name", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1)
+		    GENERATE_POSITION) && 
+	   DidYouMean("your_function_name",
+		   GENERATE_POSITION)
 	  )
 	 ) &&
 
 	 (
 	  (Peek(TokenType::OPEN_PARENTHESIS) && ConsumeNext()) ||
-	  Expected("Expected a '(' after the function name",
-		  token_vec[current_parser_position].GetLine(),
-		  token_vec[current_parser_position].GetColumn() + 1)
+	  Expected("Expected a '(' after the function name", GENERATE_POSITION)
 	 ) &&
 
-	 Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext() &&
+	 ((Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || (Expected("Expected a ')'.", GENERATE_POSITION) && DidYouMean(")", GENERATE_POSITION))) &&
 	 ParseCurlyBraceAndBody()
 	);
 
@@ -133,7 +130,8 @@ bool Parser::ParseVariableDeclWithLet(){
 
   return (
            Peek(TokenType::LET) && ConsumeNext() &&
-	   ((Peek(TokenType::ID) && ConsumeNext()) || (Expected("Expected a variable name", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1) && DidYouMean("variable_name", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1)))
+	   ((Peek(TokenType::ID) && ConsumeNext()) || (Expected("Expected a variable name", GENERATE_POSITION) && DidYouMean("variable_name", GENERATE_POSITION))) 
+
 
 	 );
 }
@@ -144,7 +142,7 @@ bool Parser::ParseVariableAssignment(){
    return(
 	   Peek(TokenType::ID) && ConsumeNext() &&
 	   Peek(TokenType::ASSIGN) && ConsumeNext() && 
-	   (ParseExpression() || Expected("Expected an value or expression for the assignment", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1))
+	   (ParseExpression() || Expected("Expected an value or expression for the assignment", GENERATE_POSITION))
 	 );
 }
 
@@ -155,7 +153,7 @@ bool Parser::ParseVariableInitWithLet(){
            Peek(TokenType::LET) && ConsumeNext()    &&
 	   Peek(TokenType::ID) && ConsumeNext()     &&
 	   Peek(TokenType::ASSIGN) && ConsumeNext() &&
-	   (ParseExpression() || Expected("Expected an value or expression for the assignment", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1))
+	   (ParseExpression() || Expected("Expected an value or expression for the assignment", GENERATE_POSITION))
 	
 	  );
 }
@@ -205,23 +203,7 @@ bool Parser::ParseExpressionBeginningWithBraces(){
    return(
 	  Peek(TokenType::OPEN_PARENTHESIS) && ConsumeNext() && [&]()mutable{parenthesis_position = current_parser_position; return true;}() && 
 	  ParseExpression() &&
-	  ((Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || Expected("Expected a closing pair for '('", token_vec[parenthesis_position].GetLine(), token_vec[parenthesis_position].GetColumn()))
-	 );
-}
-
-bool Parser::ParseSubExpression(){
-  StoreParserPosition();
- 
-  return(
-           ParsePlusExpression()                   ||
-	   (BackTrack() && ParseMinusExpression()) ||
-	   (BackTrack() && ParseMulExpression())   ||
-           (BackTrack() && ParseDivExpression())   ||
-	   (BackTrack() && ParseModExpression())   ||
-	   (BackTrack() && ParseGtExpression())    ||
-	   (BackTrack() && ParseLtExpression())    ||
-	   (BackTrack() && ParseGteExpression())   ||
-	   (BackTrack() && ParseLteExpression())   ||
+	  ((Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || (Expected("Expected a closing pair for '('", GENERATE_POSITION) && DidYouMean(")", GENERATE_POSITION)))); } bool Parser::ParseSubExpression(){ StoreParserPosition(); return( ParsePlusExpression()                   || (BackTrack() && ParseMinusExpression()) || (BackTrack() && ParseMulExpression())   || (BackTrack() && ParseDivExpression())   || (BackTrack() && ParseModExpression())   || (BackTrack() && ParseGtExpression())    || (BackTrack() && ParseLtExpression())    || (BackTrack() && ParseGteExpression())   || (BackTrack() && ParseLteExpression())   ||
            (BackTrack() && ParseEmptyExpression())
 	);
 
@@ -331,7 +313,7 @@ bool Parser::ParseRange(){
   StoreParserPosition();
   return(
 	  ParseExpression() && 
-	  ((Peek(TokenType::TO) && ConsumeNext()) || (Expected("Expected the 'to' keyword.", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1) && DidYouMean("to", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1))) &&
+	  ((Peek(TokenType::TO) && ConsumeNext()) || (Expected("Expected the 'to' keyword.", GENERATE_POSITION) && DidYouMean("to", GENERATE_POSITION))) &&
           ParseExpression()
 	
 	);
@@ -341,8 +323,8 @@ bool Parser::ParseCurlyBraceAndBody(){
     return( 
 	    (
              (Peek(TokenType::OPEN_CURLY) && ([&]() mutable {curly_brace_position = current_parser_position + 1;  return true;}()) &&  ConsumeNext()) ||
-             Expected("Expected a '{' here", token_vec[current_parser_position + 1].GetLine(), (token_vec[current_parser_position + 1].GetColumn()))
-            )	   
+             Expected("Expected a '{' here", GENERATE_POSITION)
+	    )
             &&
            ParseStatements() &&
            ((Peek(TokenType::CLOSE_CURLY) && ConsumeNext()) ||  Expected("Expected a closing pair for '{'", token_vec[curly_brace_position].GetLine(), token_vec[curly_brace_position].GetColumn()))
@@ -363,8 +345,8 @@ bool Parser::ParseForLoop(){
   StoreParserPosition();
   return(
 	  (Peek(TokenType::FOR) && ConsumeNext()) && 
-	  ((Peek(TokenType::ID) && ConsumeNext()) || (Expected("Expected an iteration variable name after the 'for' keyword", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1))) &&
-	  ((Peek(TokenType::IN) && ConsumeNext()) || (Expected("You missed the 'in' keyword in the for loop", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1) && DidYouMean("in", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1))) &&
+	  ((Peek(TokenType::ID) && ConsumeNext()) || (Expected("Expected an iteration variable name after the 'for' keyword", GENERATE_POSITION))) &&
+	  ((Peek(TokenType::IN) && ConsumeNext()) || (Expected("You missed the 'in' keyword in the for loop", GENERATE_POSITION) && DidYouMean("in", GENERATE_POSITION))) &&
 	  (ParseRange()) && 
            ParseCurlyBraceAndBody()
 	);
@@ -375,7 +357,7 @@ bool Parser::ParseWhileLoop(){
 
    return(
 	   Peek(TokenType::WHILE) && ConsumeNext() && 
-	   (ParseExpression() || Expected("Expected an expression after the 'while' keyword", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn())) && 
+	   (ParseExpression() || Expected("Expected an expression after the 'while' keyword", GENERATE_POSITION)) && 
            ParseCurlyBraceAndBody()	
 	  );
 }
@@ -395,7 +377,7 @@ bool Parser::ParseMatchArm(){
   StoreParserPosition();
   return(
            ParseExpression() &&
-	   ((Peek(TokenType::ARROW) && ConsumeNext()) || (Expected("Expected an '=>' after the expression in 'match' body", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn()) && DidYouMean("=>", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn()))) && 
+	   ((Peek(TokenType::ARROW) && ConsumeNext()) || (Expected("Expected an '=>' after the expression in 'match' body", GENERATE_POSITION) && DidYouMean("=>", GENERATE_POSITION))) && 
 
              ParseCurlyBraceAndBody() 
 	 
@@ -407,8 +389,8 @@ bool Parser::ParseMatchStatement(){
    int curly_brace_position;
    return(
            Peek(TokenType::MATCH) && ConsumeNext() &&
-	   (ParseExpression() || Expected("Expected an expression after the 'match' keyword", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn())) &&
-	   ((Peek(TokenType::OPEN_CURLY) && [&]()mutable{curly_brace_position = current_parser_position + 1; return true;}() && ConsumeNext()) || Expected("Expected an '{' after the expression in match", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn())) && 
+	   (ParseExpression() || Expected("Expected an expression after the 'match' keyword", GENERATE_POSITION)) &&
+	   ((Peek(TokenType::OPEN_CURLY) && [&]()mutable{curly_brace_position = current_parser_position + 1; return true;}() && ConsumeNext()) || Expected("Expected an '{' after the expression in match", GENERATE_POSITION)) && 
 	   ParseMatchArms() &&
 	   (Peek(TokenType::CLOSE_CURLY) || Expected("Expected a closing pair for '{'", token_vec[curly_brace_position].GetLine(), token_vec[curly_brace_position].GetColumn()))
 	   
@@ -420,7 +402,7 @@ bool Parser::ParseIfStatement(){
 
   return(
           Peek(TokenType::IF) && ConsumeNext() &&
-	  (ParseExpression() || (Expected("Expected an condition after the 'if' keyword", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn()) && DidYouMean("<some_expression>", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn())))&&
+	  (ParseExpression() || (Expected("Expected an condition after the 'if' keyword", GENERATE_POSITION) && DidYouMean("<some_expression>", GENERATE_POSITION)))&&
 	  ParseCurlyBraceAndBody()
 	);
 }
@@ -430,7 +412,7 @@ bool Parser::ParseElseStatement(){
 
   return(
          Peek(TokenType::ELSE) && ConsumeNext() &&
-	 ((ParseExpression() && DidYouMean("if", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn()) && Expected("An Else Statement don't require any condition", token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn()))  || ParseCurlyBraceAndBody())          && 
+	 ((ParseExpression() && DidYouMean("if", GENERATE_POSITION) && Expected("An Else Statement don't require any condition", GENERATE_POSITION))  || ParseCurlyBraceAndBody())          && 
 	 ParseCurlyBraceAndBody()
 	
 	);
@@ -442,7 +424,7 @@ bool Parser::ParseElseIfStatement(){
    return(
            Peek(TokenType::ELSE) && ConsumeNext() &&
 	   Peek(TokenType::IF) && ConsumeNext() &&
-	   (ParseExpression() || (Expected("Expected an condition after 'else-if'", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn()) && DidYouMean("<some_expression>", token_vec[current_parser_position + 1].GetLine(), token_vec[current_parser_position + 1].GetColumn()))) &&
+	   (ParseExpression() || (Expected("Expected an condition after 'else-if'", GENERATE_POSITION) && DidYouMean("<some_expression>", GENERATE_POSITION))) &&
 
 	   ParseCurlyBraceAndBody()
          );

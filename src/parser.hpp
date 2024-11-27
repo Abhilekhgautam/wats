@@ -23,6 +23,7 @@ class Parser{
 
    std::vector<Token> backup_token;
    bool IsAtEnd();
+   bool PeekIgnoringNewLine(TokenType);
    bool Peek(TokenType);
    bool ConsumeNext();
    bool BackTrack();

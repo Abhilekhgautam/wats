@@ -1,5 +1,4 @@
 #include "cmd-parser.hpp"
-#include "semantics.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "utils.hpp"

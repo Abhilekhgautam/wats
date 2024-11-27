@@ -80,7 +80,7 @@ void Lexer::AddToken(Token tok){
 void Lexer::ScanToken(const char c){
   switch(c){
      case '\n': {
-		  // AddToken(Token{TokenType::NEW_LINE, line, column, c}); 
+		  AddToken(Token{TokenType::NEW_LINE, line, column, c}); 
 		  line = line + 1;
 		  column = 1;
 		  break;

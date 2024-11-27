@@ -89,13 +89,6 @@ void Lexer::ScanToken(const char c){
 		  column = column + 1;     
 		  break;
 	       }
-     case ';': {
-                 AddToken({TokenType::SEMI_COLON, line, column, c});
-		 line = line + 1;
-		 column = 1;
-		 break;
-		 
-	       }
      case '+': {
 		  AddToken(Token{TokenType::PLUS, line, column, c}); 
 		  column = column + 1; 

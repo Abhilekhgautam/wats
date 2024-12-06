@@ -2,21 +2,24 @@
 #include "utils.hpp"
 
 #include <iostream>
+#include <bitset>
 
-#define GENERATE_POSITION token_vec[current_parser_position].GetLine(), token_vec[current_parser_position].GetColumn() + 1
-
+#define GENERATE_POSITION token_vec[current_parser_position].GetLine(), \
+	                  token_vec[current_parser_position].GetColumn() + 1
 
 void Parser::Parse(){
   ParseStatements();
 }
 
-bool Parser::DidYouMean(const std::string to_add, std::size_t line, std::size_t column){
+bool Parser::DidYouMean(const std::string to_add, std::size_t line, 
+		       std::size_t column){
   
   const std::string invalid_line = source_code_by_line[line - 1];
   const std::string contents_after_error = invalid_line.substr(column - 1);
   const std::string contents_before_error = invalid_line.substr(0, column - 1);
   
-  const std::string expected_correct_line = contents_before_error + " " + to_add + " " + contents_after_error;  
+  const std::string expected_correct_line = contents_before_error + " " + 
+	         to_add + " " + contents_after_error;  
 
   Color("blue", "Did You Mean?", true);
   
@@ -27,7 +30,9 @@ bool Parser::DidYouMean(const std::string to_add, std::size_t line, std::size_t 
   return true;
 }
 
-bool Parser::Expected(const std::string str, std::size_t line, std::size_t column){
+bool Parser::Expected(const std::string str, 
+		      std::size_t line, std::size_t column){
+
   std::cout << "[ " << line << ":" << column <<  " ] ";
   Color("red", "Error: ");
   Color("blue", str, true);
@@ -40,7 +45,9 @@ bool Parser::Expected(const std::string str, std::size_t line, std::size_t colum
 
 bool Parser::Peek(TokenType tok){
    try{
-       if (token_vec.at(current_parser_position + 1).GetTokenType() == tok) return true;
+       if (token_vec.at(current_parser_position + 1).GetTokenType() == tok) 
+           return true;
+
        else return false;
     } 
    catch(std::out_of_range& e){
@@ -50,19 +57,6 @@ bool Parser::Peek(TokenType tok){
 
 }
 
-bool Parser::PeekIgnoringNewLine(TokenType tok){
-  try{
-    while(token_vec.at(current_parser_position + 1).GetTokenType() == TokenType::NEW_LINE){
-      current_parser_position = current_parser_position + 1;
-    }
-    if (token_vec.at(current_parser_position + 1).GetTokenType() == tok) return true;
-    else return false;
-  } 
-   catch(std::out_of_range& e){
-    // there is no next token to peek at
-    return false;
-   }
-}
 
 void Parser::StoreParserPosition(){
   temp_parser_position = current_parser_position;
@@ -88,20 +82,23 @@ bool Parser::ParseFunctionWithRetType(){
   // later when we add fn args..
   [[maybe_unused]]int parenthesis_position;
   return(
-	 PeekIgnoringNewLine(TokenType::FUNCTION) && ConsumeNext() && 
+	 Peek(TokenType::FUNCTION) && ConsumeNext() && 
          (
-	  (PeekIgnoringNewLine(TokenType::ID) && ConsumeNext()) || 
-	  Expected("Expected an Identifier (Function Name) after the 'function' keyword", GENERATE_POSITION)
+	  (Peek(TokenType::ID) && ConsumeNext()) || 
+	  Expected(
+	   "Expected an Identifier (Function Name) after the 'function' keyword",
+	    GENERATE_POSITION
+	  )
 	 ) &&
 
 	 (
-	  (PeekIgnoringNewLine(TokenType::OPEN_PARENTHESIS) && ConsumeNext()) ||
+	  (Peek(TokenType::OPEN_PARENTHESIS) && ConsumeNext()) ||
 	  (Expected("You forgot to name your function.", GENERATE_POSITION) && 
 	   DidYouMean("your_function_name", GENERATE_POSITION)
 	  )) &&
 
-	 PeekIgnoringNewLine(TokenType::CLOSE_PARENTHESIS) && ConsumeNext() &&
-	 PeekIgnoringNewLine(TokenType::I32) && ConsumeNext() && 
+	 Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext() &&
+	 Peek(TokenType::I32) && ConsumeNext() && 
 	 ParseCurlyBraceAndBody()
 	);
 }
@@ -111,9 +108,9 @@ bool Parser::ParseFunctionWithoutRetType(){
   // later when we add fn args..
   [[maybe_unused]]int parenthesis_position;
   return(
-	 PeekIgnoringNewLine(TokenType::FUNCTION) && ConsumeNext() && 
+	 Peek(TokenType::FUNCTION) && ConsumeNext() && 
          (
-	  (PeekIgnoringNewLine(TokenType::ID) && ConsumeNext()) || 
+	  (Peek(TokenType::ID) && ConsumeNext()) || 
 	  (Expected("You forgot to name your function.", 
 		    GENERATE_POSITION) && 
 	   DidYouMean("your_function_name",
@@ -122,11 +119,11 @@ bool Parser::ParseFunctionWithoutRetType(){
 	 ) &&
 
 	 (
-	  (PeekIgnoringNewLine(TokenType::OPEN_PARENTHESIS) && ConsumeNext()) ||
+	  (Peek(TokenType::OPEN_PARENTHESIS) && ConsumeNext()) ||
 	  Expected("Expected a '(' after the function name", GENERATE_POSITION)
 	 ) &&
 
-	 ((PeekIgnoringNewLine(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || (Expected("Expected a ')'.", GENERATE_POSITION) && DidYouMean(")", GENERATE_POSITION))) &&
+	 ((Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || (Expected("Expected a ')'.", GENERATE_POSITION) && DidYouMean(")", GENERATE_POSITION))) &&
 	 ParseCurlyBraceAndBody()
 	);
 
@@ -148,9 +145,9 @@ bool Parser::ParseVariableDeclWithLet(){
   StoreParserPosition();
   bool no_move_ahead = false;
   return (
-           PeekIgnoringNewLine(TokenType::LET) && ConsumeNext() &&
-	   ((PeekIgnoringNewLine(TokenType::ID) && ConsumeNext()) || (Expected("Expected a variable name", GENERATE_POSITION) && [&]()mutable{no_move_ahead = true; return true;}())) &&
-	   ((Peek(TokenType::NEW_LINE) && ConsumeNext()) || (no_move_ahead) || (Expected("Consider adding a new line from here.", GENERATE_POSITION) && DidYouMean("\n", GENERATE_POSITION)))
+           Peek(TokenType::LET) && ConsumeNext() &&
+	   ((Peek(TokenType::ID) && ConsumeNext()) || (Expected("Expected a variable name", GENERATE_POSITION) && [&]()mutable{no_move_ahead = true; return true;}())) &&
+	   ((Peek(TokenType::SEMI_COLON) && ConsumeNext()) || (no_move_ahead) || (Expected("Consider adding a ';' here.", GENERATE_POSITION) && DidYouMean(";", GENERATE_POSITION)))
            
 
 	 );
@@ -160,10 +157,10 @@ bool Parser::ParseVariableAssignment(){
    StoreParserPosition();
 
    return(
-	   PeekIgnoringNewLine(TokenType::ID) && ConsumeNext() &&
-	   PeekIgnoringNewLine(TokenType::ASSIGN) && ConsumeNext() && 
+	   Peek(TokenType::ID) && ConsumeNext() &&
+	   Peek(TokenType::ASSIGN) && ConsumeNext() && 
 	   (ParseExpression() || Expected("Expected an value or expression for the assignment", GENERATE_POSITION)) &&
-           ((Peek(TokenType::NEW_LINE) && ConsumeNext()) || (Expected("Consider adding a new line from here.", GENERATE_POSITION) && DidYouMean("\n", GENERATE_POSITION)))
+           ((Peek(TokenType::SEMI_COLON) && ConsumeNext()) || (Expected("Consider adding a ';' here.", GENERATE_POSITION) && DidYouMean(";", GENERATE_POSITION)))
 
 	 );
 }
@@ -172,11 +169,11 @@ bool Parser::ParseVariableInitWithLet(){
     StoreParserPosition();
     bool no_move_ahead = false;
     return(
-           PeekIgnoringNewLine(TokenType::LET) && ConsumeNext()    &&
-	   PeekIgnoringNewLine(TokenType::ID) && ConsumeNext()     &&
-	   PeekIgnoringNewLine(TokenType::ASSIGN) && ConsumeNext() &&
+           Peek(TokenType::LET) && ConsumeNext()    &&
+	   Peek(TokenType::ID) && ConsumeNext()     &&
+	   Peek(TokenType::ASSIGN) && ConsumeNext() &&
 	   (ParseExpression() || (Expected("Expected an value or expression for the assignment", GENERATE_POSITION) && [&]()mutable{no_move_ahead = true; return true;}())) &&
-	   ((Peek(TokenType::NEW_LINE) && ConsumeNext()) || no_move_ahead || (Expected("Consider adding a new line here.", GENERATE_POSITION) && DidYouMean("\n", GENERATE_POSITION)))
+	   ((Peek(TokenType::SEMI_COLON) && ConsumeNext()) || no_move_ahead || (Expected("Consider adding a ';' here.", GENERATE_POSITION) && DidYouMean(";", GENERATE_POSITION)))
 
 	  );
 }
@@ -185,17 +182,19 @@ bool Parser::ParseVariableDeclWithType(){
    StoreParserPosition();
 
    return (
-	    PeekIgnoringNewLine(TokenType::I32) && ConsumeNext() &&
-	    PeekIgnoringNewLine(TokenType::ID) && ConsumeNext() &&
-            ((Peek(TokenType::NEW_LINE) && ConsumeNext()) || (Expected("Consider adding a new line from here", GENERATE_POSITION) && DidYouMean("\n", GENERATE_POSITION)))
+	    Peek(TokenType::LET) && ConsumeNext() &&
+	    Peek(TokenType::ID) && ConsumeNext() &&
+	    Peek(TokenType::COLON) && ConsumeNext() &&
+	    Peek(TokenType::I32) && ConsumeNext() &&
+            ((Peek(TokenType::SEMI_COLON) && ConsumeNext()) || (Expected("Consider adding a ';' here", GENERATE_POSITION) && DidYouMean(";", GENERATE_POSITION)))
 
 	   );
 }
 
 bool Parser::ParseVariableDecl(){
    return (
-	    ParseVariableDeclWithLet() || 
-	    (BackTrack() && ParseVariableDeclWithType())
+	    ParseVariableDeclWithType() || 
+	    (BackTrack() && ParseVariableDeclWithLet())
 	  );
 }
 
@@ -205,7 +204,7 @@ bool Parser::ParseExpressionBeginningWithID(){
   StoreParserPosition();
 
   return (
-	   PeekIgnoringNewLine(TokenType::ID) && ConsumeNext() &&
+	   Peek(TokenType::ID) && ConsumeNext() &&
 	   ParseSubExpression()
 	 
 	 );
@@ -215,7 +214,7 @@ bool Parser::ParseExpressionBeginningWithNumber(){
   StoreParserPosition();
 
   return (
-	   PeekIgnoringNewLine(TokenType::NUMBER) && ConsumeNext() &&
+	   Peek(TokenType::NUMBER) && ConsumeNext() &&
 	   ParseSubExpression()
 	 
 	 );
@@ -225,10 +224,11 @@ bool Parser::ParseExpressionBeginningWithBraces(){
    StoreParserPosition();
    auto parenthesis_position = current_parser_position;
    return(
-	  PeekIgnoringNewLine(TokenType::OPEN_PARENTHESIS) && ConsumeNext() && [&]()mutable{parenthesis_position = current_parser_position; return true;}() && 
+	  Peek(TokenType::OPEN_PARENTHESIS) && ConsumeNext() && [&]()mutable{parenthesis_position = current_parser_position; return true;}() && 
 	  ParseExpression() &&
-	  ((PeekIgnoringNewLine(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || (Expected("Expected a closing pair for '('", GENERATE_POSITION) && DidYouMean(")", GENERATE_POSITION)))); } 
-
+	  ((Peek(TokenType::CLOSE_PARENTHESIS) && ConsumeNext()) || (Expected("Expected a closing pair for '('", GENERATE_POSITION) && DidYouMean(")", GENERATE_POSITION)))
+	 ); 
+} 
 
 bool Parser::ParseSubExpression(){ 
 	StoreParserPosition();
@@ -250,7 +250,7 @@ bool Parser::ParsePlusExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::PLUS) && ConsumeNext() && 
+	 Peek(TokenType::PLUS) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -259,7 +259,7 @@ bool Parser::ParseMinusExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::MINUS) && ConsumeNext() && 
+	 Peek(TokenType::MINUS) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -268,7 +268,7 @@ bool Parser::ParseMulExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::MUL) && ConsumeNext() && 
+	 Peek(TokenType::MUL) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -277,7 +277,7 @@ bool Parser::ParseDivExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::DIV) && ConsumeNext() && 
+	 Peek(TokenType::DIV) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -286,7 +286,7 @@ bool Parser::ParseModExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::MOD) && ConsumeNext() && 
+	 Peek(TokenType::MOD) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -295,7 +295,7 @@ bool Parser::ParseGtExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::GT) && ConsumeNext() && 
+	 Peek(TokenType::GT) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -304,7 +304,7 @@ bool Parser::ParseLtExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::LT) && ConsumeNext() && 
+	 Peek(TokenType::LT) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -313,7 +313,7 @@ bool Parser::ParseGteExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::GTE) && ConsumeNext() && 
+	 Peek(TokenType::GTE) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -321,7 +321,7 @@ bool Parser::ParseLteExpression(){
   StoreParserPosition();
 
   return(
-	 PeekIgnoringNewLine(TokenType::LTE) && ConsumeNext() && 
+	 Peek(TokenType::LTE) && ConsumeNext() && 
          ParseExpression()
          );
 }
@@ -349,9 +349,9 @@ void Parser::ParseExpr(){
 bool Parser::ParseRange(){
   StoreParserPosition();
   return(
-	  ParseExpression() && 
-	  ((PeekIgnoringNewLine(TokenType::TO) && ConsumeNext()) || (Expected("Expected the 'to' keyword.", GENERATE_POSITION) && DidYouMean("to", GENERATE_POSITION))) &&
-          ParseExpression()
+	  (ParseExpression() || Expected("Expected an expression here", GENERATE_POSITION)) && 
+	  ((Peek(TokenType::TO) && ConsumeNext()) || (Expected("Expected the 'to' keyword.", GENERATE_POSITION) && DidYouMean("to", GENERATE_POSITION))) &&
+          (ParseExpression() || Expected("Expected an expression here", GENERATE_POSITION))
 	
 	);
 }
@@ -359,12 +359,12 @@ bool Parser::ParseCurlyBraceAndBody(){
     int curly_brace_position;
     return( 
 	    (
-             (PeekIgnoringNewLine(TokenType::OPEN_CURLY) && ([&]() mutable {curly_brace_position = current_parser_position + 1;  return true;}()) &&  ConsumeNext()) ||
+             (Peek(TokenType::OPEN_CURLY) && ([&]() mutable {curly_brace_position = current_parser_position + 1;  return true;}()) &&  ConsumeNext()) ||
              Expected("Expected a '{' here", GENERATE_POSITION)
 	    )
             &&
            ParseStatements() &&
-           ((PeekIgnoringNewLine(TokenType::CLOSE_CURLY) && ConsumeNext()) ||  Expected("Expected a closing pair for '{'", token_vec[curly_brace_position].GetLine(), token_vec[curly_brace_position].GetColumn()))
+           ((Peek(TokenType::CLOSE_CURLY) && ConsumeNext()) ||  Expected("Expected a closing pair for '{'", token_vec[curly_brace_position].GetLine(), token_vec[curly_brace_position].GetColumn()))
           );
 }
 
@@ -372,7 +372,7 @@ bool Parser::ParseLoop(){
   StoreParserPosition();
 
   return(
-         PeekIgnoringNewLine(TokenType::LOOP) && ConsumeNext() &&
+         Peek(TokenType::LOOP) && ConsumeNext() &&
 	 ParseCurlyBraceAndBody() 
 	 );
 }
@@ -381,9 +381,9 @@ bool Parser::ParseLoop(){
 bool Parser::ParseForLoop(){
   StoreParserPosition();
   return(
-	  (PeekIgnoringNewLine(TokenType::FOR) && ConsumeNext()) && 
-	  ((PeekIgnoringNewLine(TokenType::ID) && ConsumeNext()) || (Expected("Expected an iteration variable name after the 'for' keyword", GENERATE_POSITION))) &&
-	  ((PeekIgnoringNewLine(TokenType::IN) && ConsumeNext()) || (Expected("You missed the 'in' keyword in the for loop", GENERATE_POSITION) && DidYouMean("in", GENERATE_POSITION))) &&
+	  (Peek(TokenType::FOR) && ConsumeNext()) && 
+	  ((Peek(TokenType::ID) && ConsumeNext()) || (Expected("Expected an iteration variable name after the 'for' keyword", GENERATE_POSITION))) &&
+	  ((Peek(TokenType::IN) && ConsumeNext()) || (Expected("You missed the 'in' keyword in the for loop", GENERATE_POSITION) && DidYouMean("in", GENERATE_POSITION))) &&
 	  (ParseRange()) && 
            ParseCurlyBraceAndBody()
 	);
@@ -393,7 +393,7 @@ bool Parser::ParseWhileLoop(){
    StoreParserPosition();
 
    return(
-	   PeekIgnoringNewLine(TokenType::WHILE) && ConsumeNext() && 
+	   Peek(TokenType::WHILE) && ConsumeNext() && 
 	   (ParseExpression() || Expected("Expected an expression after the 'while' keyword", GENERATE_POSITION)) && 
            ParseCurlyBraceAndBody()	
 	  );
@@ -414,7 +414,7 @@ bool Parser::ParseMatchArm(){
   StoreParserPosition();
   return(
            ParseExpression() &&
-	   ((PeekIgnoringNewLine(TokenType::ARROW) && ConsumeNext()) || (Expected("Expected an '=>' after the expression in 'match' body", GENERATE_POSITION) && DidYouMean("=>", GENERATE_POSITION))) && 
+	   ((Peek(TokenType::ARROW) && ConsumeNext()) || (Expected("Expected an '=>' after the expression in 'match' body", GENERATE_POSITION) && DidYouMean("=>", GENERATE_POSITION))) && 
 
              ParseCurlyBraceAndBody() 
 	 
@@ -425,11 +425,11 @@ bool Parser::ParseMatchStatement(){
    StoreParserPosition();
    int curly_brace_position;
    return(
-           PeekIgnoringNewLine(TokenType::MATCH) && ConsumeNext() &&
+           Peek(TokenType::MATCH) && ConsumeNext() &&
 	   (ParseExpression() || Expected("Expected an expression after the 'match' keyword", GENERATE_POSITION)) &&
-	   ((PeekIgnoringNewLine(TokenType::OPEN_CURLY) && [&]()mutable{curly_brace_position = current_parser_position + 1; return true;}() && ConsumeNext()) || Expected("Expected an '{' after the expression in match", GENERATE_POSITION)) && 
+	   ((Peek(TokenType::OPEN_CURLY) && [&]()mutable{curly_brace_position = current_parser_position + 1; return true;}() && ConsumeNext()) || Expected("Expected an '{' after the expression in match", GENERATE_POSITION)) && 
 	   ParseMatchArms() &&
-	   (PeekIgnoringNewLine(TokenType::CLOSE_CURLY) || Expected("Expected a closing pair for '{'", token_vec[curly_brace_position].GetLine(), token_vec[curly_brace_position].GetColumn()))
+	   (Peek(TokenType::CLOSE_CURLY) || Expected("Expected a closing pair for '{'", token_vec[curly_brace_position].GetLine(), token_vec[curly_brace_position].GetColumn()))
 	   
 	  );
 }
@@ -438,7 +438,7 @@ bool Parser::ParseIfStatement(){
   StoreParserPosition();
 
   return(
-          PeekIgnoringNewLine(TokenType::IF) && ConsumeNext() &&
+          Peek(TokenType::IF) && ConsumeNext() &&
 	  (ParseExpression() || (Expected("Expected an condition after the 'if' keyword", GENERATE_POSITION) && DidYouMean("<some_expression>", GENERATE_POSITION)))&&
 	  ParseCurlyBraceAndBody()
 	);
@@ -448,7 +448,7 @@ bool Parser::ParseElseStatement(){
   StoreParserPosition();
 
   return(
-         PeekIgnoringNewLine(TokenType::ELSE) && ConsumeNext() &&
+         Peek(TokenType::ELSE) && ConsumeNext() &&
 	 ((ParseExpression() && DidYouMean("if", GENERATE_POSITION) && Expected("An Else Statement don't require any condition", GENERATE_POSITION))  || ParseCurlyBraceAndBody()) && 
 	 ParseCurlyBraceAndBody()
 	
@@ -459,12 +459,60 @@ bool Parser::ParseElseIfStatement(){
    StoreParserPosition();
 
    return(
-           PeekIgnoringNewLine(TokenType::ELSE) && ConsumeNext() &&
-	   PeekIgnoringNewLine(TokenType::IF) && ConsumeNext() &&
+           Peek(TokenType::ELSE) && ConsumeNext() &&
+	   Peek(TokenType::IF) && ConsumeNext() &&
 	   (ParseExpression() || (Expected("Expected an condition after 'else-if'", GENERATE_POSITION) && DidYouMean("<some_expression>", GENERATE_POSITION))) &&
 
 	   ParseCurlyBraceAndBody()
          );
+}
+
+bool Parser::ParseErrorenousFunction(){
+    StoreParserPosition();
+
+    std::bitset<5> fn_tokens{0b11111};
+    std::bitset<4> tokens{0b1111};
+    
+    if (!Peek(TokenType::FUNCTION)) fn_tokens[4] = 0; 
+    ConsumeNext();
+
+    if (!Peek(TokenType::ID)) fn_tokens[3] = 0; 
+    ConsumeNext();
+
+    if (!Peek(TokenType::OPEN_PARENTHESIS)) fn_tokens[2] = 0; 
+    ConsumeNext();
+
+    if (!Peek(TokenType::CLOSE_PARENTHESIS)) fn_tokens[1] = 0;
+    ConsumeNext();
+
+    if (!Peek(TokenType::OPEN_CURLY)) fn_tokens[0] = 0;
+    ConsumeNext();
+
+    if(fn_tokens == std::bitset<5>{0b01111}){
+        Expected("Expected the 'function' keyword", GENERATE_POSITION);
+	return true;
+    }
+
+    BackTrack();
+
+    if (Peek(TokenType::ID)) tokens[3] = 0; 
+    ConsumeNext();
+
+    if (Peek(TokenType::OPEN_PARENTHESIS)) tokens[2] = 0; 
+    ConsumeNext();
+
+    if (Peek(TokenType::CLOSE_PARENTHESIS)) tokens[1] = 0;
+    ConsumeNext();
+
+    if (Peek(TokenType::OPEN_CURLY)) tokens[0] = 0;
+    ConsumeNext();
+
+    if(tokens == std::bitset<4>{0b0000}){
+        Expected("Expected the 'function' keyword", GENERATE_POSITION);
+	return true;
+    }
+
+    return false;
 }
 
 bool Parser::ParseStatement(){
@@ -481,8 +529,9 @@ bool Parser::ParseStatement(){
 	   (BackTrack() && ParseIfStatement())         ||
 	   (BackTrack() && ParseElseIfStatement())     ||
 	   (BackTrack() && ParseElseStatement())       ||
-	   (BackTrack() && ParseFunction())
-	
+	   (BackTrack() && ParseFunction())            ||
+           // Our Compiler is aware of some frequent errors
+	   (BackTrack() && ParseErrorenousFunction())
 	);
 }
 

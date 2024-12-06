@@ -33,7 +33,7 @@ class Parser{
    bool ParseFunctionWithRetType();
    bool ParseFunctionWithoutRetType();
    bool ParseFunction();
-
+   bool ParseErrorenousFunction();
    // Utility for Parsing Variable Declaration
    bool ParseVariableDeclWithLet();
    bool ParseVariableDeclWithType();

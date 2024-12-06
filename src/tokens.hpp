@@ -19,7 +19,7 @@ enum class TokenType{
   GTE,
   ID,
   NUM,
-  NEW_LINE,
+  SEMI_COLON,
   OPEN_PARENTHESIS,
   CLOSE_PARENTHESIS,
   OPEN_SQUARE,
@@ -29,6 +29,7 @@ enum class TokenType{
   COMMA,
   ARROW,
   ASSIGN,
+  COLON,
   NUMBER,
   // Keywords
   EXPORT,

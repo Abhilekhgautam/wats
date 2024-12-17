@@ -49,19 +49,20 @@ std::vector<std::string> split_str(const std::string &text,
 
 
 #endif
-inline std::string SetArrow(std::size_t pos){
+inline std::string SetArrow(std::size_t pos, std::size_t times = 1){
     std::string arrows;
     for(size_t i = 0 ; i < pos - 1; ++i)
        arrows += ' ';
-    arrows += '^';
+    for(size_t i = 0 ; i < times ; ++i)
+       arrows += '^';
     return arrows;
 }
 
-inline std::string SetPlus(std::size_t pos, std::size_t times){
+inline std::string SetPlus(std::size_t pos, std::size_t times = 1){
    std::string plus;
    for(size_t i = 0 ; i < pos - 1 ; ++i)
        plus += ' ';
-   for(int i = 0 ; i < times ; ++i)
+   for(size_t i = 0 ; i < times ; ++i)
        plus += '+';
 
    return plus;

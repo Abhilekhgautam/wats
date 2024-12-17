@@ -15,6 +15,22 @@ class Parser{
     bool DidYouMean(std::string to_add, std::size_t line, std::size_t column);
     void Error(const std::string& err_msg);
   private:
+   enum class Intention{
+     FunctionDefinition = 0,
+VariableDeclaration,
+     VariableAssignment,
+     ForLoop,
+     WhileLoop,
+     Loop,
+     If,
+     ElseIf,
+     Else,
+     Unknown
+    };
+
+   Intention CurrentIntention = Intention::Unknown;
+
+   void SetIntention(Intention intention);
 
    std::vector<Token> token_vec;
    std::vector<std::string> source_code_by_line;
@@ -23,11 +39,13 @@ class Parser{
 
    std::vector<Token> backup_token;
    bool IsAtEnd();
-   bool PeekIgnoringNewLine(TokenType);
-   bool Peek(TokenType);
+   bool PeekIgnoringNewLine(TokenName);
+   bool Peek(TokenName);
    bool ConsumeNext();
    bool BackTrack();
    void StoreParserPosition();
+
+   std::size_t GetNextTokenLength();
 
    // Utility for Parsing Function Definition
    bool ParseFunctionWithRetType();

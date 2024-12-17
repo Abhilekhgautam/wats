@@ -5,26 +5,26 @@
 #include <format>
 #include <iostream>
 
-std::map<std::string, TokenType> Lexer::keywords = {
-    {"export", TokenType::EXPORT},
-    {"function", TokenType::FUNCTION},
-    {"where", TokenType::WHERE},
-    {"from", TokenType::FROM},
-    {"import", TokenType::IMPORT},
-    {"i32", TokenType::I32},
-    {"i64", TokenType::I64},
-    {"f32", TokenType::F32},
-    {"f64", TokenType::F64},
-    {"let", TokenType::LET},
-    {"const", TokenType::CONST},
-    {"to", TokenType::TO},
-    {"in", TokenType::IN},
-    {"for", TokenType::FOR},
-    {"while", TokenType::WHILE},
-    {"loop", TokenType::LOOP},
-    {"match", TokenType::MATCH},
-    {"if", TokenType::IF},
-    {"else", TokenType::ELSE}
+std::map<std::string, TokenName> Lexer::keywords = {
+    {"export", TokenName::EXPORT},
+    {"function", TokenName::FUNCTION},
+    {"where", TokenName::WHERE},
+    {"from", TokenName::FROM},
+    {"import", TokenName::IMPORT},
+    {"i32", TokenName::I32},
+    {"i64", TokenName::I64},
+    {"f32", TokenName::F32},
+    {"f64", TokenName::F64},
+    {"let", TokenName::LET},
+    {"const", TokenName::CONST},
+    {"to", TokenName::TO},
+    {"in", TokenName::IN},
+    {"for", TokenName::FOR},
+    {"while", TokenName::WHILE},
+    {"loop", TokenName::LOOP},
+    {"match", TokenName::MATCH},
+    {"if", TokenName::IF},
+    {"else", TokenName::ELSE}
 };
 
 Lexer::Lexer(std::string str){
@@ -89,70 +89,70 @@ void Lexer::ScanToken(const char c){
 		  break;
 	       }
      case ':':{
-                 AddToken(Token{TokenType::COLON, line, column, c});
+                 AddToken(Token{TokenName::COLON, line, column, c});
 		 line = line + 1;
 		 column = column + 1;
 		 break;
 
 	       }
      case ';': {
-		 AddToken(Token{TokenType::SEMI_COLON, line, column, c});
+		 AddToken(Token{TokenName::SEMI_COLON, line, column, c});
 		 column = column + 1;
 		 break;
 	       }
 
      case '+': {
-		  AddToken(Token{TokenType::PLUS, line, column, c}); 
+		  AddToken(Token{TokenName::PLUS, line, column, c}); 
 		  column = column + 1; 
 		  break;
 	       }
      case '-': {
-		  AddToken(Token{TokenType::MINUS, line, column, c});
+		  AddToken(Token{TokenName::MINUS, line, column, c});
 		  column = column + 1;  
 		  break;
 	       }
      case '*': {
-		 AddToken(Token{TokenType::MUL, line, column,  c});
+		 AddToken(Token{TokenName::MUL, line, column,  c});
 		 column = column + 1; 
 		 break;
 	       }
      case '/': {
-		 AddToken(Token{TokenType::DIV, line, column, c}); 
+		 AddToken(Token{TokenName::DIV, line, column, c}); 
 		 column = column + 1;
 		 break;
 	       }
      case '%': {
-		 AddToken({TokenType::MOD, line, column, c}); 
+		 AddToken({TokenName::MOD, line, column, c}); 
 		 column = column + 1; 
 		 break;
 	       }
      case '(': {
-		 AddToken(Token{TokenType::OPEN_PARENTHESIS, line, column, c}); 
+		 AddToken(Token{TokenName::OPEN_PARENTHESIS, line, column, c}); 
 		 column = column + 1; 
 		 break;
 	       }
      case ')': {
-		 AddToken(Token{TokenType::CLOSE_PARENTHESIS, line, column, c}); 
+		 AddToken(Token{TokenName::CLOSE_PARENTHESIS, line, column, c}); 
 		 column = column + 1; 
 		 break;
 	       }
      case '{': {
-		 AddToken(Token{TokenType::OPEN_CURLY, line, column, c});
+		 AddToken(Token{TokenName::OPEN_CURLY, line, column, c});
 		 column = column + 1;
 		 break;
 	       }
      case '}': {
-		 AddToken(Token{TokenType::CLOSE_CURLY, line, column, c}); 
+		 AddToken(Token{TokenName::CLOSE_CURLY, line, column, c}); 
 		 column = column + 1;
 		 break;
 	       }
      case '[': {
-		 AddToken(Token{TokenType::OPEN_SQUARE, line, column, c});
+		 AddToken(Token{TokenName::OPEN_SQUARE, line, column, c});
 		 column = column + 1; 
 		 break;
 	       }
      case ']': {
-		 AddToken(Token{TokenType::CLOSE_SQUARE, line, column, c});
+		 AddToken(Token{TokenName::CLOSE_SQUARE, line, column, c});
 		 column = column + 1; 
 		 break;
 	       }
@@ -164,22 +164,22 @@ void Lexer::ScanToken(const char c){
 		 break;
 	       }
      case ',': {
-		 AddToken(Token{TokenType::COMMA, line, column, c}); 
+		 AddToken(Token{TokenName::COMMA, line, column, c}); 
 		 column = column + 1; 
 		 break;
 	       }
      case '=': {
 		 if (Peek() == '=') {
-	            AddToken(Token{TokenType::EQ, line, column, "=="}); 
+	            AddToken(Token{TokenName::EQ, line, column, "=="}); 
 		    ConsumeNext(); 
 		    column = column + 2;
 		 } else if (Peek() == '>') {
-                    AddToken(Token{TokenType::ARROW, line, column + 1, "=>"});
+                    AddToken(Token{TokenName::ARROW, line, column + 1, "=>"});
 		    ConsumeNext();
 		    column = column + 2;
 		 }
 		 else {
-	            AddToken(Token{TokenType::ASSIGN, line,column, c}); 
+	            AddToken(Token{TokenName::ASSIGN, line,column, c}); 
 		    column = column + 1;
 		 }
 
@@ -188,24 +188,24 @@ void Lexer::ScanToken(const char c){
 	       }
      case '<': {
 		 if (Peek() == '=') {
-		     AddToken(Token{TokenType::LTE, line, column, "<="}); 
+		     AddToken(Token{TokenName::LTE, line, column, "<="}); 
 		     ConsumeNext() ; 
 	             column = column + 2;
 		 }
 		 else {
-		    AddToken(Token{TokenType::LT, line, column, c}); 
+		    AddToken(Token{TokenName::LT, line, column, c}); 
                     column = column + 1;
 		 }
 		 break;
 	       }
      case '>': {
 		 if (Peek() == '=') {
-		    AddToken(Token{TokenType::GTE, line, column, ">="});
+		    AddToken(Token{TokenName::GTE, line, column, ">="});
 		    ConsumeNext();
 		    column = column + 2;
 		 }
 	         else {
-		    AddToken(Token{TokenType::GT, line, column, c});
+		    AddToken(Token{TokenName::GT, line, column, c});
 		    ConsumeNext();
 		    column = column + 1;
 		 }
@@ -214,12 +214,12 @@ void Lexer::ScanToken(const char c){
 	       }
      case '!': {
 		 if (Peek() == '=') {
-		    AddToken(Token{TokenType::NEQ, line, column, "!="});
+		    AddToken(Token{TokenName::NEQ, line, column, "!="});
 		    ConsumeNext();
 		    column = column + 2;
 		 }
 		 else {
-		    AddToken(Token{TokenType::NOT, line, column, c});
+		    AddToken(Token{TokenName::NOT, line, column, c});
 		    column = column + 1;
 		 }
 		 break;
@@ -228,7 +228,7 @@ void Lexer::ScanToken(const char c){
 	   // handle numbers
            if (isdigit(c)){
 	      std::string number = std::format("{}{}",c,Number());
-	      AddToken(Token{TokenType::NUMBER, line, column, number});
+	      AddToken(Token{TokenName::NUMBER, line, column, number});
 	      column = column + 1;
 	   } else if (isalnum(c)){ // handle id and keywords
 	     std::string id = std::format("{}{}",c, Identifier());
@@ -238,7 +238,7 @@ void Lexer::ScanToken(const char c){
 	     if (found != keywords.end()){    
 		AddToken(Token{found->second, line, column, found->first});     
 	     }
-	     else AddToken(Token{TokenType::ID, line, column, id});
+	     else AddToken(Token{TokenName::ID, line, column, id});
 	     
 	     column = column + 1;
 	   

@@ -1,6 +1,6 @@
 # Compiler and flags
-CXX = clang++
-CXXFLAGS = -std=c++20 -Wall -Wextra -O2
+CXX = clang++ -g
+CXXFLAGS = -std=c++20 -Wall -Wextra
 
 # Directories
 SRC_DIR = src
@@ -23,7 +23,7 @@ all: $(TARGET)
 # Link object files to create the executable
 $(TARGET): $(OBJS)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) -g $(CXXFLAGS) -o $@ $^
 
 # Compile source files into object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
@@ -36,4 +36,3 @@ clean:
 
 # Phony targets
 .PHONY: all clean
-

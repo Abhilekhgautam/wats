@@ -1,37 +1,23 @@
 #ifndef PARSER_HPP
-#define PARSER_HPP 
+#define PARSER_HPP
 
 #include <vector>
-#include "tokens.hpp"
+#include <optional>
 
+#include "AST/ASTNode.hpp"
+
+#include "tokens.hpp"
 class Parser{
   public:
     Parser(const std::vector<Token>& token_vec, const std::vector<std::string>& source_code_by_line): token_vec(token_vec), source_code_by_line(source_code_by_line), current_parser_position(-1){}
-    
+
     void Parse();
 
     std::size_t GetExprLength();
 
-    bool DidYouMean(std::string to_add, std::size_t line, std::size_t column);
+    void DidYouMean(std::string to_add, std::size_t line, std::size_t column);
     void Error(const std::string& err_msg);
   private:
-   enum class Intention{
-     FunctionDefinition = 0,
-VariableDeclaration,
-     VariableAssignment,
-     ForLoop,
-     WhileLoop,
-     Loop,
-     If,
-     ElseIf,
-     Else,
-     Unknown
-    };
-
-   Intention CurrentIntention = Intention::Unknown;
-
-   void SetIntention(Intention intention);
-
    std::vector<Token> token_vec;
    std::vector<std::string> source_code_by_line;
    std::size_t current_parser_position;
@@ -41,70 +27,69 @@ VariableDeclaration,
    bool IsAtEnd();
    bool PeekIgnoringNewLine(TokenName);
    bool Peek(TokenName);
-   bool ConsumeNext();
-   bool BackTrack();
+
+   Token GetCurrentToken();
+   void ConsumeNext();
+   void BackTrack();
    void StoreParserPosition();
 
    std::size_t GetNextTokenLength();
 
    // Utility for Parsing Function Definition
-   bool ParseFunctionWithRetType();
-   bool ParseFunctionWithoutRetType();
-   bool ParseFunction();
+   std::optional<FunctionDefinitionAST*> ParseFunctionWithRetType();
+   std::optional<FunctionDefinitionAST*> ParseFunctionWithoutRetType();
+   std::optional<FunctionDefinitionAST*> ParseFunction();
    bool ParseErrorenousFunction();
    // Utility for Parsing Variable Declaration
-   bool ParseVariableDeclWithLet();
-   bool ParseVariableDeclWithType();
-   bool ParseVariableAssignment();
-   bool ParseVariableInitWithLet();
-   bool ParseVariableDecl();
+   std::optional<VariableDeclarationAST*> ParseVariableDeclWithLet();
+   std::optional<VariableDeclarationAST*> ParseVariableDeclWithType();
+   std::optional<VariableAssignmentAST*> ParseVariableAssignment();
+   std::optional<VariableDeclareAndAssignAST*> ParseVariableInitWithLet();
+   std::optional<StatementAST*> ParseVariableDecl();
 
    // Utility for Parsing Expression
-   bool ParseExpressionBeginningWithID();
-   bool ParseExpressionBeginningWithNumber();
-   bool ParseExpressionBeginningWithBraces();
+   std::optional<ExpressionAST*> ParseExpressionBeginningWithID();
+   std::optional<ExpressionAST*> ParseExpressionBeginningWithNumber();
+   std::optional<ExpressionAST*> ParseExpressionBeginningWithBraces();
 
-   bool ParsePlusExpression();
-   bool ParseMinusExpression();
-   bool ParseMulExpression();
-   bool ParseDivExpression();
-   bool ParseModExpression();
-   bool ParseGtExpression();
-   bool ParseLtExpression();
-   bool ParseGteExpression();
-   bool ParseLteExpression();
-   bool ParseEmptyExpression();
+   std::optional<ExpressionAST*> ParsePlusExpression();
+   std::optional<ExpressionAST*> ParseMinusExpression();
+   std::optional<ExpressionAST*> ParseMulExpression();
+   std::optional<ExpressionAST*> ParseDivExpression();
+   std::optional<ExpressionAST*> ParseModExpression();
+   std::optional<ExpressionAST*> ParseGtExpression();
+   std::optional<ExpressionAST*> ParseLtExpression();
+   std::optional<ExpressionAST*> ParseGteExpression();
+   std::optional<ExpressionAST*> ParseLteExpression();
+   std::optional<ExpressionAST*> ParseEqualsExpression();
 
    // Not the subtraction
-   bool ParseSubExpression();
+   std::optional<std::pair<ExpressionAST*, std::string>> ParseSubExpression();
 
-   bool ParseExpression();
-   
-   // Todo: Maybe a better name
-   void ParseExpr();
+   std::optional<ExpressionAST*> ParseExpression();
 
-   bool ParseRange();
+   std::optional<RangeAST*> ParseRange();
 
-   bool ParseCurlyBraceAndBody();
+   std::optional<StatementAST*> ParseCurlyBraceAndBody();
 
-   bool ParseMatchArms();
-   bool ParseMatchArm();
-   bool ParseMatchStatement();
+   std::optional<std::vector<MatchArmAST*>> ParseMatchArms();
+   std::optional<MatchArmAST*> ParseMatchArm();
+   std::optional<StatementAST*> ParseMatchStatement();
 
-   bool ParseIfStatement();
-   bool ParseElseStatement();
-   bool ParseElseIfStatement();
+   std::optional<StatementAST*> ParseIfStatement();
+   std::optional<StatementAST*> ParseElseStatement();
+   std::optional<StatementAST*> ParseElseIfStatement();
 
-   bool ParseLoop();
-   bool ParseForLoop();
-   bool ParseWhileLoop();
+   std::optional<StatementAST*> ParseLoop();
+   std::optional<StatementAST*> ParseForLoop();
+   std::optional<StatementAST*> ParseWhileLoop();
 
-   bool ParseStatement();
-   bool ParseStatements();
+   std::optional<StatementAST*> ParseStatement();
+   std::optional<StatementAST*> ParseStatements();
 
-   bool Expected(const std::string, std::size_t line, std::size_t column);
-   
-   std::size_t expression_length;
+
+   void Expected(const std::string, std::size_t line, std::size_t column);
+
 };
 
 #endif

@@ -25,12 +25,12 @@ class ExpressionAST {
 /// }
 class FunctionDefinitionAST : public StatementAST{
   public:
-    FunctionDefinitionAST(std::string_view fn_name, std::vector<std::pair<Type*, std::string>> parameters, StatementAST* function_body, Type* ret_type)
+    FunctionDefinitionAST(std::string_view fn_name, std::vector<std::pair<Type*, std::string>> parameters, std::vector<StatementAST*> function_body, Type* ret_type)
 	    : fn_name(fn_name), parameters(parameters), function_body(function_body), ret_type(ret_type){}
   private:
     std::string fn_name;
     std::vector<std::pair<Type*, std::string>> parameters;
-    StatementAST* function_body;
+    std::vector<StatementAST*> function_body;
     Type* ret_type;
 
   public:
@@ -52,12 +52,12 @@ class RangeAST : public ExpressionAST {
 /// }
 class ForLoopAST : public StatementAST{
   public:
-   ForLoopAST(std::string iter_var_name, RangeAST* range, StatementAST* loop_body)
+   ForLoopAST(std::string iter_var_name, RangeAST* range, std::vector<StatementAST*> loop_body)
 	   : var_name(iter_var_name), range(range), loop_body(loop_body){}
   private:
    std::string var_name;
    RangeAST* range;
-   StatementAST* loop_body;
+   std::vector<StatementAST*> loop_body;
 };
 
 /// while i < 5 {
@@ -65,11 +65,11 @@ class ForLoopAST : public StatementAST{
 /// }
 class WhileLoopAST : public StatementAST{
    public:
-    WhileLoopAST(ExpressionAST* condition, StatementAST* loop_body)
+    WhileLoopAST(ExpressionAST* condition, std::vector<StatementAST*> loop_body)
 	    : condition(condition), loop_body(loop_body){}
    private:
     ExpressionAST* condition;
-    StatementAST*  loop_body;
+    std::vector<StatementAST*>  loop_body;
 };
 
 /// loop {
@@ -77,10 +77,10 @@ class WhileLoopAST : public StatementAST{
 /// }
 class LoopAST : public StatementAST{
    public:
-    LoopAST(StatementAST* loop_body)
+    LoopAST(std::vector<StatementAST*> loop_body)
 	    : loop_body(loop_body){}
 	private:
-	 StatementAST* loop_body;
+	 std::vector<StatementAST*> loop_body;
 
 };
 
@@ -121,37 +121,37 @@ class VariableDeclareAndAssignAST : public StatementAST{
 
 class IfStatementAST : public StatementAST{
  public:
-    IfStatementAST(ExpressionAST* condition, StatementAST* if_body)
+    IfStatementAST(ExpressionAST* condition, std::vector<StatementAST*> if_body)
        : condition(condition), if_body(if_body){}
  private:
     ExpressionAST* condition;
-    StatementAST* if_body;
+    std::vector<StatementAST*> if_body;
 };
 
 class ElseStatementAST : public StatementAST{
  public:
-   ElseStatementAST(StatementAST* else_body)
+   ElseStatementAST(std::vector<StatementAST*> else_body)
 	: else_body(else_body){}
  private:
-   StatementAST* else_body;
+   std::vector<StatementAST*> else_body;
 };
 
 class ElseIfStatementAST : public StatementAST{
   public:
-    ElseIfStatementAST(ExpressionAST* condition, StatementAST* else_if_body)
+    ElseIfStatementAST(ExpressionAST* condition, std::vector<StatementAST*> else_if_body)
 	: condition(condition), else_if_body(else_if_body){}
   private:
     ExpressionAST* condition;
-    StatementAST* else_if_body;
+    std::vector<StatementAST*> else_if_body;
 };
 
 class MatchArmAST : public StatementAST{
     public:
-       MatchArmAST(ExpressionAST* cond, StatementAST* body)
+       MatchArmAST(ExpressionAST* cond, std::vector<StatementAST*> body)
        : cond(cond), body(body){}
     private:
       ExpressionAST* cond;
-      StatementAST* body;
+      std::vector<StatementAST*> body;
 };
 
 class MatchStatementAST : public StatementAST{

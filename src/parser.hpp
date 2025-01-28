@@ -71,7 +71,7 @@ class Parser{
 
    std::optional<RangeAST*> ParseRange();
 
-   std::optional<StatementAST*> ParseCurlyBraceAndBody();
+   std::optional<std::vector<StatementAST*>> ParseCurlyBraceAndBody();
 
    std::optional<std::vector<MatchArmAST*>> ParseMatchArms();
    std::optional<MatchArmAST*> ParseMatchArm();
@@ -86,7 +86,7 @@ class Parser{
    std::optional<StatementAST*> ParseWhileLoop();
 
    std::optional<StatementAST*> ParseStatement();
-   std::optional<StatementAST*> ParseStatements();
+   std::optional<std::vector<StatementAST*>> ParseStatements();
 
 
    void Expected(const std::string, std::size_t line, std::size_t column);

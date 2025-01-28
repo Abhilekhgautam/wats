@@ -117,7 +117,7 @@ std::optional<FunctionDefinitionAST*> Parser::ParseFunctionWithRetType(){
   auto result = ParseCurlyBraceAndBody();
   if(result.has_value()){
       std::vector<std::pair<Type*, std::string>> dummy;
-	  return new FunctionDefinitionAST(fn_name, dummy, nullptr, nullptr);
+	  return new FunctionDefinitionAST(fn_name, dummy, result.value(), nullptr);
 	} else return {};
 }
 
@@ -156,7 +156,7 @@ std::optional<FunctionDefinitionAST*> Parser::ParseFunctionWithoutRetType(){
     auto result = ParseCurlyBraceAndBody();
     if(result.has_value()){
         std::vector<std::pair<Type*, std::string>> dummy;
-	  return new FunctionDefinitionAST(fn_name, dummy, nullptr, nullptr);
+	  return new FunctionDefinitionAST(fn_name, dummy, result.value(), nullptr);
 	} else return {};
 }
 
@@ -683,7 +683,7 @@ std::optional<RangeAST*> Parser::ParseRange(){
   return new RangeAST(start.value(), end.value());
 }
 
-std::optional<StatementAST*> Parser::ParseCurlyBraceAndBody(){
+std::optional<std::vector<StatementAST*>> Parser::ParseCurlyBraceAndBody(){
     int curly_brace_position;
 
     if (Peek(TokenName::OPEN_CURLY)){
@@ -997,16 +997,24 @@ std::optional<StatementAST*> Parser::ParseStatement(){
   return {};
 }
 
-std::optional<StatementAST*> Parser::ParseStatements(){
+std::optional<std::vector<StatementAST*>> Parser::ParseStatements(){
    StoreParserPosition();
+
+   std::vector<StatementAST*> stmts;
    auto result = ParseStatement();
 
    if(result.has_value()){
+       stmts.push_back(result.value());
+
        auto new_result = ParseStatements();
 
        if(new_result.has_value()){
-           return new_result;
-       } else return result;
+           auto stmt = new_result.value();
+           for (auto elt : stmt){
+               stmts.push_back(elt);
+           }
+           return stmts;
+       } else return stmts;
    }
    else return {};
 }

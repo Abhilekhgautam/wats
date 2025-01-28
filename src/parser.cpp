@@ -479,6 +479,14 @@ std::optional<std::pair<ExpressionAST*, std::string>> Parser::ParseSubExpression
 	   return std::pair<ExpressionAST*, std::string>{expr.value(), "=="};
 	}
 
+	BackTrack();
+
+	expr = ParseNotEqualsExpression();
+
+	if(expr.has_value()){
+	   return std::pair<ExpressionAST*, std::string>{expr.value(), "!="};
+	}
+
     return {};
 }
 
@@ -614,6 +622,19 @@ std::optional<ExpressionAST*> Parser::ParseEqualsExpression(){
     else return {};
 }
 
+std::optional<ExpressionAST*> Parser::ParseNotEqualsExpression(){
+    StoreParserPosition();
+
+    if(Peek(TokenName::NEQ)) ConsumeNext();
+    else return {};
+
+    auto expr = ParseExpression();
+
+    if(expr.has_value()){
+        return expr;
+    }
+    else return {};
+}
 std::optional<ExpressionAST*> Parser::ParseExpression(){
   StoreParserPosition();
 

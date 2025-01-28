@@ -62,6 +62,7 @@ class Parser{
    std::optional<ExpressionAST*> ParseGteExpression();
    std::optional<ExpressionAST*> ParseLteExpression();
    std::optional<ExpressionAST*> ParseEqualsExpression();
+   std::optional<ExpressionAST*> ParseNotEqualsExpression();
 
    // Not the subtraction
    std::optional<std::pair<ExpressionAST*, std::string>> ParseSubExpression();

@@ -37,7 +37,7 @@ Lexer::Lexer(std::string str){
 }
 
 bool Lexer::IsAtEnd(){
-  return current_scan_position >= source_code.length();	
+  return current_scan_position >= source_code.length();
 }
 
 void Lexer::Tokenize(){
@@ -46,35 +46,35 @@ void Lexer::Tokenize(){
      try{
        current_char = source_code.at(current_scan_position);
      } catch (std::out_of_range& e){
-	 return;    
+	 return;
      }
      ScanToken(current_char);
-     current_scan_position = current_scan_position + 1;	  
+     current_scan_position = current_scan_position + 1;
   }
 }
 
 char Lexer::Peek(){
   try{
-     return source_code.at(current_scan_position + 1);  
+     return source_code.at(current_scan_position + 1);
   } catch (std::out_of_range& exp){
-    return '\0';  
+    return '\0';
   }
 }
 
 char Lexer::PeekNext(){
   try{
-     return source_code.at(current_scan_position + 2);	  
+     return source_code.at(current_scan_position + 2);
   } catch (std::out_of_range& exp){
-     return '\0';	  
-  }	
+     return '\0';
+  }
 }
 
 void Lexer::ConsumeNext(){
-  current_scan_position = current_scan_position + 1;	
+  current_scan_position = current_scan_position + 1;
 }
 
 void Lexer::AddToken(Token tok){
-  token_vec.push_back(tok);	
+  token_vec.push_back(tok);
 }
 
 void Lexer::ScanToken(const char c){
@@ -85,16 +85,15 @@ void Lexer::ScanToken(const char c){
 		  break;
 		}
      case ' ': {
-		  column = column + 1;     
+		  column = column + 1;
 		  break;
 	       }
      case ':':{
-                 AddToken(Token{TokenName::COLON, line, column, c});
-		 line = line + 1;
-		 column = column + 1;
-		 break;
-
+            AddToken(Token{TokenName::COLON, line, column, c});
+		    column = column + 1;
+		    break;
 	       }
+
      case ';': {
 		 AddToken(Token{TokenName::SEMI_COLON, line, column, c});
 		 column = column + 1;
@@ -102,38 +101,38 @@ void Lexer::ScanToken(const char c){
 	       }
 
      case '+': {
-		  AddToken(Token{TokenName::PLUS, line, column, c}); 
-		  column = column + 1; 
+		  AddToken(Token{TokenName::PLUS, line, column, c});
+		  column = column + 1;
 		  break;
 	       }
      case '-': {
 		  AddToken(Token{TokenName::MINUS, line, column, c});
-		  column = column + 1;  
+		  column = column + 1;
 		  break;
 	       }
      case '*': {
 		 AddToken(Token{TokenName::MUL, line, column,  c});
-		 column = column + 1; 
+		 column = column + 1;
 		 break;
 	       }
      case '/': {
-		 AddToken(Token{TokenName::DIV, line, column, c}); 
+		 AddToken(Token{TokenName::DIV, line, column, c});
 		 column = column + 1;
 		 break;
 	       }
      case '%': {
-		 AddToken({TokenName::MOD, line, column, c}); 
-		 column = column + 1; 
+		 AddToken({TokenName::MOD, line, column, c});
+		 column = column + 1;
 		 break;
 	       }
      case '(': {
-		 AddToken(Token{TokenName::OPEN_PARENTHESIS, line, column, c}); 
-		 column = column + 1; 
+		 AddToken(Token{TokenName::OPEN_PARENTHESIS, line, column, c});
+		 column = column + 1;
 		 break;
 	       }
      case ')': {
-		 AddToken(Token{TokenName::CLOSE_PARENTHESIS, line, column, c}); 
-		 column = column + 1; 
+		 AddToken(Token{TokenName::CLOSE_PARENTHESIS, line, column, c});
+		 column = column + 1;
 		 break;
 	       }
      case '{': {
@@ -142,36 +141,36 @@ void Lexer::ScanToken(const char c){
 		 break;
 	       }
      case '}': {
-		 AddToken(Token{TokenName::CLOSE_CURLY, line, column, c}); 
+		 AddToken(Token{TokenName::CLOSE_CURLY, line, column, c});
 		 column = column + 1;
 		 break;
 	       }
      case '[': {
 		 AddToken(Token{TokenName::OPEN_SQUARE, line, column, c});
-		 column = column + 1; 
+		 column = column + 1;
 		 break;
 	       }
      case ']': {
 		 AddToken(Token{TokenName::CLOSE_SQUARE, line, column, c});
-		 column = column + 1; 
+		 column = column + 1;
 		 break;
 	       }
      case '#': {
 		 while (!(Peek() == '\n')){
-	           ConsumeNext(); // skip comment;		 
-		 }       
+	           ConsumeNext(); // skip comment;
+		 }
 		 column = column + 1;
 		 break;
 	       }
      case ',': {
-		 AddToken(Token{TokenName::COMMA, line, column, c}); 
-		 column = column + 1; 
+		 AddToken(Token{TokenName::COMMA, line, column, c});
+		 column = column + 1;
 		 break;
 	       }
      case '=': {
 		 if (Peek() == '=') {
-	            AddToken(Token{TokenName::EQ, line, column, "=="}); 
-		    ConsumeNext(); 
+	            AddToken(Token{TokenName::EQ, line, column, "=="});
+		    ConsumeNext();
 		    column = column + 2;
 		 } else if (Peek() == '>') {
                     AddToken(Token{TokenName::ARROW, line, column + 1, "=>"});
@@ -179,7 +178,7 @@ void Lexer::ScanToken(const char c){
 		    column = column + 2;
 		 }
 		 else {
-	            AddToken(Token{TokenName::ASSIGN, line,column, c}); 
+	            AddToken(Token{TokenName::ASSIGN, line,column, c});
 		    column = column + 1;
 		 }
 
@@ -188,12 +187,12 @@ void Lexer::ScanToken(const char c){
 	       }
      case '<': {
 		 if (Peek() == '=') {
-		     AddToken(Token{TokenName::LTE, line, column, "<="}); 
-		     ConsumeNext() ; 
+		     AddToken(Token{TokenName::LTE, line, column, "<="});
+		     ConsumeNext() ;
 	             column = column + 2;
 		 }
 		 else {
-		    AddToken(Token{TokenName::LT, line, column, c}); 
+		    AddToken(Token{TokenName::LT, line, column, c});
                     column = column + 1;
 		 }
 		 break;
@@ -224,7 +223,7 @@ void Lexer::ScanToken(const char c){
 		 }
 		 break;
 	       }
-     default: 
+     default:
 	   // handle numbers
            if (isdigit(c)){
 	      std::string number = std::format("{}{}",c,Number());
@@ -232,27 +231,27 @@ void Lexer::ScanToken(const char c){
 	      column = column + 1;
 	   } else if (isalnum(c)){ // handle id and keywords
 	     std::string id = std::format("{}{}",c, Identifier());
-	     
+
 	     auto found = keywords.find(id);
 
-	     if (found != keywords.end()){    
-		AddToken(Token{found->second, line, column, found->first});     
+	     if (found != keywords.end()){
+		AddToken(Token{found->second, line, column, found->first});
 	     }
 	     else AddToken(Token{TokenName::ID, line, column, id});
-	     
+
 	     column = column + 1;
-	   
+
 	   }else{
 	     std::string err_msg = std::format("Unkown Token: '{}'", c);
 	     Error(err_msg);
 	   }
-  }	
+  }
 }
 
 std::string Lexer::Number(){
   std::string num_str = "";
   while(isdigit(Peek())){
-    num_str.push_back(Peek()); 	  
+    num_str.push_back(Peek());
     ConsumeNext();
     column = column + 1;
   }
@@ -266,7 +265,7 @@ std::string Lexer::Number(){
     ConsumeNext();
     column = column + 1;
   }
-  
+
   return num_str;
 
 }
@@ -293,7 +292,7 @@ void Lexer::Error(const std::string& err_msg){
 }
 
 const std::vector<Token>& Lexer::GetTokens(){
-    return token_vec;	
+    return token_vec;
 }
 
 const std::vector<std::string>& Lexer::GetSourceCode(){
@@ -302,6 +301,6 @@ const std::vector<std::string>& Lexer::GetSourceCode(){
 
 void Lexer::Debug(){
   for (const auto& elt: token_vec){
-    std::cout << elt << '\n';	  
-  }	
+    std::cout << elt << '\n';
+  }
 }

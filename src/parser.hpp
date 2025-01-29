@@ -45,7 +45,7 @@ class Parser{
    std::optional<VariableDeclarationAST*> ParseVariableDeclWithType();
    std::optional<VariableAssignmentAST*> ParseVariableAssignment();
    std::optional<VariableDeclareAndAssignAST*> ParseVariableInitWithLet();
-   std::optional<StatementAST*> ParseVariableDecl();
+   std::optional<VariableDeclarationAST*> ParseVariableDecl();
 
    // Utility for Parsing Expression
    std::optional<ExpressionAST*> ParseExpressionBeginningWithID();
@@ -81,9 +81,9 @@ class Parser{
    std::optional<StatementAST*> ParseElseStatement();
    std::optional<StatementAST*> ParseElseIfStatement();
 
-   std::optional<StatementAST*> ParseLoop();
-   std::optional<StatementAST*> ParseForLoop();
-   std::optional<StatementAST*> ParseWhileLoop();
+   std::optional<LoopAST*> ParseLoop();
+   std::optional<ForLoopAST*> ParseForLoop();
+   std::optional<WhileLoopAST*> ParseWhileLoop();
 
    std::optional<StatementAST*> ParseStatement();
    std::optional<std::vector<StatementAST*>> ParseStatements();

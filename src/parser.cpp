@@ -10,7 +10,17 @@
 	                  token_vec[current_parser_position].GetColumn() + 1
 
 void Parser::Parse(){
-  ParseStatements();
+  auto stmts = ParseStatements();
+
+  if (stmts.has_value()){
+    auto stmt_vec = stmts.value();
+    std::cout << "Total " << stmt_vec.size() << " statements parsed\n";
+    for(auto elt: stmt_vec){
+          elt->Debug();
+    }
+  }
+
+
 }
 
 void Parser::DidYouMean(const std::string to_add, std::size_t line,
@@ -249,7 +259,7 @@ std::optional<VariableDeclarationAST*> Parser::ParseVariableDeclWithType(){
    return new VariableDeclarationAST(nullptr, var_name);
 }
 
-std::optional<StatementAST*> Parser::ParseVariableDecl(){
+std::optional<VariableDeclarationAST*> Parser::ParseVariableDecl(){
     auto result = ParseVariableDeclWithLet();
 
     if(result.has_value()){
@@ -340,8 +350,8 @@ std::optional<ExpressionAST*> Parser::ParseExpressionBeginningWithID(){
 
   std::string var_name;
   if (Peek(TokenName::ID)){
-      var_name = GetCurrentToken().GetValue();
       ConsumeNext();
+      var_name = GetCurrentToken().GetValue();
   } else return {};
 
   auto identifier_expr = new IdentifierAST(var_name);
@@ -707,7 +717,7 @@ std::optional<std::vector<StatementAST*>> Parser::ParseCurlyBraceAndBody(){
     }
 }
 
-std::optional<StatementAST*> Parser::ParseLoop(){
+std::optional<LoopAST*> Parser::ParseLoop(){
   StoreParserPosition();
 
   if(Peek(TokenName::LOOP)){
@@ -722,7 +732,7 @@ std::optional<StatementAST*> Parser::ParseLoop(){
 	 return {};
 }
 
-std::optional<StatementAST*> Parser::ParseForLoop(){
+std::optional<ForLoopAST*> Parser::ParseForLoop(){
   StoreParserPosition();
 
   if (Peek(TokenName::FOR)) ConsumeNext();
@@ -755,7 +765,7 @@ std::optional<StatementAST*> Parser::ParseForLoop(){
   return new ForLoopAST(iteration_variable, range.value(), body.value());
 }
 
-std::optional<StatementAST*> Parser::ParseWhileLoop(){
+std::optional<WhileLoopAST*> Parser::ParseWhileLoop(){
    StoreParserPosition();
 
    if (Peek(TokenName::WHILE)) ConsumeNext();
@@ -871,6 +881,7 @@ std::optional<StatementAST*> Parser::ParseIfStatement(){
   auto body = ParseCurlyBraceAndBody();
 
   if(body.has_value()){
+      std::cout << "An If Statement was Parsed\n";
       return new IfStatementAST(condition.value(), body.value());
   } else return {};
 }
@@ -1016,5 +1027,5 @@ std::optional<std::vector<StatementAST*>> Parser::ParseStatements(){
            return stmts;
        } else return stmts;
    }
-   else return {};
+   else return stmts;
 }

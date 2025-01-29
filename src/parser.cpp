@@ -19,8 +19,6 @@ void Parser::Parse(){
           elt->Debug();
     }
   }
-
-
 }
 
 void Parser::DidYouMean(const std::string to_add, std::size_t line,
@@ -50,7 +48,6 @@ void Parser::Expected(const std::string str,
 
   std::cout << source_code_by_line[line - 1] << '\n';
   Color("green", SetArrow(column), true);
-
 }
 
 bool Parser::Peek(TokenName tok){
@@ -239,6 +236,7 @@ std::optional<VariableDeclarationAST*> Parser::ParseVariableDeclWithType(){
    }
 
    if (Peek(TokenName::COLON)) ConsumeNext();
+   else return {};
 
    // FixME: i32 for now.
    if(Peek(TokenName::I32)) {
@@ -260,7 +258,7 @@ std::optional<VariableDeclarationAST*> Parser::ParseVariableDeclWithType(){
 }
 
 std::optional<VariableDeclarationAST*> Parser::ParseVariableDecl(){
-    auto result = ParseVariableDeclWithLet();
+    auto result = ParseVariableDeclWithType();
 
     if(result.has_value()){
         std::cout << result.value()->GetVarName() << '\n';
@@ -268,7 +266,7 @@ std::optional<VariableDeclarationAST*> Parser::ParseVariableDecl(){
     }
 
     BackTrack();
-    result = ParseVariableDeclWithType();
+    result = ParseVariableDeclWithLet();
 
     if(result.has_value()){
         std::cout << result.value()->GetVarName() << '\n';
@@ -645,6 +643,7 @@ std::optional<ExpressionAST*> Parser::ParseNotEqualsExpression(){
     }
     else return {};
 }
+
 std::optional<ExpressionAST*> Parser::ParseExpression(){
   StoreParserPosition();
 

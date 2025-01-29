@@ -45,6 +45,7 @@ class Parser{
    std::optional<VariableDeclarationAST*> ParseVariableDeclWithType();
    std::optional<VariableAssignmentAST*> ParseVariableAssignment();
    std::optional<VariableDeclareAndAssignAST*> ParseVariableInitWithLet();
+   std::optional<VariableDeclareAndAssignAST*> ParseVariableInitWithType();
    std::optional<VariableDeclarationAST*> ParseVariableDecl();
 
    // Utility for Parsing Expression

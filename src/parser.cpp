@@ -341,6 +341,52 @@ std::optional<VariableDeclareAndAssignAST*> Parser::ParseVariableInitWithLet(){
 	return new VariableDeclareAndAssignAST(var_name, nullptr, expr.value());
 }
 
+std::optional<VariableDeclareAndAssignAST*> Parser::ParseVariableInitWithType(){
+    StoreParserPosition();
+
+    if(Peek(TokenName::LET)) ConsumeNext();
+    else return {};
+
+    std::string var_name;
+
+    if(Peek(TokenName::ID)) {
+        ConsumeNext();
+        var_name = GetCurrentToken().GetValue();
+    }
+
+    if (Peek(TokenName::COLON)) ConsumeNext();
+    else return {};
+
+    // FixME: i32 for now.
+    if(Peek(TokenName::I32)) {
+        ConsumeNext();
+        // Todo: Store the type.
+    } else {
+        Expected("Consider mentioning the type of the variable", GENERATE_POSITION);
+        return {};
+    }
+
+    if(Peek(TokenName::ASSIGN)) ConsumeNext();
+    else return {};
+
+    auto expr = ParseExpression();
+
+    if(!expr.has_value()){
+      Expected("Expected an value or expression for the assignment", GENERATE_POSITION);
+      return {};
+    }
+
+    if (Peek(TokenName::SEMI_COLON)){
+        ConsumeNext();
+    } else {
+        Expected("Consider adding a ';' here.", GENERATE_POSITION);
+        DidYouMean(";", GENERATE_POSITION);
+        return {};
+    }
+
+	return new VariableDeclareAndAssignAST(var_name, nullptr, expr.value());
+}
+
 // Parsing Variable Declaration Ends here
 
 std::optional<ExpressionAST*> Parser::ParseExpressionBeginningWithID(){
@@ -944,6 +990,13 @@ std::optional<StatementAST*> Parser::ParseStatement(){
   BackTrack();
 
   result = ParseLoop();
+  if(result.has_value()){
+    return result;
+  }
+
+  BackTrack();
+
+  result = ParseVariableInitWithType();
   if(result.has_value()){
     return result;
   }

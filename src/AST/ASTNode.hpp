@@ -267,6 +267,13 @@ class MatchStatementAST : public StatementAST{
         }
 };
 
+class BreakStatementAST : public StatementAST{
+    public:
+    BreakStatementAST() = default;
+    void Debug(){
+        std::cout << "Break Statement:\n break";
+    }
+};
 
 class BinaryExpressionAST : public ExpressionAST{
   public:

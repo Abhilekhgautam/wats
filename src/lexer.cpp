@@ -202,8 +202,7 @@ void Lexer::ScanToken(const char c){
 		    AddToken(Token{TokenName::GTE, line, column, ">="});
 		    ConsumeNext();
 		    column = column + 2;
-		 }
-	         else {
+		 } else {
 		    AddToken(Token{TokenName::GT, line, column, c});
 		    ConsumeNext();
 		    column = column + 1;

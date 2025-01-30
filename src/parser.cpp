@@ -36,7 +36,6 @@ void Parser::DidYouMean(const std::string to_add, std::size_t line,
   std::cout << expected_correct_line << '\n';
   if (to_add != "\n")
       Color("green", SetPlus(column + 1, to_add.length()), true);
-
 }
 
 void Parser::Expected(const std::string str,
@@ -238,10 +237,12 @@ std::optional<VariableDeclarationAST*> Parser::ParseVariableDeclWithType(){
    if (Peek(TokenName::COLON)) ConsumeNext();
    else return {};
 
-   // FixME: i32 for now.
-   if(Peek(TokenName::I32)) {
+   // FixME: add support for user defined type
+   // later when support for classes are added.
+   Type* type;
+   if(Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64)) {
        ConsumeNext();
-       // Todo: Store the type.
+       type = new PrimitiveType(GetCurrentToken().GetValue());
    } else {
        Expected("Consider mentioning the type of the variable", GENERATE_POSITION);
        return {};
@@ -254,7 +255,7 @@ std::optional<VariableDeclarationAST*> Parser::ParseVariableDeclWithType(){
       return {};
    }
 
-   return new VariableDeclarationAST(nullptr, var_name);
+   return new VariableDeclarationAST(type, var_name);
 }
 
 std::optional<VariableDeclarationAST*> Parser::ParseVariableDecl(){
@@ -357,10 +358,12 @@ std::optional<VariableDeclareAndAssignAST*> Parser::ParseVariableInitWithType(){
     if (Peek(TokenName::COLON)) ConsumeNext();
     else return {};
 
-    // FixME: i32 for now.
-    if(Peek(TokenName::I32)) {
+    Type* type;
+    // FixME: Add support for user defined types
+    // later when support for classes are added
+    if(Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64)) {
         ConsumeNext();
-        // Todo: Store the type.
+        type = new PrimitiveType(GetCurrentToken().GetValue());
     } else {
         Expected("Consider mentioning the type of the variable", GENERATE_POSITION);
         return {};
@@ -384,7 +387,7 @@ std::optional<VariableDeclareAndAssignAST*> Parser::ParseVariableInitWithType(){
         return {};
     }
 
-	return new VariableDeclareAndAssignAST(var_name, nullptr, expr.value());
+	return new VariableDeclareAndAssignAST(var_name, type, expr.value());
 }
 
 // Parsing Variable Declaration Ends here

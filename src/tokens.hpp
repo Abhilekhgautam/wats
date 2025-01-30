@@ -50,7 +50,8 @@ enum class TokenName{
   IN,
   MATCH,
   IF,
-  ELSE
+  ELSE,
+  BREAK
 };
 
 std::ostream& operator<<(std::ostream& os, TokenName type);
@@ -58,11 +59,11 @@ std::ostream& operator<<(std::ostream& os, TokenName type);
 class Token{
   public:
     Token(TokenName tok_type, std::size_t line, std::size_t pos, std::string tok_value): tok_type(tok_type), line(line), pos(pos), tok_value(tok_value){}
-    
+
     Token(TokenName tok_type, std::size_t line, std::size_t pos, char tok_value): tok_type(tok_type), line(line), pos(pos), tok_value(std::string{tok_value}){}
-    
+
     friend std::ostream& operator << (std::ostream& os, Token tok){
-	os << "line: " << tok.line << " col: " << tok.pos << " "<< tok.tok_value << " " << tok.tok_type;    
+	os << "line: " << tok.line << " col: " << tok.pos << " "<< tok.tok_value << " " << tok.tok_type;
 	return os;
     }
     inline std::string GetValue(){return tok_value;}

@@ -974,6 +974,11 @@ std::optional<StatementAST*> Parser::ParseElseIfStatement(){
    } else return {};
 }
 
+std::optional<BreakStatementAST*> Parser::ParseBreakStatement(){
+    if (Peek(TokenName::BREAK)) return new BreakStatementAST;
+    else return {};
+}
+
 std::optional<StatementAST*> Parser::ParseStatement(){
   StoreParserPosition();
 

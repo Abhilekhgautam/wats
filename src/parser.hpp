@@ -82,6 +82,8 @@ class Parser{
    std::optional<StatementAST*> ParseElseStatement();
    std::optional<StatementAST*> ParseElseIfStatement();
 
+   std::optional<BreakStatementAST*> ParseBreakStatement();
+
    std::optional<LoopAST*> ParseLoop();
    std::optional<ForLoopAST*> ParseForLoop();
    std::optional<WhileLoopAST*> ParseWhileLoop();

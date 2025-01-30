@@ -1,4 +1,5 @@
 #include "lexer.hpp"
+#include "tokens.hpp"
 #include "utils.hpp"
 
 #include <stdexcept>
@@ -24,7 +25,8 @@ std::map<std::string, TokenName> Lexer::keywords = {
     {"loop", TokenName::LOOP},
     {"match", TokenName::MATCH},
     {"if", TokenName::IF},
-    {"else", TokenName::ELSE}
+    {"else", TokenName::ELSE},
+    {"break", TokenName::BREAK}
 };
 
 Lexer::Lexer(std::string str){

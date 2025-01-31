@@ -975,8 +975,18 @@ std::optional<StatementAST*> Parser::ParseElseIfStatement(){
 }
 
 std::optional<BreakStatementAST*> Parser::ParseBreakStatement(){
-    if (Peek(TokenName::BREAK)) return new BreakStatementAST;
-    else return {};
+    if (Peek(TokenName::BREAK)) {
+        ConsumeNext();
+    } else return {};
+
+    if (Peek(TokenName::SEMI_COLON)){
+        ConsumeNext();
+        return new BreakStatementAST();
+    }
+    else {
+        Expected("Expected semicolon after 'break'", GENERATE_POSITION);
+        return {};
+    }
 }
 
 std::optional<StatementAST*> Parser::ParseStatement(){
@@ -1005,6 +1015,13 @@ std::optional<StatementAST*> Parser::ParseStatement(){
   BackTrack();
 
   result = ParseVariableInitWithType();
+  if(result.has_value()){
+    return result;
+  }
+
+  BackTrack();
+
+  result = ParseBreakStatement();
   if(result.has_value()){
     return result;
   }

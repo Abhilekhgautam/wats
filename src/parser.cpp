@@ -14,7 +14,6 @@ void Parser::Parse(){
 
   if (stmts.has_value()){
     auto stmt_vec = stmts.value();
-    std::cout << "Total " << stmt_vec.size() << " statements parsed\n";
     for(auto elt: stmt_vec){
           elt->Debug();
     }
@@ -50,16 +49,10 @@ void Parser::Expected(const std::string str,
 }
 
 bool Parser::Peek(TokenName tok){
-   try{
-       if (token_vec.at(current_parser_position + 1).GetTokenName() == tok)
-           return true;
+   if (current_parser_position + 1 >= token_vec.size()) return false;
+   else if (token_vec.empty()) return false;
 
-       else return false;
-    }
-   catch(std::out_of_range& e){
-    // there is no next token to peek at
-    return false;
-   }
+   return token_vec.at(current_parser_position + 1).GetTokenName() == tok;       
 }
 
 Token Parser::GetCurrentToken(){
@@ -172,7 +165,6 @@ std::optional<FunctionDefinitionAST*> Parser::ParseFunction(){
     auto resultRetType = ParseFunctionWithRetType();
     if (resultRetType.has_value()){
        auto val = resultRetType.value();
-       std::cout << val->GetFunctionName() << '\n';
        return resultRetType;
 	}
 
@@ -180,9 +172,8 @@ std::optional<FunctionDefinitionAST*> Parser::ParseFunction(){
 
 	auto result = ParseFunctionWithoutRetType();
 	if ((result.has_value())){
-       auto val = result.value();
-       std::cout << val->GetFunctionName() << '\n';
-       return result;
+        auto val = result.value();
+        return result;
 	}
 
 	return {};
@@ -818,6 +809,7 @@ std::optional<ForLoopAST*> Parser::ParseForLoop(){
   else{
     Expected("You missed the 'in' keyword in the for loop", GENERATE_POSITION);
     DidYouMean("in", GENERATE_POSITION);
+    return {};
   }
 
   auto range = ParseRange();
@@ -947,7 +939,6 @@ std::optional<StatementAST*> Parser::ParseIfStatement(){
   auto body = ParseCurlyBraceAndBody();
 
   if(body.has_value()){
-      std::cout << "An If Statement was Parsed\n";
       return new IfStatementAST(condition.value(), body.value());
   } else return {};
 }

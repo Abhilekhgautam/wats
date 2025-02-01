@@ -18,9 +18,11 @@ HDRS = $(wildcard $(SRC_DIR)/*.hpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 WASM_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(WASM_DIR)/%.o, $(SRCS))
 
-# Emscripten flags for exporting functions
-EMFLAGS = -s EXPORTED_FUNCTIONS='["_compile_program"]' \
-          -s -s EXIT_RUNTIME=1 -s "EXPORTED_RUNTIME_METHODS=['ccall']"
+# Emscripten flags
+EMFLAGS = -s EXPORTED_FUNCTIONS='["_compile_program", "_malloc", "_free", "stringToUTF8"]' \
+          -s EXIT_RUNTIME=1 -s "EXPORTED_RUNTIME_METHODS=['ccall']" \
+          -s ALLOW_MEMORY_GROWTH=1 -s DISABLE_EXCEPTION_CATCHING=0 \
+          -s DEMANGLE_SUPPORT=1 -s ASSERTIONS=1 -s SAFE_HEAP=1 -gsource-map -s INITIAL_MEMORY=128MB
 
 all: $(TARGET)
 

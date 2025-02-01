@@ -11,11 +11,10 @@
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void compile_program(const char* source_code) {
-        std::string test(source_code);
+	std::string test(source_code);
 
         Lexer L(test);
         L.Tokenize();
-        L.Debug();
 
         Parser P(L.GetTokens(), L.GetSourceCode());
         P.Parse();

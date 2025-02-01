@@ -76,7 +76,7 @@ class ForLoopAST : public StatementAST{
    std::vector<StatementAST*> loop_body;
 
   public:
-   void Debug(){
+   void Debug() override{
        std::cout << "For loop\n";
        std::cout << "Iteration Variable: " << var_name << '\n';
        std::cout << "Loop body\n";
@@ -97,7 +97,7 @@ class WhileLoopAST : public StatementAST{
     ExpressionAST* condition;
     std::vector<StatementAST*>  loop_body;
    public:
-   void Debug(){
+   void Debug() override{
        std::cout << "While loop\n";
        std::cout << "Loop body\n";
        for(auto elt: loop_body){
@@ -116,7 +116,7 @@ class LoopAST : public StatementAST{
 	private:
 	 std::vector<StatementAST*> loop_body;
 	public:
-    void Debug(){
+    void Debug() override{
        std::cout << "Infinte Loop\n";
        std::cout << "Loop body\n";
        for(auto elt: loop_body){
@@ -139,7 +139,7 @@ class VariableDeclarationAST : public StatementAST{
     public:
      std::string GetVarName(){return variable_name;}
      public:
-     void Debug(){
+     void Debug() override{
          std::cout << "Variable Declaration: " << variable_name;
 
      }
@@ -155,7 +155,7 @@ class VariableAssignmentAST : public StatementAST{
     ExpressionAST* expr;
 
     public:
-    void Debug(){
+    void Debug() override{
         std::cout << "Variable Assignment: " << variable_name << '\n';
         std::cout << "Assigned Value: \n";
         expr->Debug();
@@ -173,7 +173,7 @@ class VariableDeclareAndAssignAST : public StatementAST{
     ExpressionAST* expr;
 
     public:
-    void Debug(){
+    void Debug() override{
         std::cout << "Variable Declare and Assignment : " << variable_name << '\n';
         std::cout << "Assigned Value: ";
         expr->Debug();
@@ -189,7 +189,7 @@ class IfStatementAST : public StatementAST{
     std::vector<StatementAST*> if_body;
 
 public:
-   void Debug(){
+   void Debug() override{
         std::cout << "If Statement: \n";
         std::cout << "If Body:\n";
         for(auto elt: if_body){
@@ -206,7 +206,7 @@ class ElseStatementAST : public StatementAST{
    std::vector<StatementAST*> else_body;
 
    public:
-      void Debug(){
+      void Debug() override{
            std::cout << "Else Statement: \n";
            std::cout << "Else Body:\n";
            for(auto elt: else_body){
@@ -224,7 +224,7 @@ class ElseIfStatementAST : public StatementAST{
     std::vector<StatementAST*> else_if_body;
 
     public:
-       void Debug(){
+       void Debug() override{
             std::cout << "Else If Statement: \n";
             std::cout << "Else If Body:\n";
             for(auto elt: else_if_body){
@@ -241,7 +241,7 @@ class MatchArmAST : public StatementAST{
       ExpressionAST* cond;
       std::vector<StatementAST*> body;
       public:
-         void Debug(){
+         void Debug() override{
               std::cout << "Match Arms: \n";
               std::cout << "Match Body:\n";
               for(auto elt: body){
@@ -259,7 +259,7 @@ class MatchStatementAST : public StatementAST{
     std::vector<MatchArmAST*> arms;
 
     public:
-       void Debug(){
+       void Debug() override{
             std::cout << "Match Statement: \n";
             for(auto elt: arms){
                 elt->Debug();
@@ -270,7 +270,7 @@ class MatchStatementAST : public StatementAST{
 class BreakStatementAST : public StatementAST{
     public:
     BreakStatementAST() = default;
-    void Debug(){
+    void Debug() override{
         std::cout << "Break Statement:\n break";
     }
 };
@@ -285,7 +285,7 @@ class BinaryExpressionAST : public ExpressionAST{
     std::string operator_symbol;
 
     public:
-       void Debug(){
+       void Debug() override{
             std::cout << "Binary Expression\n";
             std::cout << "LHS: ";
             expr_lhs->Debug();
@@ -302,7 +302,7 @@ class IdentifierAST : public ExpressionAST {
     std::string name;
 
     public:
-       void Debug(){
+       void Debug() override{
         std::cout << "Identifier \n";
         std::cout << "Name " << name << '\n';
         }
@@ -315,8 +315,36 @@ class NumberAST : public ExpressionAST {
       std::string num;
 
       public:
-         void Debug(){
+         void Debug() override{
              std::cout << "Number: " << num << '\n';
 
           }
+};
+
+class FunctionCallAST : public StatementAST {
+    public:
+       FunctionCallAST(std::string fn_name, std::vector<StatementAST*> args)
+       : fn_name(fn_name), args(args){}
+    private:
+      std::string fn_name;
+      std::vector<StatementAST*> args;
+
+    public:
+      void Debug() override{
+          std::cout << "Function Called: " << fn_name << '\n';
+      }
+};
+
+class FunctionCallExprAST : public ExpressionAST {
+    public:
+       FunctionCallExprAST(std::string fn_name, std::vector<StatementAST*> args)
+       : fn_name(fn_name), args(args){}
+    private:
+      std::string fn_name;
+      std::vector<StatementAST*> args;
+
+    public:
+      void Debug() override{
+          std::cout << "Function Called: " << fn_name << '\n';
+      }
 };

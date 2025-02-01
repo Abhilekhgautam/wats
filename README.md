@@ -2,6 +2,10 @@
 
 Wats is an experimental language designed to provide excellent error reporting along with modern programming language features.
 
+# Try Online
+
+Run your code online in [Wats Playground](https://abhilekhgautam.github.io/wats-playground/src/playground.html)
+
 # Current Implementation Status
 - Lexer and Parser working neat.
 - Recursive Decent Parser.

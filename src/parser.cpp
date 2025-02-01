@@ -395,13 +395,31 @@ std::optional<VariableDeclareAndAssignAST*> Parser::ParseVariableInitWithType(){
 std::optional<ExpressionAST*> Parser::ParseExpressionBeginningWithID(){
   StoreParserPosition();
 
-  std::string var_name;
+  std::string identifier_name;
   if (Peek(TokenName::ID)){
       ConsumeNext();
-      var_name = GetCurrentToken().GetValue();
+      identifier_name = GetCurrentToken().GetValue();
   } else return {};
 
-  auto identifier_expr = new IdentifierAST(var_name);
+  ExpressionAST* identifier_expr = nullptr;
+  // later if identifier is a function call.
+  std::vector<StatementAST*> args;
+
+  if(Peek(TokenName::OPEN_PARENTHESIS)){
+      ConsumeNext();
+
+      // Todo: look for parameter later
+
+      if (Peek(TokenName::CLOSE_PARENTHESIS)){
+          ConsumeNext();
+          identifier_expr = new FunctionCallExprAST(identifier_name, args);
+      } else {
+          Expected("Expected a closing pair ')'", GENERATE_POSITION);
+          return {};
+      }
+   } else {
+       identifier_expr = new IdentifierAST(identifier_name);
+   }
   auto expr = ParseSubExpression();
 
   if(expr.has_value()) {
@@ -989,6 +1007,37 @@ std::optional<BreakStatementAST*> Parser::ParseBreakStatement(){
     }
 }
 
+std::optional<FunctionCallAST*> Parser::ParseFunctionCallStatement(){
+    std::string fn_name;
+    if (Peek(TokenName::ID)){
+        ConsumeNext();
+        fn_name = GetCurrentToken().GetValue();
+    } else return {};
+
+    if (Peek(TokenName::OPEN_PARENTHESIS)){
+        ConsumeNext();
+    } else return {};
+
+    // TODO: check for fn arguments later.
+
+    if(Peek(TokenName::CLOSE_PARENTHESIS)){
+        ConsumeNext();
+    } else {
+        Expected("Expected closing pair for '('", GENERATE_POSITION);
+        return {};
+    }
+
+    if (Peek(TokenName::SEMI_COLON)) {
+        ConsumeNext();
+    } else {
+        Expected("Expected a semi colon : ';'", GENERATE_POSITION);
+        return {};
+    }
+
+    std::vector<StatementAST*> args;
+    return new FunctionCallAST(fn_name, args);
+}
+
 std::optional<StatementAST*> Parser::ParseStatement(){
   StoreParserPosition();
 
@@ -1078,6 +1127,13 @@ std::optional<StatementAST*> Parser::ParseStatement(){
   BackTrack();
 
   result = ParseFunction();
+  if(result.has_value()){
+     return result;
+  }
+
+  BackTrack();
+
+  result = ParseFunctionCallStatement();
   if(result.has_value()){
      return result;
   }

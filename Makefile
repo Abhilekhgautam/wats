@@ -10,13 +10,17 @@ BIN_DIR = bin
 WASM_DIR = wasm
 
 TARGET = $(BIN_DIR)/app
-WASM_TARGET = $(WASM_DIR)/app.wasm
+WASM_TARGET = $(WASM_DIR)/app.js # Output JS file for WASM
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 HDRS = $(wildcard $(SRC_DIR)/*.hpp)
 
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 WASM_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(WASM_DIR)/%.o, $(SRCS))
+
+# Emscripten flags for exporting functions
+EMFLAGS = -s EXPORTED_FUNCTIONS='["_compile_program"]' \
+          -s -s EXIT_RUNTIME=1 -s "EXPORTED_RUNTIME_METHODS=['ccall']"
 
 all: $(TARGET)
 
@@ -32,10 +36,12 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 wasm: $(WASM_TARGET)
 
+# Link WASM object files and export the compile_program function
 $(WASM_TARGET): $(WASM_OBJS)
 	@mkdir -p $(WASM_DIR)
-	$(EMXX) -o $@ $^
+	$(EMXX) $(CXXFLAGS) $(EMFLAGS) -o $@ $^
 
+# Compile source files into WASM object files
 $(WASM_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(WASM_DIR)
 	$(EMXX) $(CXXFLAGS) -c $< -o $@

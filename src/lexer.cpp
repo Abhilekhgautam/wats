@@ -56,19 +56,16 @@ void Lexer::Tokenize(){
 }
 
 char Lexer::Peek(){
-  try{
-     return source_code.at(current_scan_position + 1);
-  } catch (std::out_of_range& exp){
-    return '\0';
-  }
+  if ((current_scan_position + 1) > source_code.size()) return '\0';
+
+  else return source_code[current_scan_position + 1];
+
 }
 
 char Lexer::PeekNext(){
-  try{
-     return source_code.at(current_scan_position + 2);
-  } catch (std::out_of_range& exp){
-     return '\0';
-  }
+  if ((current_scan_position + 2) > source_code.size()) return '\0';
+  else return source_code.at(current_scan_position + 2);
+
 }
 
 void Lexer::ConsumeNext(){

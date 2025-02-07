@@ -9,23 +9,23 @@
 
 #ifdef __EMSCRIPTEN__
 extern "C" {
-    EMSCRIPTEN_KEEPALIVE
-    void compile_program(const char* source_code) {
-	std::string test(source_code);
+EMSCRIPTEN_KEEPALIVE
+void compile_program(const char *source_code) {
+  std::string test(source_code);
 
-        Lexer L(test);
-        L.Tokenize();
+  Lexer L(test);
+  L.Tokenize();
 
-        Parser P(L.GetTokens(), L.GetSourceCode());
-        P.Parse();
-    }
+  Parser P(L.GetTokens(), L.GetSourceCode());
+  P.Parse();
+}
 }
 #endif
 
 int main(int argc, char **argv) {
 
-  if (!verify_args(argc, argv)){
-     return 0;
+  if (!verify_args(argc, argv)) {
+    return 0;
   }
 
   std::string test = read_file(std::filesystem::path{argv[1]});

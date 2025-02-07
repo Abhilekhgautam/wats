@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <memory>
 #include "ASTType.hpp"
 
 /*
@@ -12,12 +13,13 @@ class ASTNode{
 class StatementAST {
  public:
   virtual void Debug() = 0;
-
+  virtual ~StatementAST() = default;
 };
 
 class ExpressionAST {
   public:
    Type* GetNodeType() { return type;}
+   virtual ~ExpressionAST() = default;
    virtual void Debug() = 0;
   private:
     Type* type;
@@ -28,20 +30,22 @@ class ExpressionAST {
 /// }
 class FunctionDefinitionAST : public StatementAST{
   public:
-    FunctionDefinitionAST(std::string_view fn_name, std::vector<std::pair<Type*, std::string>> parameters, std::vector<StatementAST*> function_body, Type* ret_type)
-	    : fn_name(fn_name), parameters(parameters), function_body(function_body), ret_type(ret_type){}
+    FunctionDefinitionAST(std::string_view fn_name, std::vector<std::pair<std::unique_ptr<Type>, std::string>> parameters, std::vector<std::unique_ptr<StatementAST>> function_body, std::unique_ptr<Type> ret_type)
+	    : fn_name(fn_name), parameters(std::move(parameters)), function_body(std::move(function_body)), ret_type(std::move(ret_type)){}
+
+	virtual ~FunctionDefinitionAST() = default;
   private:
     std::string fn_name;
-    std::vector<std::pair<Type*, std::string>> parameters;
-    std::vector<StatementAST*> function_body;
-    Type* ret_type;
+    std::vector<std::pair<std::unique_ptr<Type>, std::string>> parameters;
+    std::vector<std::unique_ptr<StatementAST>> function_body;
+    std::unique_ptr<Type> ret_type;
 
   public:
     std::string GetFunctionName(){return fn_name;}
     void Debug() override{
         std::cout << "Function: " << fn_name << '\n';
         std::cout << "Function Body:\n";
-        for(auto elt: function_body){
+        for(const auto& elt: function_body){
             elt->Debug();
         }
     }
@@ -50,11 +54,12 @@ class FunctionDefinitionAST : public StatementAST{
 /// 1 to 200
 class RangeAST : public ExpressionAST {
     public:
-       RangeAST(ExpressionAST* start, ExpressionAST* end)
-           : start(start), end(end){}
+       RangeAST(std::unique_ptr<ExpressionAST> start, std::unique_ptr<ExpressionAST> end)
+           : start(std::move(start)), end(std::move(end)){}
+       virtual ~RangeAST() = default;
     private:
-       ExpressionAST* start;
-       ExpressionAST* end;
+       std::unique_ptr<ExpressionAST> start;
+       std::unique_ptr<ExpressionAST> end;
     public:
       void Debug() override {
           std::cout << "Range: \n";
@@ -68,19 +73,21 @@ class RangeAST : public ExpressionAST {
 /// }
 class ForLoopAST : public StatementAST{
   public:
-   ForLoopAST(std::string iter_var_name, RangeAST* range, std::vector<StatementAST*> loop_body)
-	   : var_name(iter_var_name), range(range), loop_body(loop_body){}
+   ForLoopAST(std::string iter_var_name, std::unique_ptr<RangeAST> range, std::vector<std::unique_ptr<StatementAST>> loop_body)
+	   : var_name(iter_var_name), range(std::move(range)), loop_body(std::move(loop_body)){}
+
+	virtual ~ForLoopAST() = default;
   private:
    std::string var_name;
-   RangeAST* range;
-   std::vector<StatementAST*> loop_body;
+   std::unique_ptr<RangeAST> range;
+   std::vector<std::unique_ptr<StatementAST>> loop_body;
 
   public:
    void Debug() override{
        std::cout << "For loop\n";
        std::cout << "Iteration Variable: " << var_name << '\n';
        std::cout << "Loop body\n";
-       for(auto elt: loop_body){
+       for(const auto& elt: loop_body){
            elt->Debug();
        }
    }
@@ -91,16 +98,18 @@ class ForLoopAST : public StatementAST{
 /// }
 class WhileLoopAST : public StatementAST{
    public:
-    WhileLoopAST(ExpressionAST* condition, std::vector<StatementAST*> loop_body)
-	    : condition(condition), loop_body(loop_body){}
+    WhileLoopAST(std::unique_ptr<ExpressionAST> condition, std::vector<std::unique_ptr<StatementAST>> loop_body)
+	    : condition(std::move(condition)), loop_body(std::move(loop_body)){}
+
+	virtual ~WhileLoopAST() = default;
    private:
-    ExpressionAST* condition;
-    std::vector<StatementAST*>  loop_body;
+    std::unique_ptr<ExpressionAST> condition;
+    std::vector<std::unique_ptr<StatementAST>>  loop_body;
    public:
    void Debug() override{
        std::cout << "While loop\n";
        std::cout << "Loop body\n";
-       for(auto elt: loop_body){
+       for(auto& elt: loop_body){
            elt->Debug();
        }
    }
@@ -111,15 +120,17 @@ class WhileLoopAST : public StatementAST{
 /// }
 class LoopAST : public StatementAST{
    public:
-    LoopAST(std::vector<StatementAST*> loop_body)
-	    : loop_body(loop_body){}
+    LoopAST(std::vector<std::unique_ptr<StatementAST>> loop_body)
+	    : loop_body(std::move(loop_body)){}
+
+	virtual ~LoopAST() = default;
 	private:
-	 std::vector<StatementAST*> loop_body;
+	 std::vector<std::unique_ptr<StatementAST>> loop_body;
 	public:
     void Debug() override{
        std::cout << "Infinte Loop\n";
        std::cout << "Loop body\n";
-       for(auto elt: loop_body){
+       for(auto& elt: loop_body){
            elt->Debug();
        }
     }
@@ -130,10 +141,12 @@ class LoopAST : public StatementAST{
 /// let x: i32
 class VariableDeclarationAST : public StatementAST{
    public:
-     VariableDeclarationAST(Type* type_name, const std::string variable_name)
-	     : type_name(type_name), variable_name(variable_name){}
+     VariableDeclarationAST(std::unique_ptr<Type> type_name, const std::string variable_name)
+	     : type_name(std::move(type_name)), variable_name(variable_name){}
+
+	  virtual ~VariableDeclarationAST() = default;
    private:
-     Type* type_name;
+     std::unique_ptr<Type> type_name;
      std::string variable_name;
 
     public:
@@ -148,11 +161,13 @@ class VariableDeclarationAST : public StatementAST{
 /// x = 56
 class VariableAssignmentAST : public StatementAST{
   public:
-    VariableAssignmentAST(const std::string variable_name, ExpressionAST* expr):
-	    variable_name(variable_name), expr(expr){}
+    VariableAssignmentAST(const std::string variable_name, std::unique_ptr<ExpressionAST> expr):
+	    variable_name(variable_name), expr(std::move(expr)){}
+
+	virtual ~VariableAssignmentAST() = default;
   private:
     std::string variable_name;
-    ExpressionAST* expr;
+    std::unique_ptr<ExpressionAST> expr;
 
     public:
     void Debug() override{
@@ -165,12 +180,14 @@ class VariableAssignmentAST : public StatementAST{
 /// let x = 45
 class VariableDeclareAndAssignAST : public StatementAST{
   public:
-    VariableDeclareAndAssignAST(std::string variable_name, Type* type_name, ExpressionAST* expr)
-	    : variable_name(variable_name), type_name(type_name), expr(expr){}
+    VariableDeclareAndAssignAST(std::string variable_name, std::unique_ptr<Type> type_name, std::unique_ptr<ExpressionAST> expr)
+	    : variable_name(variable_name), type_name(std::move(type_name)), expr(std::move(expr)){}
+
+	virtual ~VariableDeclareAndAssignAST() = default;
   private:
     std::string variable_name;
-    Type* type_name;
-    ExpressionAST* expr;
+    std::unique_ptr<Type> type_name;
+    std::unique_ptr<ExpressionAST> expr;
 
     public:
     void Debug() override{
@@ -182,17 +199,19 @@ class VariableDeclareAndAssignAST : public StatementAST{
 
 class IfStatementAST : public StatementAST{
  public:
-    IfStatementAST(ExpressionAST* condition, std::vector<StatementAST*> if_body)
-       : condition(condition), if_body(if_body){}
+    IfStatementAST(std::unique_ptr<ExpressionAST> condition, std::vector<std::unique_ptr<StatementAST>> if_body)
+       : condition(std::move(condition)), if_body(std::move(if_body)){}
+
+    virtual ~IfStatementAST() = default;
  private:
-    ExpressionAST* condition;
-    std::vector<StatementAST*> if_body;
+    std::unique_ptr<ExpressionAST> condition;
+    std::vector<std::unique_ptr<StatementAST>> if_body;
 
 public:
    void Debug() override{
         std::cout << "If Statement: \n";
         std::cout << "If Body:\n";
-        for(auto elt: if_body){
+        for(const auto& elt: if_body){
             elt->Debug();
         }
     }
@@ -200,16 +219,18 @@ public:
 
 class ElseStatementAST : public StatementAST{
  public:
-   ElseStatementAST(std::vector<StatementAST*> else_body)
-	: else_body(else_body){}
+   ElseStatementAST(std::vector<std::unique_ptr<StatementAST>> else_body)
+	: else_body(std::move(else_body)){}
+
+   virtual ~ElseStatementAST() = default;
  private:
-   std::vector<StatementAST*> else_body;
+   std::vector<std::unique_ptr<StatementAST>> else_body;
 
    public:
       void Debug() override{
            std::cout << "Else Statement: \n";
            std::cout << "Else Body:\n";
-           for(auto elt: else_body){
+           for(const auto& elt: else_body){
                elt->Debug();
            }
        }
@@ -217,17 +238,19 @@ class ElseStatementAST : public StatementAST{
 
 class ElseIfStatementAST : public StatementAST{
   public:
-    ElseIfStatementAST(ExpressionAST* condition, std::vector<StatementAST*> else_if_body)
-	: condition(condition), else_if_body(else_if_body){}
-  private:
-    ExpressionAST* condition;
-    std::vector<StatementAST*> else_if_body;
+    ElseIfStatementAST(std::unique_ptr<ExpressionAST> condition, std::vector<std::unique_ptr<StatementAST>> else_if_body)
+	: condition(std::move(condition)), else_if_body(std::move(else_if_body)){}
+
+	virtual ~ElseIfStatementAST() = default;
+   private:
+    std::unique_ptr<ExpressionAST> condition;
+    std::vector<std::unique_ptr<StatementAST>> else_if_body;
 
     public:
        void Debug() override{
             std::cout << "Else If Statement: \n";
             std::cout << "Else If Body:\n";
-            for(auto elt: else_if_body){
+            for(const auto& elt: else_if_body){
                 elt->Debug();
             }
         }
@@ -235,16 +258,18 @@ class ElseIfStatementAST : public StatementAST{
 
 class MatchArmAST : public StatementAST{
     public:
-       MatchArmAST(ExpressionAST* cond, std::vector<StatementAST*> body)
-       : cond(cond), body(body){}
+       MatchArmAST(std::unique_ptr<ExpressionAST> cond, std::vector<std::unique_ptr<StatementAST>> body)
+       : cond(std::move(cond)), body(std::move(body)){}
+
+       virtual ~MatchArmAST() = default;
     private:
-      ExpressionAST* cond;
-      std::vector<StatementAST*> body;
+      std::unique_ptr<ExpressionAST> cond;
+      std::vector<std::unique_ptr<StatementAST>> body;
       public:
          void Debug() override{
               std::cout << "Match Arms: \n";
               std::cout << "Match Body:\n";
-              for(auto elt: body){
+              for(const auto& elt: body){
                   elt->Debug();
               }
           }
@@ -252,16 +277,18 @@ class MatchArmAST : public StatementAST{
 
 class MatchStatementAST : public StatementAST{
   public:
-     MatchStatementAST(ExpressionAST* cond, std::vector<MatchArmAST*>& arms)
-     : cond(cond), arms(arms){}
+     MatchStatementAST(std::unique_ptr<ExpressionAST> cond, std::vector<std::unique_ptr<MatchArmAST>> arms)
+     : cond(std::move(cond)), arms(std::move(arms)){}
+
+     virtual ~MatchStatementAST() = default;
   private:
-    ExpressionAST* cond;
-    std::vector<MatchArmAST*> arms;
+    std::unique_ptr<ExpressionAST> cond;
+    std::vector<std::unique_ptr<MatchArmAST>> arms;
 
     public:
        void Debug() override{
             std::cout << "Match Statement: \n";
-            for(auto elt: arms){
+            for(const auto& elt: arms){
                 elt->Debug();
             }
         }
@@ -269,19 +296,46 @@ class MatchStatementAST : public StatementAST{
 
 class BreakStatementAST : public StatementAST{
     public:
-    BreakStatementAST() = default;
+     BreakStatementAST() = default;
+     virtual ~BreakStatementAST() = default;
     void Debug() override{
         std::cout << "Break Statement:\n break";
     }
 };
 
+class FunctionArgumentAST : public StatementAST{
+    public:
+     FunctionArgumentAST(std::vector<std::string>& args)
+     : args(args){}
+
+     virtual ~FunctionArgumentAST() = default;
+     void Debug() override {
+         std::cout << "Function Argument:\n";
+         for(auto elt: args){
+             std::cout << elt << ' ';
+         }
+     }
+    private:
+     std::vector<std::string> args;
+};
+
+class TypeAnnotatedFunctionArgumentAST : public StatementAST{
+    public:
+     TypeAnnotatedFunctionArgumentAST(std::vector<std::pair<Type*, std::string>> args)
+     : args(args){}
+    private:
+     std::vector<std::pair<Type*, std::string>> args;
+};
+
 class BinaryExpressionAST : public ExpressionAST{
   public:
-    BinaryExpressionAST(ExpressionAST* expr_lhs, ExpressionAST* expr_rhs, std::string operator_symbol)
-	    : expr_lhs(expr_lhs), expr_rhs(expr_rhs), operator_symbol(operator_symbol){}
+    BinaryExpressionAST(std::unique_ptr<ExpressionAST> expr_lhs, std::unique_ptr<ExpressionAST> expr_rhs, std::string operator_symbol)
+	    : expr_lhs(std::move(expr_lhs)), expr_rhs(std::move(expr_rhs)), operator_symbol(operator_symbol){}
+
+	virtual ~BinaryExpressionAST() = default;
   private:
-    ExpressionAST* expr_lhs;
-    ExpressionAST* expr_rhs;
+    std::unique_ptr<ExpressionAST> expr_lhs;
+    std::unique_ptr<ExpressionAST> expr_rhs;
     std::string operator_symbol;
 
     public:
@@ -298,6 +352,8 @@ class IdentifierAST : public ExpressionAST {
     public:
       IdentifierAST(std::string name):
       name(name){}
+
+      virtual ~IdentifierAST() = default;
     private:
     std::string name;
 
@@ -311,6 +367,8 @@ class IdentifierAST : public ExpressionAST {
 class NumberAST : public ExpressionAST {
     public:
        NumberAST(std::string num): num(num){}
+
+       virtual ~NumberAST() = default;
     private:
       std::string num;
 
@@ -323,11 +381,13 @@ class NumberAST : public ExpressionAST {
 
 class FunctionCallAST : public StatementAST {
     public:
-       FunctionCallAST(std::string fn_name, std::vector<StatementAST*> args)
-       : fn_name(fn_name), args(args){}
+       FunctionCallAST(std::string fn_name, std::vector<std::unique_ptr<StatementAST>> args)
+       : fn_name(fn_name), args(std::move(args)){}
+
+       virtual ~FunctionCallAST() = default;
     private:
       std::string fn_name;
-      std::vector<StatementAST*> args;
+      std::vector<std::unique_ptr<StatementAST>> args;
 
     public:
       void Debug() override{
@@ -337,11 +397,13 @@ class FunctionCallAST : public StatementAST {
 
 class FunctionCallExprAST : public ExpressionAST {
     public:
-       FunctionCallExprAST(std::string fn_name, std::vector<StatementAST*> args)
-       : fn_name(fn_name), args(args){}
+       FunctionCallExprAST(std::string fn_name, std::vector<std::unique_ptr<StatementAST>> args)
+       : fn_name(fn_name), args(std::move(args)){}
+
+       virtual ~FunctionCallExprAST() = default;
     private:
       std::string fn_name;
-      std::vector<StatementAST*> args;
+      std::vector<std::unique_ptr<StatementAST>> args;
 
     public:
       void Debug() override{

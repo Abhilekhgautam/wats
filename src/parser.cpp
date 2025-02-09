@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include "AST/FunctionArgumentAST.hpp"
 #include "tokens.hpp"
 #include "utils.hpp"
 
@@ -111,6 +112,9 @@ Parser::ParseFunctionWithRetType() {
     return {};
   }
 
+  auto fn_args = ParseFunctionArguments();
+
+
   if (Peek(TokenName::CLOSE_PARENTHESIS))
     ConsumeNext();
   else {
@@ -126,9 +130,10 @@ Parser::ParseFunctionWithRetType() {
 
   auto result = ParseCurlyBraceAndBody();
   if (result.has_value()) {
-    std::vector<std::pair<std::unique_ptr<Type>, std::string>> dummy;
-    return std::make_unique<FunctionDefinitionAST>(fn_name, std::move(dummy),
-                                                   std::move(result.value()), nullptr);
+    auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
+    :  std::make_unique<FunctionDefinitionAST>(fn_name, nullptr, std::move(result.value()), nullptr);
+
+    return val;
   } else
     return {};
 }
@@ -164,6 +169,8 @@ Parser::ParseFunctionWithoutRetType() {
     return {};
   }
 
+  auto fn_args = ParseFunctionArguments();
+
   if (Peek(TokenName::CLOSE_PARENTHESIS))
     ConsumeNext();
   else {
@@ -174,11 +181,49 @@ Parser::ParseFunctionWithoutRetType() {
 
   auto result = ParseCurlyBraceAndBody();
   if (result.has_value()) {
-    std::vector<std::pair<std::unique_ptr<Type>, std::string>> dummy;
-    return std::make_unique<FunctionDefinitionAST>(fn_name, std::move(dummy),
-                                                   std::move(result.value()), nullptr);
+
+    auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
+                        : std::make_unique<FunctionDefinitionAST>(fn_name, nullptr,std::move(result.value()), nullptr);
+
+    return val;
   } else
     return {};
+}
+
+std::optional<std::unique_ptr<FunctionArgumentAST>> Parser::ParseFunctionArgument(){
+    if (Peek(TokenName::ID)){
+        ConsumeNext();
+        return std::make_unique<FunctionArgumentAST>(GetCurrentToken().GetValue());
+    } else return {};
+}
+
+std::optional<std::unique_ptr<FunctionArgumentAST>> Parser::ParseFunctionArguments(){
+    auto argument = ParseFunctionArgument();
+
+    if (!argument.has_value()){
+        return {};
+    }
+
+    std::vector<std::string> str_args;
+    str_args.push_back(argument.value()->GetArg());
+
+    if(Peek(TokenName::COMMA)) ConsumeNext();
+    else{
+        return std::make_unique<FunctionArgumentAST>(str_args);
+    }
+
+    auto arguments = ParseFunctionArguments();
+
+    if (!arguments.has_value()){
+        Expected("Unexpected ',' found", GENERATE_POSITION);
+        return {};
+    }
+
+    for(const auto& elt: arguments.value()->GetArgs()){
+        str_args.push_back(elt);
+    }
+
+    return std::make_unique<FunctionArgumentAST>(str_args);
 }
 
 std::optional<std::unique_ptr<FunctionDefinitionAST>> Parser::ParseFunction() {

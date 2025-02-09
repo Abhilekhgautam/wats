@@ -19,6 +19,7 @@
 #include "AST/ElseIfStatementAST.hpp"
 #include "AST/ElseStatementAST.hpp"
 #include "AST/MatchStatementAST.hpp"
+#include "AST/FunctionArgumentAST.hpp"
 
 
 #include "tokens.hpp"
@@ -60,8 +61,9 @@ private:
   std::optional<std::unique_ptr<FunctionDefinitionAST>>
   ParseFunctionWithoutRetType();
   std::optional<std::unique_ptr<FunctionDefinitionAST>> ParseFunction();
-  //std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArguments();
-  //std::optional<std::string> ParseFunctionArgument();
+
+  std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArguments();
+  std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArgument();
 
   // Utility for Parsing Variable Declaration
   std::optional<std::unique_ptr<VariableDeclarationAST>>

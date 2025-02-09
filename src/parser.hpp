@@ -5,7 +5,21 @@
 #include <optional>
 #include <vector>
 
-#include "AST/ASTNode.hpp"
+#include "AST/FunctionDefinitionAST.hpp"
+#include "AST/VariableDeclarationAST.hpp"
+#include "AST/VariableAssignmentAST.hpp"
+#include "AST/VariableDeclareAndAssignAST.hpp"
+#include "AST/MatchArmAST.hpp"
+#include "AST/ForLoopAST.hpp"
+#include "AST/WhileLoopAST.hpp"
+#include "AST/LoopAST.hpp"
+#include "AST/BreakStatementAST.hpp"
+#include "AST/FunctionCallStatementAST.hpp"
+#include "AST/IfStatementAST.hpp"
+#include "AST/ElseIfStatementAST.hpp"
+#include "AST/ElseStatementAST.hpp"
+#include "AST/MatchStatementAST.hpp"
+
 
 #include "tokens.hpp"
 class Parser {
@@ -46,8 +60,8 @@ private:
   std::optional<std::unique_ptr<FunctionDefinitionAST>>
   ParseFunctionWithoutRetType();
   std::optional<std::unique_ptr<FunctionDefinitionAST>> ParseFunction();
-  std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArguments();
-  std::optional<std::string> ParseFunctionArgument();
+  //std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArguments();
+  //std::optional<std::string> ParseFunctionArgument();
 
   // Utility for Parsing Variable Declaration
   std::optional<std::unique_ptr<VariableDeclarationAST>>
@@ -95,11 +109,11 @@ private:
 
   std::optional<std::vector<std::unique_ptr<MatchArmAST>>> ParseMatchArms();
   std::optional<std::unique_ptr<MatchArmAST>> ParseMatchArm();
-  std::optional<std::unique_ptr<StatementAST>> ParseMatchStatement();
+  std::optional<std::unique_ptr<MatchStatementAST>> ParseMatchStatement();
 
-  std::optional<std::unique_ptr<StatementAST>> ParseIfStatement();
-  std::optional<std::unique_ptr<StatementAST>> ParseElseStatement();
-  std::optional<std::unique_ptr<StatementAST>> ParseElseIfStatement();
+  std::optional<std::unique_ptr<IfStatementAST>> ParseIfStatement();
+  std::optional<std::unique_ptr<ElseStatementAST>> ParseElseStatement();
+  std::optional<std::unique_ptr<ElseIfStatementAST>> ParseElseIfStatement();
 
   std::optional<std::unique_ptr<BreakStatementAST>> ParseBreakStatement();
   std::optional<std::unique_ptr<FunctionCallAST>> ParseFunctionCallStatement();

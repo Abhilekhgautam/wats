@@ -2,6 +2,12 @@
 #include "tokens.hpp"
 #include "utils.hpp"
 
+#include "AST/NumberAST.hpp"
+#include "AST/IdentifierAST.hpp"
+#include "AST/BinaryExpressionAST.hpp"
+#include "AST/FunctionCallExprAST.hpp"
+#include "AST/MatchStatementAST.hpp"
+
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -1010,7 +1016,7 @@ std::optional<std::unique_ptr<MatchArmAST>> Parser::ParseMatchArm() {
                                          std::move(arm_body.value()));
 }
 
-std::optional<std::unique_ptr<StatementAST>> Parser::ParseMatchStatement() {
+std::optional<std::unique_ptr<MatchStatementAST>> Parser::ParseMatchStatement() {
   StoreParserPosition();
   int curly_brace_position;
 
@@ -1053,7 +1059,7 @@ std::optional<std::unique_ptr<StatementAST>> Parser::ParseMatchStatement() {
   }
 }
 
-std::optional<std::unique_ptr<StatementAST>> Parser::ParseIfStatement() {
+std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   StoreParserPosition();
 
   if (Peek(TokenName::IF))
@@ -1077,7 +1083,7 @@ std::optional<std::unique_ptr<StatementAST>> Parser::ParseIfStatement() {
     return {};
 }
 
-std::optional<std::unique_ptr<StatementAST>> Parser::ParseElseStatement() {
+std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
   StoreParserPosition();
 
   if (Peek(TokenName::ELSE)) {
@@ -1093,7 +1099,7 @@ std::optional<std::unique_ptr<StatementAST>> Parser::ParseElseStatement() {
     return {};
 }
 
-std::optional<std::unique_ptr<StatementAST>> Parser::ParseElseIfStatement() {
+std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement() {
   StoreParserPosition();
 
   if (Peek(TokenName::ELSE))

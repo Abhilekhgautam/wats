@@ -12,9 +12,11 @@ WASM_DIR = wasm
 TARGET = $(BIN_DIR)/app
 WASM_TARGET = $(WASM_DIR)/app.js # Output JS file for WASM
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-HDRS = $(wildcard $(SRC_DIR)/*.hpp)
+# Recursively find all .cpp and .hpp files in the src directory and its subdirectories
+SRCS = $(shell find $(SRC_DIR) -name '*.cpp')
+HDRS = $(shell find $(SRC_DIR) -name '*.hpp')
 
+# Generate object file paths from source file paths
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 WASM_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(WASM_DIR)/%.o, $(SRCS))
 
@@ -33,7 +35,7 @@ $(TARGET): $(OBJS)
 
 # Compile source files into object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 wasm: $(WASM_TARGET)
@@ -45,7 +47,7 @@ $(WASM_TARGET): $(WASM_OBJS)
 
 # Compile source files into WASM object files
 $(WASM_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(WASM_DIR)
+	@mkdir -p $(dir $@)
 	$(EMXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean up generated files

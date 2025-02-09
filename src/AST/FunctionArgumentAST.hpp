@@ -15,15 +15,8 @@ class FunctionArgumentAST : public StatementAST{
 
      virtual ~FunctionArgumentAST() = default;
      void Debug() override;
-     std::string GetArg(){
-        if (args.size() >= 1){
-            return args[0];
-        }
-        else return "";
-     }
-     std::vector<std::string> GetArgs(){
-         return args;
-     }
+     std::string GetArg();
+     std::vector<std::string> GetArgs();
     private:
      std::vector<std::string> args;
 };

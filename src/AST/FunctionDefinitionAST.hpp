@@ -1,6 +1,7 @@
 #ifndef FN_AST
 #define FN_AST
 
+#include "FunctionArgumentAST.hpp"
 #include "StatementAST.hpp"
 #include "ASTType.hpp"
 
@@ -13,13 +14,13 @@
 /// }
 class FunctionDefinitionAST : public StatementAST{
   public:
-    FunctionDefinitionAST(std::string fn_name, std::vector<std::pair<std::unique_ptr<Type>, std::string>> parameters, std::vector<std::unique_ptr<StatementAST>> function_body, std::unique_ptr<Type> ret_type)
-	    : fn_name(fn_name), parameters(std::move(parameters)), function_body(std::move(function_body)), ret_type(std::move(ret_type)){}
+    FunctionDefinitionAST(std::string fn_name, std::unique_ptr<FunctionArgumentAST> arguments, std::vector<std::unique_ptr<StatementAST>> function_body, std::unique_ptr<Type> ret_type)
+	    : fn_name(fn_name), arguments(std::move(arguments)), function_body(std::move(function_body)), ret_type(std::move(ret_type)){}
 
 	virtual ~FunctionDefinitionAST() = default;
   private:
     std::string fn_name;
-    std::vector<std::pair<std::unique_ptr<Type>, std::string>> parameters;
+    std::unique_ptr<FunctionArgumentAST> arguments;
     std::vector<std::unique_ptr<StatementAST>> function_body;
     std::unique_ptr<Type> ret_type;
 

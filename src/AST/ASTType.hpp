@@ -1,3 +1,6 @@
+#ifndef AST_TYPE
+#define AST_TYPE
+
 #include <string>
 
 class Type{
@@ -27,3 +30,5 @@ class UserDefinedType : public Type{
   private:
     std::string type_name;
 };
+
+#endif

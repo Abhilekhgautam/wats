@@ -1,13 +1,13 @@
 #include "parser.hpp"
-#include "AST/FunctionArgumentAST.hpp"
-#include "tokens.hpp"
-#include "utils.hpp"
+#include "../AST/FunctionArgumentAST.hpp"
+#include "../lexer/tokens.hpp"
+#include "../utils.hpp"
 
-#include "AST/NumberAST.hpp"
-#include "AST/IdentifierAST.hpp"
-#include "AST/BinaryExpressionAST.hpp"
-#include "AST/FunctionCallExprAST.hpp"
-#include "AST/MatchStatementAST.hpp"
+#include "../AST/NumberAST.hpp"
+#include "../AST/IdentifierAST.hpp"
+#include "../AST/BinaryExpressionAST.hpp"
+#include "../AST/FunctionCallExprAST.hpp"
+#include "../AST/MatchStatementAST.hpp"
 
 #include <cmath>
 #include <iostream>

@@ -3,8 +3,8 @@
 #endif
 
 #include "cmd-parser.hpp"
-#include "lexer.hpp"
-#include "parser.hpp"
+#include "./lexer/lexer.hpp"
+#include "./parser/parser.hpp"
 #include "utils.hpp"
 
 #ifdef __EMSCRIPTEN__

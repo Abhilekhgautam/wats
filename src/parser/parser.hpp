@@ -220,7 +220,9 @@ private:
   std::optional<std::vector<std::unique_ptr<StatementAST>>> ParseStatements();
 
   void Expected(const std::string, std::size_t line, std::size_t column);
-  void Unexpected(const std::string, std::size_t line, std::size_t column);
+  void Unexpected(const std::string, std::size_t line, std::size_t column, std::size_t times = 0);
+
+  inline bool CheckInsideFunction();
 
 
   std::list<ParserStatus> status_list;

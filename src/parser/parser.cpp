@@ -23,6 +23,13 @@
 token_vec[current_parser_position].GetLine(),                                \
     token_vec[current_parser_position].GetColumn()
 
+inline bool Parser::CheckInsideFunction(){
+    if (status_list.empty() || status_list.front() != ParserStatus::PARSING_FN_DEFINITION){
+        return false;
+    }
+    return true;
+}
+
 void Parser::Parse() {
   auto stmts = ParseStatements();
 
@@ -63,14 +70,18 @@ void Parser::Expected(const std::string str, std::size_t line,
 }
 
 void Parser::Unexpected(const std::string str, std::size_t line,
-                      std::size_t column) {
+                      std::size_t column, std::size_t times) {
 
   std::cout << "[ " << line << ":" << column << " ] ";
   Color("red", "Error: ");
   Color("blue", str, true);
 
   std::cout << source_code_by_line[line - 1] << '\n';
-  Color("red", SetArrow(column - GetCurrentToken().GetValue().length() + 1, GetCurrentToken().GetValue().length()), true);
+  if (!times){
+      Color("red", SetArrow(column - GetCurrentToken().GetValue().length() + 1, GetCurrentToken().GetValue().length()), true);
+  } else {
+    Color("red", SetArrow(column - times + 1, times), true);
+  }
 }
 
 bool Parser::Peek(TokenName tok) {
@@ -152,6 +163,11 @@ Parser::ParseFunctionWithRetType() {
     auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
     :  std::make_unique<FunctionDefinitionAST>(fn_name, nullptr, std::move(result.value()), nullptr);
 
+    // Question: Is this necessary?
+    status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
+
+    status_list.clear();
+
     return val;
   } else {
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
@@ -215,6 +231,10 @@ Parser::ParseFunctionWithoutRetType() {
 
     auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
                         : std::make_unique<FunctionDefinitionAST>(fn_name, nullptr,std::move(result.value()), nullptr);
+    // Question: Is this necessary?
+    status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
+
+    status_list.clear();
 
     return val;
   } else {
@@ -970,6 +990,10 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
 
   if (Peek(TokenName::LOOP)) {
     ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("A 'loop' must be inside the function body", GENERATE_CURRENT_POSITION);
+        return {};
+    }
     auto body = ParseCurlyBraceAndBody();
 
     if (body.has_value()) {
@@ -982,8 +1006,13 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
 std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
   StoreParserPosition();
 
-  if (Peek(TokenName::FOR))
+  if (Peek(TokenName::FOR)){
     ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("A 'for loop' must be inside the function body", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+  }
   else
     return {};
 
@@ -1023,8 +1052,13 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
 std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
   StoreParserPosition();
 
-  if (Peek(TokenName::WHILE))
+  if (Peek(TokenName::WHILE)){
     ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("A 'while loop' must be inside the function body", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+  }
   else
     return {};
 
@@ -1099,8 +1133,13 @@ std::optional<std::unique_ptr<MatchStatementAST>> Parser::ParseMatchStatement() 
   StoreParserPosition();
   int curly_brace_position;
 
-  if (Peek(TokenName::MATCH))
+  if (Peek(TokenName::MATCH)){
     ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("A 'match statement' must be inside the function body", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+  }
   else
     return {};
 
@@ -1143,6 +1182,10 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
 
   if (Peek(TokenName::IF)) {
     ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("'if statement' must be inside the function body", GENERATE_CURRENT_POSITION);
+        return {};
+    }
     status_list.push_back(ParserStatus::PARSING_IF_STATEMENT);
   }
   else
@@ -1170,30 +1213,6 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   }
 }
 
-std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
-  StoreParserPosition();
-
-
-
-  if (Peek(TokenName::ELSE)) {
-    ConsumeNext();
-    // Check if we have an immediate else after either else-if or if statement
-    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT || status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
-          Unexpected("else without an previous 'if' found", GENERATE_CURRENT_POSITION);
-          return {};
-    }
-
-    auto body = ParseCurlyBraceAndBody();
-
-    if (body.has_value()) {
-      return std::make_unique<ElseStatementAST>(std::move(body.value()));
-    } else
-      return {};
-
-  } else
-    return {};
-}
-
 std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement() {
   StoreParserPosition();
 
@@ -1202,8 +1221,18 @@ std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement(
   else
     return {};
 
-  if (Peek(TokenName::IF))
+  if (Peek(TokenName::IF)){
     ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("'else if' must be inside the function body", GENERATE_CURRENT_POSITION, 7);
+        return {};
+    }
+    // Check if we have an immediate else after either else-if or if statement
+    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT || status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
+          Unexpected("'else if' without an previous 'if' found", GENERATE_CURRENT_POSITION, 7);
+          return {};
+    }
+  }
   else
     return {};
 
@@ -1222,6 +1251,32 @@ std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement(
     //
     return std::make_unique<ElseIfStatementAST>(std::move(condition.value()),
                                                 std::move(body.value()));
+  } else
+    return {};
+}
+
+std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
+  StoreParserPosition();
+
+  if (Peek(TokenName::ELSE)) {
+    ConsumeNext();
+    if (!CheckInsideFunction()){
+        Unexpected("else' must be inside the function body", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+    // Check if we have an immediate else after either else-if or if statement
+    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT || status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
+          Unexpected("else without an previous 'if' found", GENERATE_CURRENT_POSITION);
+          return {};
+    }
+
+    auto body = ParseCurlyBraceAndBody();
+
+    if (body.has_value()) {
+      return std::make_unique<ElseStatementAST>(std::move(body.value()));
+    } else
+      return {};
+
   } else
     return {};
 }

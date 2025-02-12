@@ -34,7 +34,7 @@ public:
 
   std::size_t GetExprLength();
 
-  void DidYouMean(std::string to_add, std::size_t line, std::size_t column);
+  void DidYouMean(std::string to_add, std::size_t line, std::size_t column, bool space_before = true);
   void Error(const std::string &err_msg);
 
 private:

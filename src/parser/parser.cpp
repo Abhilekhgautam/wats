@@ -332,7 +332,7 @@ Parser::ParseVariableDeclWithLet() {
   if (Peek(TokenName::SEMI_COLON))
     ConsumeNext();
   else {
-    Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
@@ -379,7 +379,7 @@ Parser::ParseVariableDeclWithType() {
   if (Peek(TokenName::SEMI_COLON))
     ConsumeNext();
   else {
-    Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
@@ -436,7 +436,7 @@ Parser::ParseVariableAssignment() {
     return std::make_unique<VariableAssignmentAST>(var_name,
                                                    std::move(expr.value()));
   } else {
-    Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
@@ -474,7 +474,7 @@ Parser::ParseVariableInitWithLet() {
   if (Peek(TokenName::SEMI_COLON)) {
     ConsumeNext();
   } else {
-    Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
@@ -532,7 +532,7 @@ Parser::ParseVariableInitWithType() {
   if (Peek(TokenName::SEMI_COLON)) {
     ConsumeNext();
   } else {
-    Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }

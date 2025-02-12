@@ -42,20 +42,29 @@ void Parser::Parse() {
 }
 
 void Parser::DidYouMean(const std::string to_add, std::size_t line,
-                        std::size_t column) {
+                        std::size_t column, bool space_before) {
 
   const std::string invalid_line = source_code_by_line[line - 1];
   const std::string contents_after_error = invalid_line.substr(column - 1);
   const std::string contents_before_error = invalid_line.substr(0, column - 1);
 
-  const std::string expected_correct_line =
-      contents_before_error + " " + to_add + " " + contents_after_error;
+  std::string expected_correct_line;
 
+  if (!space_before){
+      expected_correct_line =
+      contents_before_error + to_add + " " + contents_after_error;
+  } else {
+    expected_correct_line =
+      contents_before_error + " " + to_add + contents_after_error;
+  }
   Color("blue", "Did You Mean?", true);
 
   std::cout << expected_correct_line << '\n';
-  if (to_add != "\n")
+  if (!space_before)
+    Color("green", SetPlus(column, to_add.length()), true);
+  else
     Color("green", SetPlus(column + 1, to_add.length()), true);
+
 }
 
 void Parser::Expected(const std::string str, std::size_t line,
@@ -324,7 +333,7 @@ Parser::ParseVariableDeclWithLet() {
     ConsumeNext();
   else {
     Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN);
+    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
 
@@ -371,7 +380,7 @@ Parser::ParseVariableDeclWithType() {
     ConsumeNext();
   else {
     Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN);
+    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
 
@@ -428,7 +437,7 @@ Parser::ParseVariableAssignment() {
                                                    std::move(expr.value()));
   } else {
     Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN);
+    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
 }
@@ -466,7 +475,7 @@ Parser::ParseVariableInitWithLet() {
     ConsumeNext();
   } else {
     Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN);
+    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
 
@@ -524,7 +533,7 @@ Parser::ParseVariableInitWithType() {
     ConsumeNext();
   } else {
     Expected("Consider adding a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN);
+    DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
     return {};
   }
 

@@ -1000,7 +1000,7 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
   if (Peek(TokenName::LOOP)) {
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("A 'loop' must be inside the function body", GENERATE_CURRENT_POSITION);
+        Unexpected("A 'loop' must be inside a function definition", GENERATE_CURRENT_POSITION);
         return {};
     }
     status_list.push_back(ParserStatus::PARSING_LOOP);
@@ -1021,7 +1021,7 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
   if (Peek(TokenName::FOR)){
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("A 'for loop' must be inside the function body", GENERATE_CURRENT_POSITION);
+        Unexpected("A 'for loop' must be inside a function definition", GENERATE_CURRENT_POSITION);
         return {};
     }
     status_list.push_back(ParserStatus::PARSING_FOR_LOOP);
@@ -1071,7 +1071,7 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
   if (Peek(TokenName::WHILE)){
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("A 'while loop' must be inside the function body", GENERATE_CURRENT_POSITION);
+        Unexpected("A 'while loop' must be inside a function definition", GENERATE_CURRENT_POSITION);
         return {};
     }
     status_list.push_back(ParserStatus::PARSING_WHILE_LOOP);
@@ -1157,7 +1157,7 @@ std::optional<std::unique_ptr<MatchStatementAST>> Parser::ParseMatchStatement() 
   if (Peek(TokenName::MATCH)){
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("A 'match statement' must be inside the function body", GENERATE_CURRENT_POSITION);
+        Unexpected("A 'match statement' must be inside a function definition", GENERATE_CURRENT_POSITION);
         return {};
     }
   }
@@ -1204,7 +1204,7 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   if (Peek(TokenName::IF)) {
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("'if statement' must be inside the function body", GENERATE_CURRENT_POSITION);
+        Unexpected("'if statement' must be inside a function definition", GENERATE_CURRENT_POSITION);
         return {};
     }
     status_list.push_back(ParserStatus::PARSING_IF_STATEMENT);

@@ -172,11 +172,7 @@ Parser::ParseFunctionWithRetType() {
     auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
     :  std::make_unique<FunctionDefinitionAST>(fn_name, nullptr, std::move(result.value()), nullptr);
 
-    // Question: Is this necessary?
     status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
-
-    status_list.clear();
-
     return val;
   } else {
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
@@ -240,10 +236,9 @@ Parser::ParseFunctionWithoutRetType() {
 
     auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
                         : std::make_unique<FunctionDefinitionAST>(fn_name, nullptr,std::move(result.value()), nullptr);
-    // Question: Is this necessary?
-    status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
 
-    status_list.clear();
+
+    status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
 
     return val;
   } else {
@@ -1003,9 +998,12 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
         Unexpected("A 'loop' must be inside the function body", GENERATE_CURRENT_POSITION);
         return {};
     }
+    status_list.pop_back();
+
     auto body = ParseCurlyBraceAndBody();
 
     if (body.has_value()) {
+      status_list.push_back(ParserStatus::PARSED_LOOP);
       return std::make_unique<LoopAST>(std::move(body.value()));
     }
   }
@@ -1021,6 +1019,8 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
         Unexpected("A 'for loop' must be inside the function body", GENERATE_CURRENT_POSITION);
         return {};
     }
+    status_list.push_back(ParserStatus::PARSING_FOR_LOOP);
+
   }
   else
     return {};
@@ -1054,6 +1054,9 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
   if (!body.has_value())
     return {};
 
+  // Clear the stack
+  status_list.pop_back();
+
   return std::make_unique<ForLoopAST>(iteration_variable,
                                       std::move(range.value()), std::move(body.value()));
 }
@@ -1067,6 +1070,7 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
         Unexpected("A 'while loop' must be inside the function body", GENERATE_CURRENT_POSITION);
         return {};
     }
+    status_list.push_back(ParserStatus::PARSING_WHILE_LOOP);
   }
   else
     return {};
@@ -1080,8 +1084,11 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
   auto body = ParseCurlyBraceAndBody();
 
   if (body.has_value()) {
+
     return std::make_unique<WhileLoopAST>(std::move(loop_condition.value()),
                                           std::move(body.value()));
+
+    status_list.pop_back();
   } else
     return {};
 }
@@ -1200,7 +1207,6 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   else
     return {};
 
-  status_list.push_back(ParserStatus::PARSING_IF_CONDITION);
   auto condition = ParseExpression();
 
   if (!condition.has_value()) {
@@ -1294,6 +1300,12 @@ std::optional<std::unique_ptr<BreakStatementAST>>
 Parser::ParseBreakStatement() {
   if (Peek(TokenName::BREAK)) {
     ConsumeNext();
+    if (status_list.back() != ParserStatus::PARSING_FOR_LOOP &&
+        status_list.back() != ParserStatus::PARSING_WHILE_LOOP &&
+        status_list.back() != ParserStatus::PARSING_LOOP){
+            Unexpected("'break' not within a loop body", GENERATE_CURRENT_POSITION, 5);
+            return {};
+        }
   } else
     return {};
 

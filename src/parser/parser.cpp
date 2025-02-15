@@ -124,6 +124,10 @@ Parser::ParseFunctionWithRetType() {
 
   if (Peek(TokenName::FUNCTION)){
     ConsumeNext();
+    if (CheckInsideFunction()){
+        Unexpected("You cannot define a function inside another function", GENERATE_CURRENT_POSITION);
+        return {};
+    }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION);
   }
   else
@@ -172,10 +176,9 @@ Parser::ParseFunctionWithRetType() {
     auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
     :  std::make_unique<FunctionDefinitionAST>(fn_name, nullptr, std::move(result.value()), nullptr);
 
-    status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
+    status_list.clear();
     return val;
   } else {
-    status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
     return {};
   }
 }
@@ -188,11 +191,14 @@ Parser::ParseFunctionWithoutRetType() {
 
   if (Peek(TokenName::FUNCTION)) {
     ConsumeNext();
+    if (CheckInsideFunction()){
+        Unexpected("You cannot define a function inside another function", GENERATE_CURRENT_POSITION);
+        return {};
+    }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION);
 
   }
   else{
-    status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
     return {};
   }
   std::string fn_name;
@@ -238,11 +244,10 @@ Parser::ParseFunctionWithoutRetType() {
                         : std::make_unique<FunctionDefinitionAST>(fn_name, nullptr,std::move(result.value()), nullptr);
 
 
-    status_list.push_back(ParserStatus::PARSED_FN_DEFINTION);
+    status_list.clear();
 
     return val;
   } else {
-      status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
 
       return {};
   }
@@ -998,12 +1003,12 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
         Unexpected("A 'loop' must be inside the function body", GENERATE_CURRENT_POSITION);
         return {};
     }
-    status_list.pop_back();
+    status_list.push_back(ParserStatus::PARSING_LOOP);
 
     auto body = ParseCurlyBraceAndBody();
 
     if (body.has_value()) {
-      status_list.push_back(ParserStatus::PARSED_LOOP);
+      status_list.pop_back();
       return std::make_unique<LoopAST>(std::move(body.value()));
     }
   }
@@ -1054,7 +1059,6 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
   if (!body.has_value())
     return {};
 
-  // Clear the stack
   status_list.pop_back();
 
   return std::make_unique<ForLoopAST>(iteration_variable,
@@ -1085,10 +1089,11 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
 
   if (body.has_value()) {
 
+    status_list.pop_back();
+
     return std::make_unique<WhileLoopAST>(std::move(loop_condition.value()),
                                           std::move(body.value()));
 
-    status_list.pop_back();
   } else
     return {};
 }
@@ -1210,11 +1215,9 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   auto condition = ParseExpression();
 
   if (!condition.has_value()) {
-    status_list.push_back(ParserStatus::PARSING_IF_CONDITION_FAILED);
     Expected("Expected an condition after the 'if' keyword", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
-  status_list.push_back(ParserStatus::PARSED_IF_CONDITION);
 
   auto body = ParseCurlyBraceAndBody();
 
@@ -1239,14 +1242,16 @@ std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement(
   if (Peek(TokenName::IF)){
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("'else if' must be inside the function body", GENERATE_CURRENT_POSITION, 7);
+        Unexpected("'else if' must be inside a function definition", GENERATE_CURRENT_POSITION, 7);
         return {};
     }
     // Check if we have an immediate else after either else-if or if statement
-    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT || status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
+    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT && status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
           Unexpected("'else if' without an previous 'if' found", GENERATE_CURRENT_POSITION, 7);
           return {};
     }
+
+    status_list.push_back(ParserStatus::PARSING_ELSEIF_STATEMENT);
   }
   else
     return {};
@@ -1255,7 +1260,6 @@ std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement(
 
   if (!condition.has_value()) {
     Expected("Expected an condition after 'else-if'", GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean("<some_expression>", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 
@@ -1263,7 +1267,8 @@ std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement(
 
   if (body.has_value()) {
     // do sth
-    //
+
+    status_list.push_back(ParserStatus::PARSED_ELSEIF_STATEMENT);
     return std::make_unique<ElseIfStatementAST>(std::move(condition.value()),
                                                 std::move(body.value()));
   } else
@@ -1276,11 +1281,11 @@ std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
   if (Peek(TokenName::ELSE)) {
     ConsumeNext();
     if (!CheckInsideFunction()){
-        Unexpected("else' must be inside the function body", GENERATE_CURRENT_POSITION);
+        Unexpected("else' must be inside a function definition", GENERATE_CURRENT_POSITION);
         return {};
     }
     // Check if we have an immediate else after either else-if or if statement
-    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT || status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
+    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT && status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
           Unexpected("else without an previous 'if' found", GENERATE_CURRENT_POSITION);
           return {};
     }

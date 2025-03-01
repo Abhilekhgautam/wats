@@ -1,6 +1,7 @@
 #include "parser.hpp"
 #include "../AST/FunctionArgumentAST.hpp"
 #include "../lexer/tokens.hpp"
+#include "../lexer/lexer.hpp"
 #include "../utils.hpp"
 
 #include "../AST/NumberAST.hpp"
@@ -139,6 +140,13 @@ Parser::ParseFunctionWithRetType() {
     ConsumeNext();
     fn_name = GetCurrentToken().GetValue();
   } else {
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+        status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+        Unexpected(GetCurrentToken().GetValue() + " is a keyword, it cannot be used as a function name.", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
     Expected(
         "Expected an Identifier (Function Name) after the 'function' keyword",

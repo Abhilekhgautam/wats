@@ -16,6 +16,9 @@ public:
 
   const std::vector<Token> &GetTokens();
   const std::vector<std::string> &GetSourceCode();
+
+  static std::map<std::string, TokenName> keywords;
+
   // Print the Token Information
   void Debug();
 
@@ -31,7 +34,6 @@ private:
 
   std::vector<Token> token_vec;
 
-  static std::map<std::string, TokenName> keywords;
   // Check if the Lexer reached the end of string
   bool IsAtEnd();
   void ScanToken(const char c);

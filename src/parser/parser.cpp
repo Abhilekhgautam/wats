@@ -1088,12 +1088,13 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
         Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as an iteration variable.", GENERATE_CURRENT_POSITION);
         return {};
     }
+    BackTrack();
+
     Unexpected("Expected an iteration variable name after the 'for' keyword",
              GENERATE_CURRENT_POSITION);
     return {};
   }
 
-  BackTrack();
   if (Peek(TokenName::IN))
     ConsumeNext();
   else {

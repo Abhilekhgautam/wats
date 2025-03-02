@@ -1020,7 +1020,9 @@ Parser::ParseCurlyBraceAndBody() {
     curly_brace_position = current_parser_position + 1;
     ConsumeNext();
   } else {
-    Expected("Expected a '{' here", GENERATE_POSITION_PAST_ONE_COLUMN);
+    ConsumeNext();
+    Unexpected("Expected a '{' here", GENERATE_CURRENT_POSITION);
+    return {};
   }
 
   auto body = ParseStatements();
@@ -1137,6 +1139,7 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
   if (!loop_condition.has_value()) {
     Expected("Expected an expression after the 'while' keyword",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    return {};
   }
 
   auto body = ParseCurlyBraceAndBody();

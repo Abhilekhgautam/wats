@@ -143,7 +143,7 @@ Parser::ParseFunctionWithRetType() {
     ConsumeNext();
     if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
         status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
-        Unexpected(GetCurrentToken().GetValue() + " is a keyword, it cannot be used as a function name.", GENERATE_CURRENT_POSITION);
+        Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a function name.", GENERATE_CURRENT_POSITION);
         return {};
     }
 
@@ -215,6 +215,12 @@ Parser::ParseFunctionWithoutRetType() {
     ConsumeNext();
     fn_name = GetCurrentToken().GetValue();
   } else {
+      ConsumeNext();
+      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+          status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a function name.", GENERATE_CURRENT_POSITION);
+          return {};
+      }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
 
     Expected(
@@ -332,6 +338,12 @@ Parser::ParseVariableDeclWithLet() {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
   } else {
+      ConsumeNext();
+      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+          status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
+          return {};
+      }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
@@ -362,6 +374,12 @@ Parser::ParseVariableDeclWithType() {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
   } else {
+      ConsumeNext();
+      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+          status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
+          return {};
+      }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
@@ -464,8 +482,18 @@ Parser::ParseVariableInitWithLet() {
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+  } else {
+    StoreParserPosition();
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+        Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+  Expected("A Variable name after a let expression is required",
+           GENERATE_POSITION_PAST_ONE_COLUMN);
+  return {};
   }
-
+  BackTrack();
   if (Peek(TokenName::ASSIGN))
     ConsumeNext();
   else
@@ -505,6 +533,15 @@ Parser::ParseVariableInitWithType() {
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+  } else {
+      StoreParserPosition();
+      ConsumeNext();
+      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
+          return {};
+      }
+    Expected("A Variable name after a let expression is required",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
   }
 
   if (Peek(TokenName::COLON))
@@ -1044,11 +1081,19 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
     ConsumeNext();
     iteration_variable = GetCurrentToken().GetValue();
   } else {
-    Expected("Expected an iteration variable name after the 'for' keyword",
-             GENERATE_POSITION_PAST_ONE_COLUMN);
+    StoreParserPosition();
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
+        status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+        Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as an iteration variable.", GENERATE_CURRENT_POSITION);
+        return {};
+    }
+    Unexpected("Expected an iteration variable name after the 'for' keyword",
+             GENERATE_CURRENT_POSITION);
     return {};
   }
 
+  BackTrack();
   if (Peek(TokenName::IN))
     ConsumeNext();
   else {

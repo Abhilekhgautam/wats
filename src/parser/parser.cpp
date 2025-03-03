@@ -489,11 +489,12 @@ Parser::ParseVariableInitWithLet() {
         Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
         return {};
     }
+    BackTrack();
+
   Expected("A Variable name after a let expression is required",
            GENERATE_POSITION_PAST_ONE_COLUMN);
   return {};
   }
-  BackTrack();
   if (Peek(TokenName::ASSIGN))
     ConsumeNext();
   else

@@ -12,7 +12,7 @@ class Type{
 class PrimitiveType : public Type{
   public:
     PrimitiveType(const std::string type_name): type_name(type_name){}
-    std::string GetType() { return type_name; }
+    std::string GetType() const { return type_name; }
 
     virtual ~PrimitiveType() = default;
 
@@ -23,7 +23,7 @@ class PrimitiveType : public Type{
 class UserDefinedType : public Type{
   public:
     UserDefinedType(const std::string type_name) : type_name(type_name){}
-    std::string GetType() { return type_name;}
+    std::string GetType() const{ return type_name;}
 
     virtual ~UserDefinedType() = default;
 

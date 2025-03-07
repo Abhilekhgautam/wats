@@ -13,6 +13,9 @@ class IfStatementAST : public StatementAST{
        : condition(std::move(condition)), if_body(std::move(if_body)){}
 
     virtual ~IfStatementAST() = default;
+
+   	void Accept(SemanticAnalyzer& analyzer) override;
+
  private:
     std::unique_ptr<ExpressionAST> condition;
     std::vector<std::unique_ptr<StatementAST>> if_body;

@@ -7,6 +7,9 @@ class BreakStatementAST : public StatementAST{
     public:
      BreakStatementAST() = default;
      virtual ~BreakStatementAST() = default;
+
+     void Accept(SemanticAnalyzer& analyzer) override;
+
     void Debug() override;
 };
 

@@ -12,6 +12,7 @@ class MatchArmAST : public StatementAST{
        : cond(std::move(cond)), body(std::move(body)){}
 
        virtual ~MatchArmAST() = default;
+       void Accept(SemanticAnalyzer& analyzer) override;
     private:
       std::unique_ptr<ExpressionAST> cond;
       std::vector<std::unique_ptr<StatementAST>> body;

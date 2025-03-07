@@ -13,6 +13,7 @@ class LoopAST : public StatementAST{
 	    : loop_body(std::move(loop_body)){}
 
 	virtual ~LoopAST() = default;
+	void Accept(SemanticAnalyzer& analyzer) override;
 	private:
 	 std::vector<std::unique_ptr<StatementAST>> loop_body;
 	public:

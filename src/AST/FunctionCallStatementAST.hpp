@@ -13,6 +13,8 @@ class FunctionCallAST : public StatementAST {
        : fn_name(fn_name), args(std::move(args)){}
 
        virtual ~FunctionCallAST() = default;
+
+      void Accept(SemanticAnalyzer& analyzer) override;
     private:
       std::string fn_name;
       std::vector<std::unique_ptr<StatementAST>> args;

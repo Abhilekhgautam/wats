@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+void FunctionArgumentAST::Accept(SemanticAnalyzer& analyzer){
+    analyzer.Visit(*this);
+}
+
 void FunctionArgumentAST::Debug(){
     std::cout << "Function Argument:\n";
     for(auto elt: args){

@@ -10,6 +10,8 @@ class MatchStatementAST : public StatementAST{
      : cond(std::move(cond)), arms(std::move(arms)){}
 
      virtual ~MatchStatementAST() = default;
+    void Accept(SemanticAnalyzer& analyzer) override;
+
   private:
     std::unique_ptr<ExpressionAST> cond;
     std::vector<std::unique_ptr<MatchArmAST>> arms;

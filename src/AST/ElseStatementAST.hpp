@@ -12,6 +12,9 @@ class ElseStatementAST : public StatementAST{
 	: else_body(std::move(else_body)){}
 
    virtual ~ElseStatementAST() = default;
+
+  	void Accept(SemanticAnalyzer& analyzer) override;
+
  private:
    std::vector<std::unique_ptr<StatementAST>> else_body;
 

@@ -18,6 +18,9 @@ class FunctionDefinitionAST : public StatementAST{
 	    : fn_name(fn_name), arguments(std::move(arguments)), function_body(std::move(function_body)), ret_type(std::move(ret_type)){}
 
 	virtual ~FunctionDefinitionAST() = default;
+
+	void Accept(SemanticAnalyzer& analyzer) override;
+
   private:
     std::string fn_name;
     std::unique_ptr<FunctionArgumentAST> arguments;

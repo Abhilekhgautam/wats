@@ -15,6 +15,9 @@ class ForLoopAST : public StatementAST{
 	   : var_name(iter_var_name), range(std::move(range)), loop_body(std::move(loop_body)){}
 
 	virtual ~ForLoopAST() = default;
+
+	void Accept(SemanticAnalyzer& analyzer) override;
+
   private:
    std::string var_name;
    std::unique_ptr<RangeAST> range;

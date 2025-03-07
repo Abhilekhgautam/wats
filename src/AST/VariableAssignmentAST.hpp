@@ -12,12 +12,16 @@ class VariableAssignmentAST : public StatementAST{
 	    variable_name(variable_name), expr(std::move(expr)){}
 
 	virtual ~VariableAssignmentAST() = default;
+	void Accept(SemanticAnalyzer& analyzer) override;
+
   private:
     std::string variable_name;
     std::unique_ptr<ExpressionAST> expr;
 
     public:
     void Debug() override;
+    std::string GetVariableName() const {return variable_name;}
+
 };
 
 #endif

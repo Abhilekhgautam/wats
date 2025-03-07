@@ -1,6 +1,10 @@
 #include "ForLoopAST.hpp"
 #include <iostream>
 
+void ForLoopAST::Accept(SemanticAnalyzer& analyzer){
+    analyzer.Visit(*this);
+}
+
 void ForLoopAST::Debug(){
     std::cout << "For loop\n";
     std::cout << "Iteration Variable: " << var_name << '\n';

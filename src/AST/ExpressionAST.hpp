@@ -2,6 +2,7 @@
 #define EXPR_AST
 
 #include <memory>
+
 #include "ASTType.hpp"
 
 class ExpressionAST {

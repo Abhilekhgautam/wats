@@ -17,6 +17,8 @@ class FunctionArgumentAST : public StatementAST{
      void Debug() override;
      std::string GetArg();
      std::vector<std::string> GetArgs();
+
+     void Accept(SemanticAnalyzer& analyzer) override;
     private:
      std::vector<std::string> args;
 };

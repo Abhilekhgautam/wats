@@ -1,26 +1,29 @@
 #include "./scope.hpp"
+#include <functional>
 #include <memory>
 
-std::optional<std::unique_ptr<Type>> Scope::FindSymbolInCurrentScope(std::string name){
+std::optional<std::reference_wrapper<Type>> Scope::FindSymbolInCurrentScope(std::string name){
     auto val = symbol_table.find(name);
     if (val == symbol_table.end()) return {};
-    else return std::move((val->second));
+    else return std::ref(*val->second);
 }
 
-std::optional<std::unique_ptr<Type>> Scope::FindSymbol(std::string name){
-    if (FindSymbolInCurrentScope(name).has_value()){
+std::optional<std::reference_wrapper<Type>> Scope::FindSymbol(std::string name){
+    auto result = FindSymbolInCurrentScope(name);
+    if (result.has_value())
         return FindSymbolInCurrentScope(name).value();
-    }
+
     else if (this->parent == nullptr){
         return {};
     }
     else {
-        auto temp = std::move(this->parent);
+        auto temp = this->parent.get();
         while(temp){
-            if (temp->FindSymbolInCurrentScope(name).has_value()){
+            auto result = temp->FindSymbolInCurrentScope(name);
+            if(result.has_value()){
                 return temp->FindSymbolInCurrentScope(name).value();
             } else {
-                temp = std::move(temp->parent);
+                temp = temp->parent.get();
             }
         }
         return {};
@@ -28,5 +31,10 @@ std::optional<std::unique_ptr<Type>> Scope::FindSymbol(std::string name){
 }
 
 void Scope::AddSymbol(std::string name, std::string type){
-    symbol_table.insert(name, type);
+    auto t = TypeFactory::CreateType(type);
+    symbol_table.insert({name, std::move(t)});
+}
+
+void Scope::UpdateSymbolTable(std::string var_name, std::string var_type){
+    symbol_table[var_name] = std::move(TypeFactory::CreateType(var_name));
 }

@@ -5,6 +5,8 @@
 #include "cmd-parser.hpp"
 #include "./lexer/lexer.hpp"
 #include "./parser/parser.hpp"
+#include "./semantics/semanticAnalyzer.hpp"
+
 #include "utils.hpp"
 
 #ifdef __EMSCRIPTEN__
@@ -17,7 +19,18 @@ void compile_program(const char *source_code) {
   L.Tokenize();
 
   Parser P(L.GetTokens(), L.GetSourceCode());
-  P.Parse();
+  auto ast_vec = P.Parse();
+
+  SemanticAnalyzer s(ast_vec.value());
+  s.analyze();
+
+  // Only for debug
+  if (ast_vec.has_value()) {
+    auto stmt_vec = std::move(ast_vec.value());
+    for (const auto &elt : stmt_vec) {
+      elt->Debug();
+    }
+  }
 }
 }
 #endif
@@ -35,5 +48,16 @@ int main(int argc, char **argv) {
   L.Debug();
 
   Parser P(L.GetTokens(), L.GetSourceCode());
-  P.Parse();
+  auto ast_vec = P.Parse();
+
+  SemanticAnalyzer s(ast_vec.value());
+  s.analyze();
+
+  // Only for debug
+  if (ast_vec.has_value()) {
+    auto stmt_vec = std::move(ast_vec.value());
+    for (const auto &elt : stmt_vec) {
+      elt->Debug();
+    }
+  }
 }

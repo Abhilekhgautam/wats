@@ -202,6 +202,15 @@ void Lexer::ScanToken(const char c) {
     }
     break;
   }
+  /*
+  case '"': {
+      std::string str = String();
+      // TODO: Add string token
+      std::cout << str << '\n';
+
+      break;
+  }
+  */
   default:
     // handle numbers
     if (isdigit(c)) {
@@ -229,22 +238,11 @@ void Lexer::ScanToken(const char c) {
 
 std::string Lexer::Number() {
   std::string num_str = "";
-  while (isdigit(Peek())) {
+  while (isdigit(Peek()) || Peek() == '.') {
     num_str.push_back(Peek());
     ConsumeNext();
     column = column + 1;
   }
-  if (Peek() == '.' && isdigit(PeekNext())) {
-    num_str.push_back(Peek());
-    ConsumeNext();
-    column = column + 1;
-  }
-  while (isdigit(Peek())) {
-    num_str.push_back(Peek());
-    ConsumeNext();
-    column = column + 1;
-  }
-
   return num_str;
 }
 
@@ -256,6 +254,34 @@ std::string Lexer::Identifier() {
     column = column + 1;
   }
   return id_str;
+}
+
+// Fixme: Doesn't work
+std::string Lexer::String(){
+    std::string str;
+    while(!IsAtEnd() && Peek() != '"'){
+        if (Peek() == '\\'){
+            ConsumeNext();
+            column = column + 1;
+            if(!IsAtEnd()){
+                char escapedChar = Peek();
+                str.push_back(Peek());
+                ConsumeNext();
+                column = column + 1;
+            } else {
+                Error("Unterminated \"");
+            }
+            continue;
+        }
+        str.push_back(Peek());
+        ConsumeNext();
+        column = column + 1;
+
+        if(IsAtEnd()){
+            Error("Unterminated \".");
+        }
+    }
+    return str;
 }
 
 void Lexer::Error(const std::string &err_msg) {

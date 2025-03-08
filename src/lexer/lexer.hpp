@@ -48,5 +48,6 @@ private:
 
   std::string Number();
   std::string Identifier();
+  std::string String();
 };
 #endif

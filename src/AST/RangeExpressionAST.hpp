@@ -14,6 +14,8 @@ class RangeAST : public ExpressionAST {
        std::unique_ptr<ExpressionAST> end;
     public:
       void Debug() override;
+      void Accept(SemanticAnalyzer& analyzer) override;
+      std::string GetType() override {return "range";}
 };
 
 #endif

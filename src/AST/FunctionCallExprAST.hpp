@@ -12,12 +12,14 @@ class FunctionCallExprAST : public ExpressionAST {
        : fn_name(fn_name), args(std::move(args)){}
 
        virtual ~FunctionCallExprAST() = default;
+       void Accept(SemanticAnalyzer& analyzer) override;
     private:
       std::string fn_name;
       std::vector<std::unique_ptr<StatementAST>> args;
 
     public:
       void Debug() override;
+      std::string GetType() override {return "call";}
 };
 
 #endif

@@ -9,6 +9,7 @@ void VariableDeclareAndAssignAST::Accept(SemanticAnalyzer& analyzer){
 
 void VariableDeclareAndAssignAST::Debug(){
     std::cout << "Variable Declare and Assignment : " << variable_name << '\n';
-    std::cout << "Assigned Value: ";
+    std::cout << "Type:" <<  GetType() << '\n';
+    std::cout << "Assigned Value: " << '\n';
     expr->Debug();
 }

@@ -2,6 +2,7 @@
 #define BINARY_EXPR
 
 #include "ExpressionAST.hpp"
+#include <functional>
 
 class BinaryExpressionAST : public ExpressionAST{
   public:
@@ -13,9 +14,19 @@ class BinaryExpressionAST : public ExpressionAST{
     std::unique_ptr<ExpressionAST> expr_lhs;
     std::unique_ptr<ExpressionAST> expr_rhs;
     std::string operator_symbol;
+    std::string type;
 
     public:
        void Debug() override;
+       void Accept(SemanticAnalyzer& analyzer) override;
+
+       std::string GetOperator() const {return operator_symbol;}
+       std::reference_wrapper<ExpressionAST> GetLeftOperand() {return std::ref(*expr_lhs);}
+       std::reference_wrapper<ExpressionAST> GetRightOperand() {return std::ref(*expr_rhs);}
+
+       std::string GetType() override { return type;}
+       void SetType(std::string type) {this->type = type;}
+
 
 };
 

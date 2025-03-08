@@ -1,17 +1,15 @@
 #ifndef EXPR_AST
 #define EXPR_AST
 
-#include <memory>
-
-#include "ASTType.hpp"
+#include "../semantics/semanticAnalyzer.hpp"
 
 class ExpressionAST {
   public:
-   std::unique_ptr<Type> GetNodeType() { return std::move(type);}
+   virtual std::string GetType() = 0;
    virtual ~ExpressionAST() = default;
+   virtual void Accept(SemanticAnalyzer& analyzer) = 0;
    virtual void Debug() = 0;
-  private:
-    std::unique_ptr<Type> type;
+
 };
 
 #endif

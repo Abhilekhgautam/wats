@@ -11,9 +11,14 @@ class IdentifierAST : public ExpressionAST {
       virtual ~IdentifierAST() = default;
     private:
     std::string name;
+    std::string type;
 
     public:
        void Debug() override;
+       void Accept(SemanticAnalyzer& analyzer) override;
+       std::string GetName() const {return name;}
+       std::string GetType() override{return type;}
+       void SetType(std::string type) {this->type = type;}
 };
 
 #endif

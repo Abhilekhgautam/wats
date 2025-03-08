@@ -20,7 +20,8 @@ class VariableAssignmentAST : public StatementAST{
 
     public:
     void Debug() override;
-    std::string GetVariableName() const {return variable_name;}
+    std::string GetVarName() const {return variable_name;}
+    ExpressionAST& GetExpr() const {return *expr;}
 
 };
 

@@ -6,6 +6,7 @@ void VariableDeclarationAST::Accept(SemanticAnalyzer& analyzer){
 }
 
 void VariableDeclarationAST::Debug(){
-    std::cout << "Variable Declaration: " << variable_name;
+    std::cout << "Variable Declaration: " << variable_name << '\n';
+    std::cout << "Type: " << GetType() << '\n';
 
 }

@@ -30,7 +30,7 @@ public:
       : token_vec(token_vec), source_code_by_line(source_code_by_line),
         current_parser_position(-1) {}
 
-  void Parse();
+  std::optional<std::vector<std::unique_ptr<StatementAST>>> Parse();
 
   std::size_t GetExprLength();
 

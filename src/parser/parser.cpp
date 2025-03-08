@@ -10,6 +10,7 @@
 #include "../AST/FunctionCallExprAST.hpp"
 #include "../AST/MatchStatementAST.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -31,15 +32,16 @@ inline bool Parser::CheckInsideFunction(){
     return true;
 }
 
-void Parser::Parse() {
-  auto stmts = ParseStatements();
+std::optional<std::vector<std::unique_ptr<StatementAST>>> Parser::Parse() {
+  return ParseStatements();
+  // auto stmts =ParseStatements();
 
-  if (stmts.has_value()) {
-    auto stmt_vec = std::move(stmts.value());
-    for (const auto &elt : stmt_vec) {
-      elt->Debug();
-    }
-  }
+  // if (stmts.has_value()) {
+  //   auto stmt_vec = std::move(stmts.value());
+  //   for (const auto &elt : stmt_vec) {
+  //     elt->Debug();
+  //   }
+  // }
 }
 
 void Parser::DidYouMean(const std::string to_add, std::size_t line,
@@ -392,11 +394,11 @@ Parser::ParseVariableDeclWithType() {
 
   // FixME: add support for user defined type
   // later when support for classes are added.
-  std::unique_ptr<Type> type;
+  std::string type;
   if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) ||
       Peek(TokenName::F64)) {
     ConsumeNext();
-    type = std::make_unique<PrimitiveType>(GetCurrentToken().GetValue());
+    type = GetCurrentToken().GetValue();
   } else {
     Expected("Consider mentioning the type of the variable", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
@@ -410,7 +412,7 @@ Parser::ParseVariableDeclWithType() {
     return {};
   }
 
-  return std::make_unique<VariableDeclarationAST>(std::move(type), var_name);
+  return std::make_unique<VariableDeclarationAST>(type, var_name);
 }
 
 std::optional<std::unique_ptr<VariableDeclarationAST>>
@@ -516,8 +518,7 @@ Parser::ParseVariableInitWithLet() {
     return {};
   }
 
-  return std::make_unique<VariableDeclareAndAssignAST>(var_name, nullptr,
-                                                       std::move(expr.value()));
+  return std::make_unique<VariableDeclareAndAssignAST>(var_name, "", std::move(expr.value()));
 }
 
 std::optional<std::unique_ptr<VariableDeclareAndAssignAST>>
@@ -550,13 +551,13 @@ Parser::ParseVariableInitWithType() {
   else
     return {};
 
-  std::unique_ptr<Type> type;
+  std::string type;
   // FixME: Add support for user defined types
   // later when support for classes are added
   if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) ||
       Peek(TokenName::F64)) {
     ConsumeNext();
-    type = std::make_unique<PrimitiveType>(GetCurrentToken().GetValue());
+    type = GetCurrentToken().GetValue();
   } else {
     Expected("Consider mentioning the type of the variable", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
@@ -584,7 +585,7 @@ Parser::ParseVariableInitWithType() {
   }
 
   return std::make_unique<VariableDeclareAndAssignAST>(
-      var_name, std::move(type), std::move(expr.value()));
+      var_name, type, std::move(expr.value()));
 }
 
 // Parsing Variable Declaration Ends here
@@ -636,13 +637,19 @@ Parser::ParseExpressionBeginningWithNumber() {
   StoreParserPosition();
 
   std::string num;
+  int decimal_count;
   if (Peek(TokenName::NUMBER)) {
     ConsumeNext();
     num = GetCurrentToken().GetValue();
+    decimal_count = std::count(num.begin(), num.end(), '.');
+    if(decimal_count > 1){
+        Unexpected("Too many decimal points in a numerical value", GENERATE_CURRENT_POSITION);
+        return {};
+    }
   } else
     return {};
 
-  auto number_expr = std::make_unique<NumberAST>(num);
+  auto number_expr = std::make_unique<NumberAST>(num, (bool)decimal_count);
 
   auto expr = ParseSubExpression();
 
@@ -651,7 +658,7 @@ Parser::ParseExpressionBeginningWithNumber() {
     return std::make_unique<BinaryExpressionAST>(
         std::move(number_expr), std::move(val).first, val.second);
   } else
-    return std::make_unique<NumberAST>(num);
+    return number_expr;
 }
 
 std::optional<std::unique_ptr<ExpressionAST>>

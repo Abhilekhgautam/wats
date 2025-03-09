@@ -71,11 +71,11 @@ public:
        << " " << tok.tok_type;
     return os;
   }
-  inline std::string GetValue() { return tok_value; }
-  inline std::size_t GetLine() { return line; }
-  inline std::size_t GetColumn() { return pos; }
-  inline TokenName GetTokenName() { return tok_type; }
-  inline bool IsIdentifier() { return tok_type == TokenName::ID; }
+  inline std::string GetValue() const { return tok_value; }
+  inline std::size_t GetLine() const { return line; }
+  inline std::size_t GetColumn() const { return pos; }
+  inline TokenName GetTokenName() const{ return tok_type; }
+  inline bool IsIdentifier() const { return tok_type == TokenName::ID; }
 
 private:
   TokenName tok_type;

@@ -47,7 +47,7 @@ std::optional<std::vector<std::unique_ptr<StatementAST>>> Parser::Parse() {
 void Parser::DidYouMean(const std::string to_add, std::size_t line,
                         std::size_t column, bool space_before) {
 
-  const std::string invalid_line = source_code_by_line[line - 1];
+  const std::string invalid_line = context.source_code_by_line[line - 1];
   const std::string contents_after_error = invalid_line.substr(column - 1);
   const std::string contents_before_error = invalid_line.substr(0, column - 1);
 
@@ -77,7 +77,7 @@ void Parser::Expected(const std::string str, std::size_t line,
   Color("red", "Error: ");
   Color("blue", str, true);
 
-  std::cout << source_code_by_line[line - 1] << '\n';
+  std::cout << context.source_code_by_line[line - 1] << '\n';
   Color("green", SetArrow(column), true);
 }
 
@@ -88,7 +88,7 @@ void Parser::Unexpected(const std::string str, std::size_t line,
   Color("red", "Error: ");
   Color("blue", str, true);
 
-  std::cout << source_code_by_line[line - 1] << '\n';
+  std::cout << context.source_code_by_line[line - 1] << '\n';
   if (!times){
       Color("red", SetArrow(column - GetCurrentToken().GetValue().length() + 1, GetCurrentToken().GetValue().length()), true);
   } else {
@@ -96,7 +96,7 @@ void Parser::Unexpected(const std::string str, std::size_t line,
   }
 }
 
-bool Parser::Peek(TokenName tok) {
+bool Parser::Peek(TokenName tok) const {
   if (current_parser_position + 1 >= token_vec.size())
     return false;
   else if (token_vec.empty())
@@ -105,7 +105,7 @@ bool Parser::Peek(TokenName tok) {
   return token_vec.at(current_parser_position + 1).GetTokenName() == tok;
 }
 
-Token Parser::GetCurrentToken() { return token_vec[current_parser_position]; }
+Token Parser::GetCurrentToken() const{ return token_vec[current_parser_position]; }
 
 void Parser::StoreParserPosition() {
   temp_parser_position = current_parser_position;
@@ -117,7 +117,7 @@ void Parser::ConsumeNext() {
 
 void Parser::BackTrack() { current_parser_position = temp_parser_position; }
 
-bool Parser::IsAtEnd() { return current_parser_position >= token_vec.size(); }
+bool Parser::IsAtEnd() const { return current_parser_position >= token_vec.size(); }
 
 std::optional<std::unique_ptr<FunctionDefinitionAST>>
 Parser::ParseFunctionWithRetType() {

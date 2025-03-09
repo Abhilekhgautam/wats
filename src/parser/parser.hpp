@@ -23,11 +23,12 @@
 #include "../AST/FunctionArgumentAST.hpp"
 
 #include "../lexer/tokens.hpp"
+#include "../CompilerContext.hpp"
+
 class Parser {
 public:
-  Parser(const std::vector<Token> &token_vec,
-         const std::vector<std::string> &source_code_by_line)
-      : token_vec(token_vec), source_code_by_line(source_code_by_line),
+  Parser(const CompilerContext& context, const std::vector<Token> &token_vec)
+      : context(context), token_vec(token_vec),
         current_parser_position(-1) {}
 
   std::optional<std::vector<std::unique_ptr<StatementAST>>> Parse();
@@ -38,6 +39,7 @@ public:
   void Error(const std::string &err_msg);
 
 private:
+  const CompilerContext& context;
   enum class ParserStatus{
         // When the parser encounters the keyword `function`.
         PARSING_FN_DEFINITION,
@@ -130,17 +132,16 @@ private:
         PARSING_ELSEIF_CONDITION_FAILED,
         PARSED_ELSEIF_CONDITION,
   };
-  std::vector<Token> token_vec;
-  std::vector<std::string> source_code_by_line;
+  const std::vector<Token>& token_vec;
   std::size_t current_parser_position;
   std::size_t temp_parser_position;
 
   std::vector<Token> backup_token;
-  bool IsAtEnd();
+  bool IsAtEnd() const;
   bool PeekIgnoringNewLine(TokenName);
-  bool Peek(TokenName);
+  bool Peek(TokenName) const;
 
-  Token GetCurrentToken();
+  Token GetCurrentToken() const;
   void ConsumeNext();
   void BackTrack();
   void StoreParserPosition();

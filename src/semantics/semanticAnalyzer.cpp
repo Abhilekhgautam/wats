@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <cerrno>
+#endif
+
 #include "semanticAnalyzer.hpp"
 #include "scope.hpp"
 
@@ -36,6 +40,17 @@ void SemanticAnalyzer::Visit(NumberAST& ast){
 
     if(ast.HasDecimal()){
         double value;
+        #ifdef __EMSCRIPTEN__
+        char* ptr{};
+        auto result = strtod(num.data(), &ptr);
+        if (errno == ERANGE){
+            // Out of range error
+
+            return;
+        }
+        #endif
+
+        #ifndef __EMSCRIPTEN__
         // Convert to double
         auto result = std::from_chars(num.data(), num.data() + num.size(), value);
 
@@ -44,6 +59,7 @@ void SemanticAnalyzer::Visit(NumberAST& ast){
 
             return;
         }
+        #endif
         // Set to f64 by default
         ast.SetType("f64");
         ast.SetValue(value);
@@ -115,6 +131,7 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST& ast){
 
         if (assigned_expr.GetType() != var_type){
             // Error: Type mismatch
+            std::cout << "Type Mismatch\n";
         }
 
     }

@@ -18,22 +18,19 @@ std::map<std::string, TokenName> Lexer::keywords = {
     {"match", TokenName::MATCH},   {"if", TokenName::IF},
     {"else", TokenName::ELSE},     {"break", TokenName::BREAK}};
 
-Lexer::Lexer(std::string str) {
+Lexer::Lexer(CompilerContext& context):context(context) {
   column = 1;
   line = 1;
   current_scan_position = 0;
-  source_code = str;
-
-  source_code_by_line = split_str(str);
 }
 
-bool Lexer::IsAtEnd() { return current_scan_position >= source_code.length(); }
+bool Lexer::IsAtEnd() { return current_scan_position >= context.source_code.length(); }
 
 void Lexer::Tokenize() {
   while (!IsAtEnd()) {
     char current_char;
     try {
-      current_char = source_code.at(current_scan_position);
+      current_char = context.source_code.at(current_scan_position);
     } catch (std::out_of_range &e) {
       return;
     }
@@ -43,18 +40,18 @@ void Lexer::Tokenize() {
 }
 
 char Lexer::Peek() {
-  if ((current_scan_position + 1) > source_code.size())
+  if ((current_scan_position + 1) > context.source_code.size())
     return '\0';
 
   else
-    return source_code[current_scan_position + 1];
+    return context.source_code[current_scan_position + 1];
 }
 
 char Lexer::PeekNext() {
-  if ((current_scan_position + 2) > source_code.size())
+  if ((current_scan_position + 2) > context.source_code.size())
     return '\0';
   else
-    return source_code.at(current_scan_position + 2);
+    return context.source_code.at(current_scan_position + 2);
 }
 
 void Lexer::ConsumeNext() { current_scan_position = current_scan_position + 1; }
@@ -285,7 +282,7 @@ std::string Lexer::String(){
 }
 
 void Lexer::Error(const std::string &err_msg) {
-  std::cout << source_code_by_line[line - 1] << '\n';
+  std::cout << context.source_code_by_line[line - 1] << '\n';
   Color("green", SetArrow(column), true);
   std::cout << "[ " << line << ":" << column << " ] ";
   Color("red", "Error: ");
@@ -294,11 +291,7 @@ void Lexer::Error(const std::string &err_msg) {
   std::exit(0);
 }
 
-const std::vector<Token> &Lexer::GetTokens() { return token_vec; }
-
-const std::vector<std::string> &Lexer::GetSourceCode() {
-  return source_code_by_line;
-}
+const std::vector<Token>& Lexer::GetTokens() { return token_vec; }
 
 void Lexer::Debug() {
   for (const auto &elt : token_vec) {

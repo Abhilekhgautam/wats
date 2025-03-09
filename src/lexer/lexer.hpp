@@ -5,27 +5,27 @@
 #include <string>
 #include <vector>
 
+#include "../CompilerContext.hpp"
 #include "tokens.hpp"
 
 class Lexer {
 public:
-  Lexer(std::string str);
+  Lexer(CompilerContext& context);
   void Tokenize();
   // Write the given error msg to stdout
   void Error(const std::string &err_msg);
 
-  const std::vector<Token> &GetTokens();
-  const std::vector<std::string> &GetSourceCode();
+  const std::vector<Token>& GetTokens();
 
   static std::map<std::string, TokenName> keywords;
+
+  CompilerContext& context;
 
   // Print the Token Information
   void Debug();
 
 private:
-  std::string source_code;
-  std::vector<std::string> source_code_by_line;
-  // Maintain the current column positin
+  // Maintain the current column position
   std::size_t column;
   // Maintain the current line number
   std::size_t line;

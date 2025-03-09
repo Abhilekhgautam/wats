@@ -28,14 +28,17 @@ class RangeAST;
 class FunctionCallAST;
 class FunctionCallExprAST;
 
+#include "../CompilerContext.hpp"
 
 #include <vector>
 #include <memory>
 
 class SemanticAnalyzer {
     public:
-        SemanticAnalyzer(std::vector<std::unique_ptr<StatementAST>>& stmt_ast): stmt_ast(stmt_ast){}
+        SemanticAnalyzer(CompilerContext& context, std::vector<std::unique_ptr<StatementAST>>& stmt_ast)
+        : context(context), stmt_ast(stmt_ast){}
         void analyze();
+        CompilerContext& context;
     public:
         std::vector<std::unique_ptr<StatementAST>>& stmt_ast;
         void Visit(VariableDeclarationAST& ast);

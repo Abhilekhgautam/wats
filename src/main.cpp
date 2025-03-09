@@ -6,6 +6,7 @@
 #include "./lexer/lexer.hpp"
 #include "./parser/parser.hpp"
 #include "./semantics/semanticAnalyzer.hpp"
+#include "CompilerContext.hpp"
 
 #include "utils.hpp"
 
@@ -41,16 +42,18 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::string test = read_file(std::filesystem::path{argv[1]});
+  std::string source_code = read_file(std::filesystem::path{argv[1]});
 
-  Lexer L(test);
+  CompilerContext context(source_code);
+
+  Lexer L(context);
   L.Tokenize();
   L.Debug();
 
-  Parser P(L.GetTokens(), L.GetSourceCode());
+  Parser P(context, L.GetTokens());
   auto ast_vec = P.Parse();
 
-  SemanticAnalyzer s(ast_vec.value());
+  SemanticAnalyzer s(context, ast_vec.value());
   s.analyze();
 
   // Only for debug

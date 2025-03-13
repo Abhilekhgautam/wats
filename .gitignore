@@ -1,3 +1,5 @@
 bin/
 obj/
 test.wats
+.cache/
+compile_commands.json

@@ -54,6 +54,14 @@ inline void Color(std::string color, std::string line, bool newLine = false) {
 }
 
 #endif
+inline std::string SetArrowLeft(std::size_t pos, std::size_t times = 1) {
+  std::string arrows;
+  for (size_t i = pos - times; i > 0; --i)
+    arrows += ' ';
+  for (size_t i = 0; i < times; ++i)
+    arrows += '^';
+  return arrows;
+}
 inline std::string SetArrow(std::size_t pos, std::size_t times = 1) {
   std::string arrows;
   for (size_t i = 0; i < pos - 1; ++i)

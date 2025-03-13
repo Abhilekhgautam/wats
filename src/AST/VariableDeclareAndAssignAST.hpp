@@ -33,7 +33,7 @@ public:
   ExpressionAST &GetExpr() const { return *expr; }
 
   void SetType(std::string type) { type_name = type; }
-  std::span<const SourceLocation> GetLocations() { return locations; }
+  std::vector<SourceLocation> &GetSourceLocation() { return locations; }
 };
 
 #endif

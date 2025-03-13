@@ -26,9 +26,9 @@ public:
 
 private:
   // Maintain the current column position
-  std::size_t column;
+  int column;
   // Maintain the current line number
-  std::size_t line;
+  int line;
   // Position where the Lexer is currently at
   std::size_t current_scan_position;
 

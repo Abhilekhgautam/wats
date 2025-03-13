@@ -1,6 +1,8 @@
 #ifndef TOKEN_HPP
 #define TOKEN_HPP
 
+#include "../SourceLocation.hpp"
+
 #include <iostream>
 #include <string>
 
@@ -58,29 +60,30 @@ std::ostream &operator<<(std::ostream &os, TokenName type);
 
 class Token {
 public:
-  Token(TokenName tok_type, std::size_t line, std::size_t pos,
+  Token(TokenName tok_type, SourceLocation loc,
         std::string tok_value)
-      : tok_type(tok_type), line(line), pos(pos), tok_value(tok_value) {}
+      : tok_type(tok_type), location(loc), tok_value(tok_value) {}
 
-  Token(TokenName tok_type, std::size_t line, std::size_t pos, char tok_value)
-      : tok_type(tok_type), line(line), pos(pos),
+  Token(TokenName tok_type, SourceLocation loc, char tok_value)
+      : tok_type(tok_type), location(loc),
         tok_value(std::string{tok_value}) {}
 
   friend std::ostream &operator<<(std::ostream &os, Token tok) {
-    os << "line: " << tok.line << " col: " << tok.pos << " " << tok.tok_value
+    os << "line: " << tok.GetLine() << " col: " << tok.GetColumn() << " " << tok.tok_value
        << " " << tok.tok_type;
     return os;
   }
   inline std::string GetValue() const { return tok_value; }
-  inline std::size_t GetLine() const { return line; }
-  inline std::size_t GetColumn() const { return pos; }
+  inline int GetLine() const { return location.GetLine(); }
+  inline int GetColumn() const { return location.GetColumn(); }
   inline TokenName GetTokenName() const{ return tok_type; }
   inline bool IsIdentifier() const { return tok_type == TokenName::ID; }
 
+  inline SourceLocation& GetSourceLocation() {return location;}
+
 private:
   TokenName tok_type;
-  std::size_t line;
-  std::size_t pos;
+  SourceLocation location;
   std::string tok_value;
 };
 #endif

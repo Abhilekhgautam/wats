@@ -2,11 +2,11 @@
 #include <emscripten.h>
 #endif
 
-#include "cmd-parser.hpp"
 #include "./lexer/lexer.hpp"
 #include "./parser/parser.hpp"
 #include "./semantics/semanticAnalyzer.hpp"
 #include "CompilerContext.hpp"
+#include "cmd-parser.hpp"
 
 #include "utils.hpp"
 
@@ -14,15 +14,18 @@
 extern "C" {
 EMSCRIPTEN_KEEPALIVE
 void compile_program(const char *source_code) {
-  std::string test(source_code);
+  std::string source(source_code);
 
-  Lexer L(test);
+  CompilerContext context(source);
+
+  Lexer L(context);
   L.Tokenize();
+  L.Debug();
 
-  Parser P(L.GetTokens(), L.GetSourceCode());
+  Parser P(context, L.GetTokens());
   auto ast_vec = P.Parse();
 
-  SemanticAnalyzer s(ast_vec.value());
+  SemanticAnalyzer s(context, ast_vec.value());
   s.analyze();
 
   // Only for debug

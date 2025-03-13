@@ -1,30 +1,39 @@
 #ifndef VAR_DECL_ASSIGN
 #define VAR_DECL_ASSIGN
 
-#include "StatementAST.hpp"
 #include "ExpressionAST.hpp"
+#include "StatementAST.hpp"
+
+#include "../SourceLocation.hpp"
+#include <vector>
 
 /// let x = 45
-class VariableDeclareAndAssignAST : public StatementAST{
-  public:
-    VariableDeclareAndAssignAST(std::string variable_name, std::string type_name, std::unique_ptr<ExpressionAST> expr)
-	    : variable_name(variable_name), type_name(type_name), expr(std::move(expr)){}
+class VariableDeclareAndAssignAST : public StatementAST {
+public:
+  VariableDeclareAndAssignAST(std::string variable_name, std::string type_name,
+                              std::unique_ptr<ExpressionAST> expr,
+                              std::vector<SourceLocation> &loc)
+      : variable_name(variable_name), type_name(type_name),
+        expr(std::move(expr)), locations(loc) {}
 
-	virtual ~VariableDeclareAndAssignAST() = default;
+  virtual ~VariableDeclareAndAssignAST() = default;
 
-	void Accept(SemanticAnalyzer& analyzer) override;
-  private:
-    std::string variable_name;
-    std::string type_name;
-    std::unique_ptr<ExpressionAST> expr;
+  void Accept(SemanticAnalyzer &analyzer) override;
 
-    public:
-    void Debug() override;
-    std::string GetVarName() const {return variable_name;}
-    std::string GetType() const {return type_name;}
-    ExpressionAST& GetExpr() const {return *expr;}
+private:
+  std::string variable_name;
+  std::string type_name;
+  std::unique_ptr<ExpressionAST> expr;
+  std::vector<SourceLocation> locations;
 
-    void SetType(std::string type){type_name = type;}
+public:
+  void Debug() override;
+  std::string GetVarName() const { return variable_name; }
+  std::string GetType() const { return type_name; }
+  ExpressionAST &GetExpr() const { return *expr; }
+
+  void SetType(std::string type) { type_name = type; }
+  std::span<const SourceLocation> GetLocations() { return locations; }
 };
 
 #endif

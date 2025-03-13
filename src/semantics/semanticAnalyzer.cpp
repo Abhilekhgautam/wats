@@ -88,9 +88,9 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
     if (errno == ERANGE) {
       Error(num + "  is not within the f64 range",
             ast.GetSourceLocation().front().GetLine(),
-            ast.GetSourceLocation().front().GetColumn(), num.length())
+            ast.GetSourceLocation().front().GetColumn(), num.length());
 
-          return;
+      return;
     }
 #endif
 
@@ -189,7 +189,9 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
   std::string var_name = ast.GetVarName();
   auto result = current_scope.FindSymbolInCurrentScope(var_name);
   if (result.has_value()) {
-    // Error: Variable already declared in current scope.
+    Error("Variable " + var_name + " already declared in the current scope",
+          ast.GetSourceLocation()[0].GetLine(),
+          ast.GetSourceLocation()[0].GetColumn(), var_name.length());
     return;
   } else {
     auto &expr = ast.GetExpr();
@@ -203,7 +205,10 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
       current_scope.AddSymbol(var_name, expr_type);
     } else {
       if (var_type != expr_type) {
-        std::cout << "Error: Type Mismatch\n";
+        Error("Type Mimatch: " + expr_type +
+                  " cannot be assigned to a variable of " + var_type,
+              ast.GetSourceLocation()[0].GetLine(),
+              ast.GetSourceLocation()[0].GetColumn(), var_name.length());
       } else {
         current_scope.AddSymbol(var_name, expr_type);
       }

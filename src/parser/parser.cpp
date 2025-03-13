@@ -1,14 +1,15 @@
 #include "parser.hpp"
 #include "../AST/FunctionArgumentAST.hpp"
-#include "../lexer/tokens.hpp"
 #include "../lexer/lexer.hpp"
+#include "../lexer/tokens.hpp"
 #include "../utils.hpp"
 
-#include "../AST/NumberAST.hpp"
-#include "../AST/IdentifierAST.hpp"
 #include "../AST/BinaryExpressionAST.hpp"
 #include "../AST/FunctionCallExprAST.hpp"
+#include "../AST/FunctionParameterAST.hpp"
+#include "../AST/IdentifierAST.hpp"
 #include "../AST/MatchStatementAST.hpp"
+#include "../AST/NumberAST.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,19 +18,20 @@
 #include <optional>
 #include <vector>
 
-#define GENERATE_POSITION_PAST_ONE_COLUMN                                     \
+#define GENERATE_POSITION_PAST_ONE_COLUMN                                      \
   token_vec[current_parser_position].GetLine(),                                \
       token_vec[current_parser_position].GetColumn() + 1
 
-#define GENERATE_CURRENT_POSITION \
-token_vec[current_parser_position].GetLine(),                                \
-    token_vec[current_parser_position].GetColumn()
+#define GENERATE_CURRENT_POSITION                                              \
+  token_vec[current_parser_position].GetLine(),                                \
+      token_vec[current_parser_position].GetColumn()
 
-inline bool Parser::CheckInsideFunction(){
-    if (status_list.empty() || status_list.front() != ParserStatus::PARSING_FN_DEFINITION){
-        return false;
-    }
-    return true;
+inline bool Parser::CheckInsideFunction() {
+  if (status_list.empty() ||
+      status_list.front() != ParserStatus::PARSING_FN_DEFINITION) {
+    return false;
+  }
+  return true;
 }
 
 std::optional<std::vector<std::unique_ptr<StatementAST>>> Parser::Parse() {
@@ -53,12 +55,12 @@ void Parser::DidYouMean(const std::string to_add, std::size_t line,
 
   std::string expected_correct_line;
 
-  if (!space_before){
-      expected_correct_line =
-      contents_before_error + to_add + " " + contents_after_error;
+  if (!space_before) {
+    expected_correct_line =
+        contents_before_error + to_add + " " + contents_after_error;
   } else {
     expected_correct_line =
-      contents_before_error + " " + to_add + contents_after_error;
+        contents_before_error + " " + to_add + contents_after_error;
   }
   Color("blue", "Did You Mean?", true);
 
@@ -67,7 +69,6 @@ void Parser::DidYouMean(const std::string to_add, std::size_t line,
     Color("green", SetPlus(column, to_add.length()), true);
   else
     Color("green", SetPlus(column + 1, to_add.length()), true);
-
 }
 
 void Parser::Expected(const std::string str, std::size_t line,
@@ -82,15 +83,18 @@ void Parser::Expected(const std::string str, std::size_t line,
 }
 
 void Parser::Unexpected(const std::string str, std::size_t line,
-                      std::size_t column, std::size_t times) {
+                        std::size_t column, std::size_t times) {
 
   std::cout << "[ " << line << ":" << column << " ] ";
   Color("red", "Error: ");
   Color("blue", str, true);
 
   std::cout << context.source_code_by_line[line - 1] << '\n';
-  if (!times){
-      Color("red", SetArrow(column - GetCurrentToken().GetValue().length() + 1, GetCurrentToken().GetValue().length()), true);
+  if (!times) {
+    Color("red",
+          SetArrow(column - GetCurrentToken().GetValue().length() + 1,
+                   GetCurrentToken().GetValue().length()),
+          true);
   } else {
     Color("red", SetArrow(column - times + 1, times), true);
   }
@@ -105,7 +109,9 @@ bool Parser::Peek(TokenName tok) const {
   return token_vec.at(current_parser_position + 1).GetTokenName() == tok;
 }
 
-Token Parser::GetCurrentToken() const{ return token_vec[current_parser_position]; }
+Token Parser::GetCurrentToken() const {
+  return token_vec[current_parser_position];
+}
 
 void Parser::StoreParserPosition() {
   temp_parser_position = current_parser_position;
@@ -117,7 +123,9 @@ void Parser::ConsumeNext() {
 
 void Parser::BackTrack() { current_parser_position = temp_parser_position; }
 
-bool Parser::IsAtEnd() const { return current_parser_position >= token_vec.size(); }
+bool Parser::IsAtEnd() const {
+  return current_parser_position >= token_vec.size();
+}
 
 std::optional<std::unique_ptr<FunctionDefinitionAST>>
 Parser::ParseFunctionWithRetType() {
@@ -125,15 +133,15 @@ Parser::ParseFunctionWithRetType() {
   // later when we add fn args..
   [[maybe_unused]] int parenthesis_position;
 
-  if (Peek(TokenName::FUNCTION)){
+  if (Peek(TokenName::FUNCTION)) {
     ConsumeNext();
-    if (CheckInsideFunction()){
-        Unexpected("You cannot define a function inside another function", GENERATE_CURRENT_POSITION);
-        return {};
+    if (CheckInsideFunction()) {
+      Unexpected("You cannot define a function inside another function",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION);
-  }
-  else
+  } else
     return {};
 
   std::string fn_name;
@@ -143,10 +151,13 @@ Parser::ParseFunctionWithRetType() {
     fn_name = GetCurrentToken().GetValue();
   } else {
     ConsumeNext();
-    if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-        status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
-        Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a function name.", GENERATE_CURRENT_POSITION);
-        return {};
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+      Unexpected("'" + GetCurrentToken().GetValue() + "'" +
+                     " is a keyword, it cannot be used as a function name.",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
 
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
@@ -183,8 +194,12 @@ Parser::ParseFunctionWithRetType() {
 
   auto result = ParseCurlyBraceAndBody();
   if (result.has_value()) {
-    auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
-    :  std::make_unique<FunctionDefinitionAST>(fn_name, nullptr, std::move(result.value()), nullptr);
+    auto val = fn_args.has_value()
+                   ? std::make_unique<FunctionDefinitionAST>(
+                         fn_name, std::move(fn_args.value()),
+                         std::move(result.value()), nullptr)
+                   : std::make_unique<FunctionDefinitionAST>(
+                         fn_name, nullptr, std::move(result.value()), nullptr);
 
     status_list.clear();
     return val;
@@ -201,14 +216,14 @@ Parser::ParseFunctionWithoutRetType() {
 
   if (Peek(TokenName::FUNCTION)) {
     ConsumeNext();
-    if (CheckInsideFunction()){
-        Unexpected("You cannot define a function inside another function", GENERATE_CURRENT_POSITION);
-        return {};
+    if (CheckInsideFunction()) {
+      Unexpected("You cannot define a function inside another function",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION);
 
-  }
-  else{
+  } else {
     return {};
   }
   std::string fn_name;
@@ -217,12 +232,15 @@ Parser::ParseFunctionWithoutRetType() {
     ConsumeNext();
     fn_name = GetCurrentToken().GetValue();
   } else {
-      ConsumeNext();
-      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-          status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
-          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a function name.", GENERATE_CURRENT_POSITION);
-          return {};
-      }
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+      Unexpected("'" + GetCurrentToken().GetValue() + "'" +
+                     " is a keyword, it cannot be used as a function name.",
+                 GENERATE_CURRENT_POSITION);
+      return {};
+    }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
 
     Expected(
@@ -256,53 +274,60 @@ Parser::ParseFunctionWithoutRetType() {
   auto result = ParseCurlyBraceAndBody();
   if (result.has_value()) {
 
-    auto val = fn_args.has_value() ? std::make_unique<FunctionDefinitionAST>(fn_name, std::move(fn_args.value()),std::move(result.value()), nullptr)
-                        : std::make_unique<FunctionDefinitionAST>(fn_name, nullptr,std::move(result.value()), nullptr);
-
+    auto val = fn_args.has_value()
+                   ? std::make_unique<FunctionDefinitionAST>(
+                         fn_name, std::move(fn_args.value()),
+                         std::move(result.value()), nullptr)
+                   : std::make_unique<FunctionDefinitionAST>(
+                         fn_name, nullptr, std::move(result.value()), nullptr);
 
     status_list.clear();
 
     return val;
   } else {
 
-      return {};
+    return {};
   }
 }
 
-std::optional<std::unique_ptr<FunctionArgumentAST>> Parser::ParseFunctionArgument(){
-    if (Peek(TokenName::ID)){
-        ConsumeNext();
-        return std::make_unique<FunctionArgumentAST>(GetCurrentToken().GetValue());
-    } else return {};
+std::optional<std::unique_ptr<FunctionArgumentAST>>
+Parser::ParseFunctionArgument() {
+  if (Peek(TokenName::ID)) {
+    ConsumeNext();
+    return std::make_unique<FunctionArgumentAST>(GetCurrentToken().GetValue());
+  } else
+    return {};
 }
 
-std::optional<std::unique_ptr<FunctionArgumentAST>> Parser::ParseFunctionArguments(){
-    auto argument = ParseFunctionArgument();
+std::optional<std::unique_ptr<FunctionArgumentAST>>
+Parser::ParseFunctionArguments() {
+  auto argument = ParseFunctionArgument();
 
-    if (!argument.has_value()){
-        return {};
-    }
+  if (!argument.has_value()) {
+    return {};
+  }
 
-    std::vector<std::string> str_args;
-    str_args.push_back(argument.value()->GetArg());
+  std::vector<std::string> str_args;
+  str_args.push_back(argument.value()->GetArg());
 
-    if(Peek(TokenName::COMMA)) ConsumeNext();
-    else{
-        return std::make_unique<FunctionArgumentAST>(str_args);
-    }
-
-    auto arguments = ParseFunctionArguments();
-
-    if (!arguments.has_value()){
-        Expected("Unexpected ',' found", GENERATE_POSITION_PAST_ONE_COLUMN);
-        return {};
-    }
-
-    for(const auto& elt: arguments.value()->GetArgs()){
-        str_args.push_back(elt);
-    }
-
+  if (Peek(TokenName::COMMA))
+    ConsumeNext();
+  else {
     return std::make_unique<FunctionArgumentAST>(str_args);
+  }
+
+  auto arguments = ParseFunctionArguments();
+
+  if (!arguments.has_value()) {
+    Expected("Unexpected ',' found", GENERATE_POSITION_PAST_ONE_COLUMN);
+    return {};
+  }
+
+  for (const auto &elt : arguments.value()->GetArgs()) {
+    str_args.push_back(elt);
+  }
+
+  return std::make_unique<FunctionArgumentAST>(str_args);
 }
 
 std::optional<std::unique_ptr<FunctionDefinitionAST>> Parser::ParseFunction() {
@@ -335,21 +360,29 @@ Parser::ParseVariableDeclWithLet() {
   } else
     return {};
 
+  std::vector<SourceLocation> locations;
+
   std::string var_name;
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else {
-      ConsumeNext();
-      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-          status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
-          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
-          return {};
-      }
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+      Unexpected("'" + GetCurrentToken().GetValue() + "'" +
+                     " is a keyword, it cannot be used as a variable name.",
+                 GENERATE_CURRENT_POSITION);
+      return {};
+    }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
+  // push (0, 0) for now to mean none
+  locations.push_back({0, 0});
 
   if (Peek(TokenName::SEMI_COLON))
     ConsumeNext();
@@ -359,7 +392,7 @@ Parser::ParseVariableDeclWithLet() {
     return {};
   }
 
-  return std::make_unique<VariableDeclarationAST>(nullptr, var_name);
+  return std::make_unique<VariableDeclarationAST>("", var_name, locations);
 }
 
 std::optional<std::unique_ptr<VariableDeclarationAST>>
@@ -371,17 +404,22 @@ Parser::ParseVariableDeclWithType() {
   } else
     return {};
 
+  std::vector<SourceLocation> locations;
   std::string var_name;
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else {
-      ConsumeNext();
-      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-          status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
-          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
-          return {};
-      }
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+      Unexpected("'" + GetCurrentToken().GetValue() + "'" +
+                     " is a keyword, it cannot be used as a variable name.",
+                 GENERATE_CURRENT_POSITION);
+      return {};
+    }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
@@ -399,8 +437,10 @@ Parser::ParseVariableDeclWithType() {
       Peek(TokenName::F64)) {
     ConsumeNext();
     type = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else {
-    Expected("Consider mentioning the type of the variable", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Consider mentioning the type of the variable",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 
@@ -412,7 +452,7 @@ Parser::ParseVariableDeclWithType() {
     return {};
   }
 
-  return std::make_unique<VariableDeclarationAST>(type, var_name);
+  return std::make_unique<VariableDeclarationAST>(type, var_name, locations);
 }
 
 std::optional<std::unique_ptr<VariableDeclarationAST>>
@@ -439,10 +479,12 @@ std::optional<std::unique_ptr<VariableAssignmentAST>>
 Parser::ParseVariableAssignment() {
   StoreParserPosition();
 
+  std::vector<SourceLocation> locations;
   std::string var_name;
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else
     return {};
 
@@ -453,16 +495,22 @@ Parser::ParseVariableAssignment() {
 
   auto expr = ParseExpression();
 
-  if (!expr.has_value()) {
+  auto &result = expr.value();
+
+  auto loc = result->GetSourceLocation();
+
+  if (!result) {
     Expected("Expected an value or expression for the assignment",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
-
+  for (const auto elt : loc) {
+    locations.push_back(elt);
+  }
   if (Peek(TokenName::SEMI_COLON)) {
     ConsumeNext();
-    return std::make_unique<VariableAssignmentAST>(var_name,
-                                                   std::move(expr.value()));
+    return std::make_unique<VariableAssignmentAST>(
+        var_name, std::move(expr.value()), locations);
   } else {
     Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
@@ -474,6 +522,8 @@ std::optional<std::unique_ptr<VariableDeclareAndAssignAST>>
 Parser::ParseVariableInitWithLet() {
   StoreParserPosition();
 
+  std::vector<SourceLocation> locations;
+
   if (Peek(TokenName::LET))
     ConsumeNext();
   else
@@ -484,30 +534,42 @@ Parser::ParseVariableInitWithLet() {
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else {
     StoreParserPosition();
     ConsumeNext();
-    if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-        Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
-        return {};
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      Unexpected("'" + GetCurrentToken().GetValue() + "'" +
+                     " is a keyword, it cannot be used as a variable name.",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     BackTrack();
 
-  Expected("A Variable name after a let expression is required",
-           GENERATE_POSITION_PAST_ONE_COLUMN);
-  return {};
+    Expected("A Variable name after a let expression is required",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
+    return {};
   }
   if (Peek(TokenName::ASSIGN))
     ConsumeNext();
   else
     return {};
 
+  // No Type,so type has same location as the var_name
+  locations.push_back(locations[0]);
   auto expr = ParseExpression();
 
   if (!expr.has_value()) {
     Expected("Expected an value or expression for the assignment",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
+  }
+
+  auto &result = expr.value();
+
+  for (const auto &elt : result->GetSourceLocation()) {
+    locations.push_back(elt);
   }
 
   if (Peek(TokenName::SEMI_COLON)) {
@@ -518,7 +580,8 @@ Parser::ParseVariableInitWithLet() {
     return {};
   }
 
-  return std::make_unique<VariableDeclareAndAssignAST>(var_name, "", std::move(expr.value()));
+  return std::make_unique<VariableDeclareAndAssignAST>(
+      var_name, "", std::move(expr.value()), locations);
 }
 
 std::optional<std::unique_ptr<VariableDeclareAndAssignAST>>
@@ -531,17 +594,21 @@ Parser::ParseVariableInitWithType() {
     return {};
 
   std::string var_name;
-
+  std::vector<SourceLocation> locations;
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else {
-      StoreParserPosition();
-      ConsumeNext();
-      if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-          Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as a variable name.", GENERATE_CURRENT_POSITION);
-          return {};
-      }
+    StoreParserPosition();
+    ConsumeNext();
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      Unexpected("'" + GetCurrentToken().GetValue() + "'" +
+                     " is a keyword, it cannot be used as a variable name.",
+                 GENERATE_CURRENT_POSITION);
+      return {};
+    }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
   }
@@ -558,8 +625,10 @@ Parser::ParseVariableInitWithType() {
       Peek(TokenName::F64)) {
     ConsumeNext();
     type = GetCurrentToken().GetValue();
+    locations.push_back(GetCurrentToken().GetSourceLocation());
   } else {
-    Expected("Consider mentioning the type of the variable", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Consider mentioning the type of the variable",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 
@@ -585,9 +654,51 @@ Parser::ParseVariableInitWithType() {
   }
 
   return std::make_unique<VariableDeclareAndAssignAST>(
-      var_name, type, std::move(expr.value()));
+      var_name, type, std::move(expr.value()), locations);
 }
 
+std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseFunctionParameter() {
+  StoreParserPosition();
+  auto expr = ParseExpression();
+
+  auto val = std::move(expr.value());
+
+  if (val) {
+    return std::move(val);
+  } else
+    return {};
+}
+
+std::optional<std::unique_ptr<FunctionParameterAST>>
+Parser::ParseFunctionParameters() {
+  auto para = ParseFunctionParameter();
+  auto val = std::move(para.value());
+
+  if (!val)
+    return {};
+
+  std::vector<std::unique_ptr<ExpressionAST>> params;
+  params.push_back(std::move(val));
+
+  if (Peek(TokenName::COMMA))
+    ConsumeNext();
+  else {
+    return std::make_unique<FunctionParameterAST>(std::move(params));
+  }
+
+  auto parameters = ParseFunctionParameters();
+
+  if (!parameters.has_value()) {
+    Expected("Unexpected ',' found", GENERATE_POSITION_PAST_ONE_COLUMN);
+    return {};
+  }
+
+  for (auto &elt : parameters.value()->GetFunctionParameters()) {
+    params.push_back(std::move(elt));
+  }
+
+  return std::make_unique<FunctionParameterAST>(std::move(params));
+}
 // Parsing Variable Declaration Ends here
 
 std::optional<std::unique_ptr<ExpressionAST>>
@@ -595,39 +706,54 @@ Parser::ParseExpressionBeginningWithID() {
   StoreParserPosition();
 
   std::string identifier_name;
-  if (Peek(TokenName::ID)) {
-    ConsumeNext();
-    identifier_name = GetCurrentToken().GetValue();
-  } else
+  if (!Peek(TokenName::ID)) {
     return {};
+  }
+  std::vector<SourceLocation> locations;
+  ConsumeNext();
+  identifier_name = GetCurrentToken().GetValue();
+  auto loc = GetCurrentToken().GetSourceLocation();
+  locations.push_back(loc);
 
   std::unique_ptr<ExpressionAST> identifier_expr =
-      std::make_unique<IdentifierAST>(identifier_name);
+      std::make_unique<IdentifierAST>(identifier_name, loc);
   // later if identifier is a function call.
-  std::vector<std::unique_ptr<StatementAST>> args;
+  std::unique_ptr<FunctionParameterAST> params;
 
   if (Peek(TokenName::OPEN_PARENTHESIS)) {
     ConsumeNext();
 
-    // Todo: look for parameter later
+    auto result = ParseFunctionParameters();
+
+    auto &val = result.value();
+
+    if (val) {
+      params = std::move(val);
+    }
 
     if (Peek(TokenName::CLOSE_PARENTHESIS)) {
       ConsumeNext();
-      identifier_expr =
-          std::make_unique<FunctionCallExprAST>(identifier_name, std::move(args));
+      return std::make_unique<FunctionCallExprAST>(identifier_name,
+                                                   std::move(params), loc);
     } else {
-      Expected("Expected a closing pair ')'", GENERATE_POSITION_PAST_ONE_COLUMN);
+      Expected("Expected a closing pair ')'",
+               GENERATE_POSITION_PAST_ONE_COLUMN);
       return {};
     }
-  } else {
-    identifier_expr = std::make_unique<IdentifierAST>(identifier_name);
   }
   auto expr = ParseSubExpression();
 
   if (expr.has_value()) {
-    auto value = std::move(expr.value());
-    return std::make_unique<BinaryExpressionAST>(
-        std::move(identifier_expr), std::move(value.first), std::move(value.second));
+    auto &value = expr.value();
+    // Push the Operator Node location
+    locations.push_back(value.first.GetSourceLocation());
+
+    for (const auto &elt : value.second->GetSourceLocation()) {
+      locations.push_back(elt);
+    }
+    return std::make_unique<BinaryExpressionAST>(std::move(identifier_expr),
+                                                 std::move(value.second),
+                                                 value.first, locations);
   } else
     return identifier_expr;
 }
@@ -638,25 +764,39 @@ Parser::ParseExpressionBeginningWithNumber() {
 
   std::string num;
   int decimal_count;
-  if (Peek(TokenName::NUMBER)) {
-    ConsumeNext();
-    num = GetCurrentToken().GetValue();
-    decimal_count = std::count(num.begin(), num.end(), '.');
-    if(decimal_count > 1){
-        Unexpected("Too many decimal points in a numerical value", GENERATE_CURRENT_POSITION);
-        return {};
-    }
-  } else
+  SourceLocation loc;
+
+  if (!Peek(TokenName::NUMBER))
     return {};
 
-  auto number_expr = std::make_unique<NumberAST>(num, (bool)decimal_count);
+  ConsumeNext();
+  num = GetCurrentToken().GetValue();
+  loc = GetCurrentToken().GetSourceLocation();
+
+  decimal_count = std::count(num.begin(), num.end(), '.');
+
+  if (decimal_count > 1) {
+    Unexpected("Too many decimal points in a numerical value",
+               GENERATE_CURRENT_POSITION);
+    return {};
+  }
+
+  auto number_expr = std::make_unique<NumberAST>(num, (bool)decimal_count, loc);
+  std::vector<SourceLocation> locations;
+  locations.push_back(loc);
 
   auto expr = ParseSubExpression();
-
   if (expr.has_value()) {
-    auto val = std::move(expr.value());
+    auto &val = expr.value();
+
+    locations.push_back(val.first.GetSourceLocation());
+
+    for (const auto elt : val.second->GetSourceLocation()) {
+      locations.push_back(elt);
+    }
+
     return std::make_unique<BinaryExpressionAST>(
-        std::move(number_expr), std::move(val).first, val.second);
+        std::move(number_expr), std::move(val.second), val.first, locations);
   } else
     return number_expr;
 }
@@ -679,7 +819,8 @@ Parser::ParseExpressionBeginningWithBraces() {
       ConsumeNext();
       return expr;
     } else {
-      Expected("Expected a closing pair for '('", GENERATE_POSITION_PAST_ONE_COLUMN);
+      Expected("Expected a closing pair for '('",
+               GENERATE_POSITION_PAST_ONE_COLUMN);
       DidYouMean(")", GENERATE_POSITION_PAST_ONE_COLUMN);
       return {};
     }
@@ -687,15 +828,14 @@ Parser::ParseExpressionBeginningWithBraces() {
     return {};
 }
 
-std::optional<std::pair<std::unique_ptr<ExpressionAST>, std::string>>
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
 Parser::ParseSubExpression() {
   StoreParserPosition();
 
   auto expr = ParsePlusExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "+"};
+    return expr;
   }
 
   BackTrack();
@@ -703,8 +843,7 @@ Parser::ParseSubExpression() {
   expr = ParseMinusExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "-"};
+    return expr;
   }
 
   BackTrack();
@@ -712,8 +851,7 @@ Parser::ParseSubExpression() {
   expr = ParseMulExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "*"};
+    return expr;
   }
 
   BackTrack();
@@ -721,8 +859,7 @@ Parser::ParseSubExpression() {
   expr = ParseDivExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "/"};
+    return expr;
   }
 
   BackTrack();
@@ -730,8 +867,7 @@ Parser::ParseSubExpression() {
   expr = ParseModExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "%"};
+    return expr;
   }
 
   BackTrack();
@@ -739,8 +875,7 @@ Parser::ParseSubExpression() {
   expr = ParseGtExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), ">"};
+    return expr;
   }
 
   BackTrack();
@@ -748,8 +883,7 @@ Parser::ParseSubExpression() {
   expr = ParseLtExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "<"};
+    return expr;
   }
 
   BackTrack();
@@ -757,8 +891,7 @@ Parser::ParseSubExpression() {
   expr = ParseGteExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), ">="};
+    return expr;
   }
 
   BackTrack();
@@ -766,8 +899,7 @@ Parser::ParseSubExpression() {
   expr = ParseLteExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "<="};
+    return expr;
   }
 
   BackTrack();
@@ -775,8 +907,7 @@ Parser::ParseSubExpression() {
   expr = ParseEqualsExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "=="};
+    return expr;
   }
 
   BackTrack();
@@ -784,188 +915,242 @@ Parser::ParseSubExpression() {
   expr = ParseNotEqualsExpression();
 
   if (expr.has_value()) {
-    return std::pair<std::unique_ptr<ExpressionAST>, std::string>{
-        std::move(expr.value()), "!="};
+    return expr;
   }
 
   return {};
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParsePlusExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParsePlusExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::PLUS))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::PLUS)) {
     return {};
+  }
+
+  ConsumeNext();
+  OperatorNode opNode(std::string("+"), GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the +
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseMinusExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseMinusExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::MINUS))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::MINUS)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("-", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the +
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseMulExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseMulExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::MUL))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::MUL)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("*", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the *
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseDivExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseDivExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::DIV))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::DIV)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("/", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the /
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseModExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseModExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::MOD))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::MOD))
     return {};
+
+  ConsumeNext();
+  OperatorNode opNode("%", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the %
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseGtExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseGtExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::GT))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::GT)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode(">", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the >
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseLtExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseLtExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::LT))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::LT)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("<", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the <
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseGteExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseGteExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::GTE))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::GTE)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode(">=", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the >=
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseLteExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseLteExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::LTE))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::LTE)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("<=", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the <=
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseEqualsExpression() {
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
+Parser::ParseEqualsExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::EQ))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::EQ)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("==", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the ==
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
-std::optional<std::unique_ptr<ExpressionAST>>
+std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
 Parser::ParseNotEqualsExpression() {
   StoreParserPosition();
 
-  if (Peek(TokenName::NEQ))
-    ConsumeNext();
-  else
+  if (!Peek(TokenName::NEQ)) {
     return {};
+  }
+  ConsumeNext();
+  OperatorNode opNode("!=", GetCurrentToken().GetSourceLocation());
 
   auto expr = ParseExpression();
 
-  if (expr.has_value()) {
-    return expr;
-  } else
+  auto result = std::move(expr.value());
+  if (!result) {
+    // Todo: Error, expected an expression after the !=
     return {};
+  } else {
+    return std::make_pair(opNode, std::move(result));
+  }
 }
 
 std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseExpression() {
@@ -997,10 +1182,15 @@ std::optional<std::unique_ptr<RangeAST>> Parser::ParseRange() {
   StoreParserPosition();
   auto start = ParseExpression();
 
-  if (!start.has_value()) {
+  auto &result = start.value();
+
+  if (!result) {
     Expected("Expected an expression here", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
+
+  std::vector<SourceLocation> locations(result->GetSourceLocation().begin(),
+                                        result->GetSourceLocation().end());
 
   if (Peek(TokenName::TO)) {
     ConsumeNext();
@@ -1011,13 +1201,20 @@ std::optional<std::unique_ptr<RangeAST>> Parser::ParseRange() {
 
   auto end = ParseExpression();
 
-  if (!end.has_value()) {
+  auto &val = end.value();
+
+  if (!val) {
     Expected("Expected an expression here", GENERATE_POSITION_PAST_ONE_COLUMN);
+    return {};
+  }
+
+  for (const auto &elt : val->GetSourceLocation()) {
+    locations.push_back(elt);
   }
 
   // todo: return range
   return std::make_unique<RangeAST>(std::move(start.value()),
-                                    std::move(end.value()));
+                                    std::move(end.value()), locations);
 }
 
 std::optional<std::vector<std::unique_ptr<StatementAST>>>
@@ -1054,9 +1251,10 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
 
   if (Peek(TokenName::LOOP)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("A 'loop' must be inside a function definition", GENERATE_CURRENT_POSITION);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("A 'loop' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     status_list.push_back(ParserStatus::PARSING_LOOP);
 
@@ -1073,16 +1271,16 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
 std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
   StoreParserPosition();
 
-  if (Peek(TokenName::FOR)){
+  if (Peek(TokenName::FOR)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("A 'for loop' must be inside a function definition", GENERATE_CURRENT_POSITION);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("A 'for loop' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     status_list.push_back(ParserStatus::PARSING_FOR_LOOP);
 
-  }
-  else
+  } else
     return {};
 
   std::string iteration_variable;
@@ -1093,22 +1291,27 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
   } else {
     StoreParserPosition();
     ConsumeNext();
-    if (Lexer::keywords.find(GetCurrentToken().GetValue()) != Lexer::keywords.end()){
-        status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
-        Unexpected("'" + GetCurrentToken().GetValue() + "'" + " is a keyword, it cannot be used as an iteration variable.", GENERATE_CURRENT_POSITION);
-        return {};
+    if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
+        Lexer::keywords.end()) {
+      status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
+      Unexpected(
+          "'" + GetCurrentToken().GetValue() + "'" +
+              " is a keyword, it cannot be used as an iteration variable.",
+          GENERATE_CURRENT_POSITION);
+      return {};
     }
     BackTrack();
 
     Unexpected("Expected an iteration variable name after the 'for' keyword",
-             GENERATE_CURRENT_POSITION);
+               GENERATE_CURRENT_POSITION);
     return {};
   }
 
   if (Peek(TokenName::IN))
     ConsumeNext();
   else {
-    Expected("You missed the 'in' keyword in the for loop", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("You missed the 'in' keyword in the for loop",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean("in", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
@@ -1125,22 +1328,22 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
 
   status_list.pop_back();
 
-  return std::make_unique<ForLoopAST>(iteration_variable,
-                                      std::move(range.value()), std::move(body.value()));
+  return std::make_unique<ForLoopAST>(
+      iteration_variable, std::move(range.value()), std::move(body.value()));
 }
 
 std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
   StoreParserPosition();
 
-  if (Peek(TokenName::WHILE)){
+  if (Peek(TokenName::WHILE)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("A 'while loop' must be inside a function definition", GENERATE_CURRENT_POSITION);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("A 'while loop' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     status_list.push_back(ParserStatus::PARSING_WHILE_LOOP);
-  }
-  else
+  } else
     return {};
 
   auto loop_condition = ParseExpression();
@@ -1215,18 +1418,19 @@ std::optional<std::unique_ptr<MatchArmAST>> Parser::ParseMatchArm() {
                                          std::move(arm_body.value()));
 }
 
-std::optional<std::unique_ptr<MatchStatementAST>> Parser::ParseMatchStatement() {
+std::optional<std::unique_ptr<MatchStatementAST>>
+Parser::ParseMatchStatement() {
   StoreParserPosition();
   int curly_brace_position;
 
-  if (Peek(TokenName::MATCH)){
+  if (Peek(TokenName::MATCH)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("A 'match statement' must be inside a function definition", GENERATE_CURRENT_POSITION);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("A 'match statement' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
-  }
-  else
+  } else
     return {};
 
   auto expr = ParseExpression();
@@ -1268,19 +1472,20 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
 
   if (Peek(TokenName::IF)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("'if statement' must be inside a function definition", GENERATE_CURRENT_POSITION);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("'if statement' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     status_list.push_back(ParserStatus::PARSING_IF_STATEMENT);
-  }
-  else
+  } else
     return {};
 
   auto condition = ParseExpression();
 
   if (!condition.has_value()) {
-    Expected("Expected an condition after the 'if' keyword", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected an condition after the 'if' keyword",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 
@@ -1291,12 +1496,13 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
     return std::make_unique<IfStatementAST>(std::move(condition.value()),
                                             std::move(body.value()));
   } else {
-      status_list.push_back(ParserStatus::PARSING_IF_STATEMENT_FAILED);
-      return {};
+    status_list.push_back(ParserStatus::PARSING_IF_STATEMENT_FAILED);
+    return {};
   }
 }
 
-std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement() {
+std::optional<std::unique_ptr<ElseIfStatementAST>>
+Parser::ParseElseIfStatement() {
   StoreParserPosition();
 
   if (Peek(TokenName::ELSE))
@@ -1304,27 +1510,30 @@ std::optional<std::unique_ptr<ElseIfStatementAST>> Parser::ParseElseIfStatement(
   else
     return {};
 
-  if (Peek(TokenName::IF)){
+  if (Peek(TokenName::IF)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("'else if' must be inside a function definition", GENERATE_CURRENT_POSITION, 7);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("'else if' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION, 7);
+      return {};
     }
     // Check if we have an immediate else after either else-if or if statement
-    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT && status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
-          Unexpected("'else if' without an previous 'if' found", GENERATE_CURRENT_POSITION, 7);
-          return {};
+    if (status_list.back() != ParserStatus::PARSED_IF_STATEMENT &&
+        status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT) {
+      Unexpected("'else if' without an previous 'if' found",
+                 GENERATE_CURRENT_POSITION, 7);
+      return {};
     }
 
     status_list.push_back(ParserStatus::PARSING_ELSEIF_STATEMENT);
-  }
-  else
+  } else
     return {};
 
   auto condition = ParseExpression();
 
   if (!condition.has_value()) {
-    Expected("Expected an condition after 'else-if'", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected an condition after 'else-if'",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 
@@ -1345,14 +1554,17 @@ std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
 
   if (Peek(TokenName::ELSE)) {
     ConsumeNext();
-    if (!CheckInsideFunction()){
-        Unexpected("else' must be inside a function definition", GENERATE_CURRENT_POSITION);
-        return {};
+    if (!CheckInsideFunction()) {
+      Unexpected("else' must be inside a function definition",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
     // Check if we have an immediate else after either else-if or if statement
-    if(status_list.back() != ParserStatus::PARSED_IF_STATEMENT && status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT){
-          Unexpected("else without an previous 'if' found", GENERATE_CURRENT_POSITION);
-          return {};
+    if (status_list.back() != ParserStatus::PARSED_IF_STATEMENT &&
+        status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT) {
+      Unexpected("else without an previous 'if' found",
+                 GENERATE_CURRENT_POSITION);
+      return {};
     }
 
     auto body = ParseCurlyBraceAndBody();
@@ -1372,10 +1584,11 @@ Parser::ParseBreakStatement() {
     ConsumeNext();
     if (status_list.back() != ParserStatus::PARSING_FOR_LOOP &&
         status_list.back() != ParserStatus::PARSING_WHILE_LOOP &&
-        status_list.back() != ParserStatus::PARSING_LOOP){
-            Unexpected("'break' not within a loop body", GENERATE_CURRENT_POSITION, 5);
-            return {};
-        }
+        status_list.back() != ParserStatus::PARSING_LOOP) {
+      Unexpected("'break' not within a loop body", GENERATE_CURRENT_POSITION,
+                 5);
+      return {};
+    }
   } else
     return {};
 
@@ -1383,7 +1596,8 @@ Parser::ParseBreakStatement() {
     ConsumeNext();
     return std::make_unique<BreakStatementAST>();
   } else {
-    Expected("Expected semicolon after 'break'", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected semicolon after 'break'",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 }
@@ -1407,7 +1621,8 @@ Parser::ParseFunctionCallStatement() {
   if (Peek(TokenName::CLOSE_PARENTHESIS)) {
     ConsumeNext();
   } else {
-    Expected("Expected closing pair for '('", GENERATE_POSITION_PAST_ONE_COLUMN);
+    Expected("Expected closing pair for '('",
+             GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
 

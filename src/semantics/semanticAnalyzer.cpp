@@ -150,7 +150,12 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
   right_operand.Accept(*this);
 
   if (left_operand.GetType() != right_operand.GetType()) {
-    // Error: Type Mismatch
+    Error("The operation { " + left_operand.GetType() + " } " +
+              ast.GetOperator() + " { " + right_operand.GetType() +
+              " } is not allowed",
+          // Fix me: this is just a quick fix
+          ast.GetSourceLocation()[1].GetLine(),
+          ast.GetSourceLocation()[1].GetColumn());
   } else {
     // We are sure that all the operands are of the same type
     ast.SetType(left_operand.GetType());

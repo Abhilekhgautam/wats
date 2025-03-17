@@ -197,9 +197,9 @@ Parser::ParseFunctionWithRetType() {
     auto val = fn_args.has_value()
                    ? std::make_unique<FunctionDefinitionAST>(
                          fn_name, std::move(fn_args.value()),
-                         std::move(result.value()), nullptr)
+                         std::move(result.value()), "")
                    : std::make_unique<FunctionDefinitionAST>(
-                         fn_name, nullptr, std::move(result.value()), nullptr);
+                         fn_name, nullptr, std::move(result.value()), "");
 
     status_list.clear();
     return val;
@@ -258,7 +258,6 @@ Parser::ParseFunctionWithoutRetType() {
     DidYouMean("(", GENERATE_POSITION_PAST_ONE_COLUMN);
     return {};
   }
-
   auto fn_args = ParseFunctionArguments();
 
   if (Peek(TokenName::CLOSE_PARENTHESIS))
@@ -273,13 +272,12 @@ Parser::ParseFunctionWithoutRetType() {
 
   auto result = ParseCurlyBraceAndBody();
   if (result.has_value()) {
-
     auto val = fn_args.has_value()
                    ? std::make_unique<FunctionDefinitionAST>(
                          fn_name, std::move(fn_args.value()),
-                         std::move(result.value()), nullptr)
+                         std::move(result.value()), "")
                    : std::make_unique<FunctionDefinitionAST>(
-                         fn_name, nullptr, std::move(result.value()), nullptr);
+                         fn_name, nullptr, std::move(result.value()), "");
 
     status_list.clear();
 

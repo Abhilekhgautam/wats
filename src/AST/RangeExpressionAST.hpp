@@ -2,6 +2,7 @@
 #define RANGE_EXPR
 
 #include "ExpressionAST.hpp"
+#include <functional>
 #include <vector>
 
 /// 1 to 200
@@ -21,6 +22,8 @@ public:
   void Debug() override;
   void Accept(SemanticAnalyzer &analyzer) override;
   std::string GetType() override { return "range"; }
+  std::reference_wrapper<ExpressionAST> GetStart() { return *start; }
+  std::reference_wrapper<ExpressionAST> GetEnd() { return *end; }
   std::span<const SourceLocation> GetSourceLocation() override { return loc; }
 };
 

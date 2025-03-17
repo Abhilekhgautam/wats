@@ -1,6 +1,7 @@
 #ifndef SEM_ANALYZER_HPP
 #define SEM_ANALYZER_HPP
 
+#include "./functionSymbolTable.hpp"
 #include "./scope.hpp"
 
 class StatementAST;
@@ -71,9 +72,16 @@ public:
   void Expected(const std::string, std::size_t line, std::size_t column);
   void Unexpected(const std::string, std::size_t line, std::size_t column,
                   std::size_t times = 0);
+  void AddFunctionToSymbolTable(std::string name, FunctionInfo info) {
+    table.AddToSymbolTable(name, info);
+  }
+  std::optional<FunctionInfo> FindSymbolTable(std::string name) {
+    return table.FindInSymbolTable(name);
+  }
 
 private:
-  Scope current_scope;
+  std::unique_ptr<Scope> current_scope;
+  FunctionSymbolTable table;
 };
 
 #endif

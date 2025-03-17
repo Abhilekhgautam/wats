@@ -1,3 +1,7 @@
+#include "functionSymbolTable.hpp"
+#include "scopeType.hpp"
+#include <memory>
+#include <type_traits>
 #ifdef __EMSCRIPTEN__
 #include <cerrno>
 #endif
@@ -6,7 +10,9 @@
 #include "semanticAnalyzer.hpp"
 
 #include "../AST/BinaryExpressionAST.hpp"
+#include "../AST/ForLoopAST.hpp"
 #include "../AST/FunctionCallExprAST.hpp"
+#include "../AST/FunctionDefinitionAST.hpp"
 #include "../AST/IdentifierAST.hpp"
 #include "../AST/NumberAST.hpp"
 #include "../AST/StatementAST.hpp"
@@ -59,7 +65,11 @@ void SemanticAnalyzer::Unexpected(const std::string str, std::size_t line,
 
 void SemanticAnalyzer::analyze() {
   // Create a Global Scope
-  current_scope = Scope(nullptr);
+  current_scope = std::make_unique<Scope>(nullptr, ScopeType::GLOBAL);
+
+  if (!current_scope) {
+    std::cout << "This is nullptr.\n";
+  }
 
   for (const auto &elt : stmt_ast) {
     elt->Accept(*this);
@@ -67,13 +77,13 @@ void SemanticAnalyzer::analyze() {
 }
 
 void SemanticAnalyzer::Visit(VariableDeclarationAST &ast) {
-  auto result = current_scope.FindSymbolInCurrentScope(ast.GetVarName());
+  auto result = current_scope->FindSymbolInCurrentScope(ast.GetVarName());
   if (result.has_value()) {
     Error("Variable " + ast.GetVarName() +
               " already declared in the current scope",
           ast.GetVarLocation().GetLine(), ast.GetVarLocation().GetColumn());
   } else {
-    current_scope.AddSymbol(ast.GetVarName(), ast.GetType());
+    current_scope->AddSymbol(ast.GetVarName(), ast.GetType());
   }
 }
 
@@ -126,7 +136,7 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
 }
 
 void SemanticAnalyzer::Visit(IdentifierAST &ast) {
-  auto result = current_scope.FindSymbol(ast.GetName());
+  auto result = current_scope->FindSymbol(ast.GetName());
 
   if (!result.has_value()) {
     Error("No such variable " + ast.GetName() + " in the current scope",
@@ -164,7 +174,7 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
 
 void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
   std::string var_name = ast.GetVarName();
-  auto result = current_scope.FindSymbolInCurrentScope(var_name);
+  auto result = current_scope->FindSymbolInCurrentScope(var_name);
   if (!result.has_value()) {
     Error("No variable: " + var_name + "  in the current scope",
           ast.GetSourceLocation()[0].GetLine(),
@@ -179,7 +189,7 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
 
     if (var_type.empty()) {
       // Update the symbol table
-      current_scope.UpdateSymbolTable(var_name, assigned_expr.GetType());
+      current_scope->UpdateSymbolTable(var_name, assigned_expr.GetType());
       return;
     }
 
@@ -192,7 +202,7 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
 
 void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
   std::string var_name = ast.GetVarName();
-  auto result = current_scope.FindSymbolInCurrentScope(var_name);
+  auto result = current_scope->FindSymbolInCurrentScope(var_name);
   if (result.has_value()) {
     Error("Variable " + var_name + " already declared in the current scope",
           ast.GetSourceLocation()[0].GetLine(),
@@ -207,7 +217,7 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
 
     if (var_type.empty()) {
       ast.SetType(expr_type);
-      current_scope.AddSymbol(var_name, expr_type);
+      current_scope->AddSymbol(var_name, expr_type);
     } else {
       if (var_type != expr_type) {
         Error("Type Mimatch: " + expr_type +
@@ -215,13 +225,45 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
               ast.GetSourceLocation()[0].GetLine(),
               ast.GetSourceLocation()[0].GetColumn(), var_name.length());
       } else {
-        current_scope.AddSymbol(var_name, expr_type);
+        current_scope->AddSymbol(var_name, expr_type);
       }
     }
   }
 }
 
-void SemanticAnalyzer::Visit(ForLoopAST &ast) {}
+void SemanticAnalyzer::Visit(ForLoopAST &ast) {
+  if (current_scope->GetType() != ScopeType::FUNCTION) {
+    std::cout << "A for loop must be inside a function definition\n";
+    return;
+  }
+  // Create a new scope
+  auto for_scope =
+      std::make_unique<Scope>(std::move(current_scope), ScopeType::LOOP);
+
+  current_scope = std::move(for_scope);
+  // Add the iteration variable to the current scope
+  current_scope->AddSymbol(ast.GetIterationVariableName(), "i64");
+
+  auto &range = ast.GetRange();
+  // Visit the range node
+  range.Accept(*this);
+
+  // Check the type of start and end expr in range
+  if (range.GetStart().get().GetType() != range.GetEnd().get().GetType()) {
+    // Todo: Report better error
+    std::cout << "Types in range expr doesn't match";
+    return;
+  }
+
+  // Visit the loop body
+  for (auto &elt : ast.GetLoopBody()) {
+    elt->Accept(*this);
+  }
+
+  // After the loop body is completed
+  // Switch back to the parent scope
+  current_scope = current_scope->GetParent();
+}
 
 void SemanticAnalyzer::Visit(LoopAST &ast) {
   /*
@@ -247,7 +289,59 @@ void SemanticAnalyzer::Visit(MatchStatementAST &ast) {}
 void SemanticAnalyzer::Visit(MatchArmAST &ast) {}
 void SemanticAnalyzer::Visit(FunctionCallAST &ast) {}
 void SemanticAnalyzer::Visit(FunctionCallExprAST &ast) {}
-void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {}
+void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
+
+  if (current_scope->GetType() != ScopeType::GLOBAL) {
+    std::cout << "A function definition must be within a global scope.\n";
+    return;
+  }
+  // Create a new scope
+  auto fn_scope =
+      std::make_unique<Scope>(std::move(current_scope), ScopeType::FUNCTION);
+
+  current_scope = std::move(fn_scope);
+
+  std::cout << "Visiting fn defn node\n";
+
+  auto args = ast.GetFunctionArguments();
+
+  FunctionInfo fn_info;
+
+  if (!args.has_value())
+    fn_info = FunctionInfo{{}, ast.GetFunctionReturnType()};
+  else
+    fn_info = FunctionInfo(ast.GetFunctionArguments().value().GetArgs());
+
+  auto val = FindSymbolTable(ast.GetFunctionName());
+
+  if (val.has_value()) {
+
+    if (val.value() == fn_info) {
+      // TODO: better error message
+      std::cout << ast.GetFunctionName() + " is already defined\n";
+      return;
+    }
+  }
+  // Add the function to the function's symbol table
+  AddFunctionToSymbolTable(ast.GetFunctionName(), fn_info);
+  // Visit the function body
+  for (auto &elt : ast.GetFunctionBody()) {
+    elt->Accept(*this);
+  }
+
+  // After the loop body is completed
+  // Switch back to the parent scope
+  if (!current_scope) {
+    std::cout << "nullptr\n";
+  }
+  current_scope = current_scope->GetParent();
+}
 void SemanticAnalyzer::Visit(FunctionArgumentAST &ast) {}
 void SemanticAnalyzer::Visit(BreakStatementAST &ast) {}
-void SemanticAnalyzer::Visit(RangeAST &ast) {}
+void SemanticAnalyzer::Visit(RangeAST &ast) {
+  auto start = ast.GetStart();
+  auto end = ast.GetEnd();
+
+  start.get().Accept(*this);
+  end.get().Accept(*this);
+}

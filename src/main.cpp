@@ -20,7 +20,6 @@ void compile_program(const char *source_code) {
 
   Lexer L(context);
   L.Tokenize();
-  L.Debug();
 
   Parser P(context, L.GetTokens());
   auto ast_vec = P.Parse();

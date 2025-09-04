@@ -10,16 +10,18 @@
 
 class Lexer {
 public:
-  Lexer(CompilerContext& context);
+  Lexer(CompilerContext &context);
   void Tokenize();
   // Write the given error msg to stdout
   void Error(const std::string &err_msg);
 
-  const std::vector<Token>& GetTokens();
+  const std::vector<Token> &GetTokens();
 
   static std::map<std::string, TokenName> keywords;
 
-  CompilerContext& context;
+  CompilerContext &context;
+
+  void IncrementErrorCount() { error_count++; }
 
   // Print the Token Information
   void Debug();
@@ -49,5 +51,7 @@ private:
   std::string Number();
   std::string Identifier();
   std::string String();
+
+  int error_count = 0;
 };
 #endif

@@ -290,6 +290,7 @@ void Lexer::Error(const std::string &err_msg) {
   Color("red", "Error: ");
   Color("blue", err_msg);
 
+  IncrementErrorCount();
   std::exit(0);
 }
 

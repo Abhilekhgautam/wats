@@ -25,10 +25,19 @@ void compile_program(const char *source_code) {
   L.Tokenize();
 
   Parser P(context, L.GetTokens());
+  // function name, var name ....
   auto ast_vec = P.Parse();
+
+  if (P.HasErrors()) {
+    return 1;
+  }
 
   SemanticAnalyzer s(context, ast_vec.value());
   s.analyze();
+
+  if (s.HasErrors()) {
+    return 0;
+  }
 
   nlohmann::json program = {{"functions", nlohmann::json::array({})}};
 

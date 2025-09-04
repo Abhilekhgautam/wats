@@ -10,8 +10,8 @@ Run your code online in [Wats Playground](https://abhilekhgautam.github.io/wats-
 - Lexer and Parser working neat.
 - Recursive Decent Parser.
 - Work in progress for AST (Parser and AST)
-- Work in progress for Type System.
-- No backend yet.
+- Type System based on HM algorithm
+- Generates Bril as an IR.
 
 # Better Error Reporting, How?
 - I have a assumption and trying to prove it. Work under progress.

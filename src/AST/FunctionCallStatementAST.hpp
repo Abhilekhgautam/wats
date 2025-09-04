@@ -3,24 +3,28 @@
 
 #include "StatementAST.hpp"
 
-#include <string>
 #include <memory>
 #include <vector>
 
+#include "IdentifierAST.hpp"
+
 class FunctionCallAST : public StatementAST {
     public:
-       FunctionCallAST(std::string fn_name, std::vector<std::unique_ptr<StatementAST>> args)
-       : fn_name(fn_name), args(std::move(args)){}
+       FunctionCallAST(std::unique_ptr<IdentifierAST> fn_name, std::vector<std::unique_ptr<StatementAST>> args)
+       : fn_name(std::move(fn_name)), args(std::move(args)){}
 
        virtual ~FunctionCallAST() = default;
 
       void Accept(SemanticAnalyzer& analyzer) override;
+      nlohmann::json Accept(IRGenerator& generator) override;
+
     private:
-      std::string fn_name;
+      std::unique_ptr<IdentifierAST> fn_name;
       std::vector<std::unique_ptr<StatementAST>> args;
 
     public:
       void Debug() override;
+      SourceLocation GetSourceLocation() override;
 };
 
 #endif

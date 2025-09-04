@@ -13,11 +13,14 @@ class MatchArmAST : public StatementAST{
 
        virtual ~MatchArmAST() = default;
        void Accept(SemanticAnalyzer& analyzer) override;
+       nlohmann::json Accept(IRGenerator& generator) override;
+
     private:
       std::unique_ptr<ExpressionAST> cond;
       std::vector<std::unique_ptr<StatementAST>> body;
-      public:
-         void Debug() override;
+    public:
+      void Debug() override;
+      SourceLocation GetSourceLocation() override {return {};}
 };
 
 #endif

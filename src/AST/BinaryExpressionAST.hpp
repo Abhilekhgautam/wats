@@ -3,7 +3,9 @@
 
 #include "ExpressionAST.hpp"
 #include "OperatorAST.hpp"
-#include <functional>
+
+#include "../IRGenerator/IRGenerator.hpp"
+#include <nlohmann/json.hpp>
 
 class BinaryExpressionAST : public ExpressionAST {
 public:
@@ -26,19 +28,18 @@ private:
 public:
   void Debug() override;
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator &generator) override;
 
   std::string GetOperator() const { return op.GetOperatorSymbol(); }
-  std::reference_wrapper<ExpressionAST> GetLeftOperand() {
-    return std::ref(*expr_lhs);
-  }
-  std::reference_wrapper<ExpressionAST> GetRightOperand() {
-    return std::ref(*expr_rhs);
-  }
+  ExpressionAST &GetLeftOperand() { return *expr_lhs; }
+  ExpressionAST &GetRightOperand() { return *expr_rhs; }
 
   std::string GetType() override { return type; }
   void SetType(std::string type) { this->type = type; }
 
   std::span<const SourceLocation> GetSourceLocation() override { return loc; }
+
+  int GetLength() override;
 };
 
 #endif

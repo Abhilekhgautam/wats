@@ -2,7 +2,6 @@
 #define RANGE_EXPR
 
 #include "ExpressionAST.hpp"
-#include <functional>
 #include <vector>
 
 /// 1 to 200
@@ -21,10 +20,17 @@ private:
 public:
   void Debug() override;
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator& generator) override;
+
   std::string GetType() override { return "range"; }
-  std::reference_wrapper<ExpressionAST> GetStart() { return *start; }
-  std::reference_wrapper<ExpressionAST> GetEnd() { return *end; }
+  ExpressionAST& GetStart() { return *start; }
+  ExpressionAST& GetEnd() { return *end; }
   std::span<const SourceLocation> GetSourceLocation() override { return loc; }
+
+  int GetLength() override{
+      // +2 for the keyword to .
+      return start->GetLength() + end->GetLength() + 2;
+  }
 };
 
 #endif

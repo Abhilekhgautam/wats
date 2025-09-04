@@ -14,11 +14,14 @@ class WhileLoopAST : public StatementAST{
 
 	virtual ~WhileLoopAST() = default;
 	void Accept(SemanticAnalyzer& analyzer) override;
+    nlohmann::json Accept(IRGenerator& generator) override;
+
    private:
     std::unique_ptr<ExpressionAST> condition;
     std::vector<std::unique_ptr<StatementAST>>  loop_body;
    public:
    void Debug() override;
+   SourceLocation GetSourceLocation() override {return {};}
 };
 
 #endif

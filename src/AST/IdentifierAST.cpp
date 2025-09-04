@@ -2,8 +2,14 @@
 
 #include <iostream>
 
+#include "../IRGenerator/IRGenerator.hpp"
+
 void IdentifierAST::Accept(SemanticAnalyzer& analyzer) {
     analyzer.Visit(*this);
+}
+
+nlohmann::json IdentifierAST::Accept(IRGenerator& generator) {
+    return generator.Generate(*this);
 }
 
 void IdentifierAST::Debug(){

@@ -1,9 +1,13 @@
 #include "ElseIfStatementAST.hpp"
+#include "../IRGenerator/IRGenerator.hpp"
 #include <iostream>
 
 void ElseIfStatementAST::Accept(SemanticAnalyzer& analyzer){
     analyzer.Visit(*this);
+}
 
+nlohmann::json ElseIfStatementAST::Accept(IRGenerator& generator){
+    return generator.Generate(*this);
 }
 
 void ElseIfStatementAST::Debug(){

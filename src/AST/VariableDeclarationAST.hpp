@@ -15,6 +15,7 @@ public:
         loc(loc) {}
 
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator& generator) override;
 
   virtual ~VariableDeclarationAST() = default;
 
@@ -29,7 +30,7 @@ public:
   std::vector<SourceLocation> &GetLocation() { return loc; }
   SourceLocation &GetVarLocation() { return loc[0]; }
   SourceLocation &GetTypeLocation() { return loc[1]; }
-
+  SourceLocation GetSourceLocation() override {return GetVarLocation();}
 public:
   void Debug() override;
 };

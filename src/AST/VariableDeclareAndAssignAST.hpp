@@ -19,6 +19,7 @@ public:
   virtual ~VariableDeclareAndAssignAST() = default;
 
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator& generator) override;
 
 private:
   std::string variable_name;
@@ -33,7 +34,7 @@ public:
   ExpressionAST &GetExpr() const { return *expr; }
 
   void SetType(std::string type) { type_name = type; }
-  std::vector<SourceLocation> &GetSourceLocation() { return locations; }
+  SourceLocation GetSourceLocation() override { return locations[0]; }
 };
 
 #endif

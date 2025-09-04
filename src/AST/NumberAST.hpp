@@ -23,6 +23,8 @@ private:
 public:
   void Debug() override;
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator& generator) override;
+
   std::string GetNumber() const { return num; }
   bool HasDecimal() const { return has_decimal; }
   void SetValue(long long val) { value = val; }
@@ -33,6 +35,7 @@ public:
   std::span<const SourceLocation> GetSourceLocation() override {
     return {&loc, 1};
   }
+  int GetLength() override{return num.length();}
 };
 
 #endif

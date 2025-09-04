@@ -15,6 +15,7 @@ public:
 
   virtual ~FunctionCallExprAST() = default;
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator& generator) override;
 
 private:
   std::string fn_name;
@@ -27,6 +28,8 @@ public:
     return {&loc, 1};
   }
   std::string GetType() override { return "call"; }
+
+  int GetLength() override;
 };
 
 #endif

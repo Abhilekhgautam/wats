@@ -1,9 +1,13 @@
 #include "ElseStatementAST.hpp"
-
+#include "../IRGenerator/IRGenerator.hpp"
 #include <iostream>
 
 void ElseStatementAST::Accept(SemanticAnalyzer& analyzer){
     analyzer.Visit(*this);
+}
+
+nlohmann::json ElseStatementAST::Accept(IRGenerator& generator){
+    return generator.Generate(*this);
 }
 
 void ElseStatementAST::Debug(){

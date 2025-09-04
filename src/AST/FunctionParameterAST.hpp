@@ -14,6 +14,16 @@ public:
     return parameters;
   };
 
+  int GetLength(){
+      int length = 0;
+      for(const auto& elt: parameters){
+          length += elt->GetLength();
+      }
+
+      // Also include the commas
+      length += parameters.size() - 2;
+      return length;
+  }
 private:
   std::vector<std::unique_ptr<ExpressionAST>> parameters;
 };

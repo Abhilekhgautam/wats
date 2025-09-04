@@ -6,27 +6,31 @@
 #include <memory>
 #include <vector>
 
+#include "IdentifierAST.hpp"
+
+
 /// x = 56
 class VariableAssignmentAST : public StatementAST {
 public:
-  VariableAssignmentAST(const std::string variable_name,
+  VariableAssignmentAST(IdentifierAST variable_name,
                         std::unique_ptr<ExpressionAST> expr,
                         std::vector<SourceLocation> &loc)
-      : variable_name(variable_name), expr(std::move(expr)), loc(loc) {}
+      : variable_name(variable_name), expr(std::move(expr)), loc(loc[0]) {}
 
   virtual ~VariableAssignmentAST() = default;
   void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator& generator) override;
 
 private:
-  std::string variable_name;
+  IdentifierAST variable_name;
   std::unique_ptr<ExpressionAST> expr;
-  std::vector<SourceLocation> loc;
+  SourceLocation loc;
 
 public:
   void Debug() override;
-  std::string GetVarName() const { return variable_name; }
-  ExpressionAST &GetExpr() const { return *expr; }
-  std::vector<SourceLocation> &GetSourceLocation() { return loc; }
+  std::string GetVarName() const { return variable_name.GetName(); }
+  ExpressionAST& GetExpr() const { return *expr; }
+  SourceLocation GetSourceLocation() override { return loc; }
 };
 
 #endif

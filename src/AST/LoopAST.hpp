@@ -14,10 +14,13 @@ class LoopAST : public StatementAST{
 
 	virtual ~LoopAST() = default;
 	void Accept(SemanticAnalyzer& analyzer) override;
+    nlohmann::json Accept(IRGenerator& generator) override;
+
 	private:
 	 std::vector<std::unique_ptr<StatementAST>> loop_body;
 	public:
     void Debug() override;
-
+    std::vector<std::unique_ptr<StatementAST>>& GetLoopBody();
+    SourceLocation GetSourceLocation() override {return {};}
 };
 #endif

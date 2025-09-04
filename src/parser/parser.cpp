@@ -138,17 +138,20 @@ Parser::ParseFunctionWithRetType() {
     if (CheckInsideFunction()) {
       Unexpected("You cannot define a function inside another function",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
       return {};
     }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION);
   } else
     return {};
 
-  std::string fn_name;
+  SourceLocation loc = GetCurrentToken().GetSourceLocation();
+  std::unique_ptr<IdentifierAST> fn_name;
 
   if (Peek(TokenName::ID)) {
     ConsumeNext();
-    fn_name = GetCurrentToken().GetValue();
+    fn_name = std::make_unique<IdentifierAST>(
+        GetCurrentToken().GetValue(), GetCurrentToken().GetSourceLocation());
   } else {
     ConsumeNext();
     if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
@@ -157,6 +160,8 @@ Parser::ParseFunctionWithRetType() {
       Unexpected("'" + GetCurrentToken().GetValue() + "'" +
                      " is a keyword, it cannot be used as a function name.",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
 
@@ -164,6 +169,8 @@ Parser::ParseFunctionWithRetType() {
     Expected(
         "Expected an Identifier (Function Name) after the 'function' keyword",
         GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -173,6 +180,7 @@ Parser::ParseFunctionWithRetType() {
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
     Expected("Expected a '('", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean("(", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
     return {};
   }
 
@@ -184,6 +192,7 @@ Parser::ParseFunctionWithRetType() {
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
     Expected("Expected a ')'", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(")", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
     return {};
   }
 
@@ -196,10 +205,11 @@ Parser::ParseFunctionWithRetType() {
   if (result.has_value()) {
     auto val = fn_args.has_value()
                    ? std::make_unique<FunctionDefinitionAST>(
-                         fn_name, std::move(fn_args.value()),
-                         std::move(result.value()), "")
+                         std::move(fn_name), std::move(fn_args.value()),
+                         std::move(result.value()), "", loc)
                    : std::make_unique<FunctionDefinitionAST>(
-                         fn_name, nullptr, std::move(result.value()), "");
+                         std::move(fn_name), nullptr, std::move(result.value()),
+                         "", loc);
 
     status_list.clear();
     return val;
@@ -219,6 +229,8 @@ Parser::ParseFunctionWithoutRetType() {
     if (CheckInsideFunction()) {
       Unexpected("You cannot define a function inside another function",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION);
@@ -226,11 +238,13 @@ Parser::ParseFunctionWithoutRetType() {
   } else {
     return {};
   }
-  std::string fn_name;
+  SourceLocation loc = GetCurrentToken().GetSourceLocation();
+  std::unique_ptr<IdentifierAST> fn_name;
 
   if (Peek(TokenName::ID)) {
     ConsumeNext();
-    fn_name = GetCurrentToken().GetValue();
+    fn_name = std::make_unique<IdentifierAST>(
+        GetCurrentToken().GetValue(), GetCurrentToken().GetSourceLocation());
   } else {
     ConsumeNext();
     if (Lexer::keywords.find(GetCurrentToken().GetValue()) !=
@@ -239,6 +253,7 @@ Parser::ParseFunctionWithoutRetType() {
       Unexpected("'" + GetCurrentToken().GetValue() + "'" +
                      " is a keyword, it cannot be used as a function name.",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
       return {};
     }
     status_list.push_back(ParserStatus::PARSING_FN_DEFINITION_FAILED);
@@ -246,6 +261,8 @@ Parser::ParseFunctionWithoutRetType() {
     Expected(
         "Expected an Identifier (Function Name) after the 'function' keyword",
         GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -256,6 +273,8 @@ Parser::ParseFunctionWithoutRetType() {
 
     Expected("Expected a '('", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean("(", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
   auto fn_args = ParseFunctionArguments();
@@ -267,6 +286,8 @@ Parser::ParseFunctionWithoutRetType() {
 
     Expected("Expected a ')'", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(")", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -274,10 +295,11 @@ Parser::ParseFunctionWithoutRetType() {
   if (result.has_value()) {
     auto val = fn_args.has_value()
                    ? std::make_unique<FunctionDefinitionAST>(
-                         fn_name, std::move(fn_args.value()),
-                         std::move(result.value()), "")
+                         std::move(fn_name), std::move(fn_args.value()),
+                         std::move(result.value()), "", loc)
                    : std::make_unique<FunctionDefinitionAST>(
-                         fn_name, nullptr, std::move(result.value()), "");
+                         std::move(fn_name), nullptr, std::move(result.value()),
+                         "", loc);
 
     status_list.clear();
 
@@ -292,7 +314,9 @@ std::optional<std::unique_ptr<FunctionArgumentAST>>
 Parser::ParseFunctionArgument() {
   if (Peek(TokenName::ID)) {
     ConsumeNext();
-    return std::make_unique<FunctionArgumentAST>(GetCurrentToken().GetValue());
+    auto id = std::make_unique<IdentifierAST>(
+        GetCurrentToken().GetValue(), GetCurrentToken().GetSourceLocation());
+    return std::make_unique<FunctionArgumentAST>(std::move(id));
   } else
     return {};
 }
@@ -305,27 +329,29 @@ Parser::ParseFunctionArguments() {
     return {};
   }
 
-  std::vector<std::string> str_args;
-  str_args.push_back(argument.value()->GetArg());
+  std::vector<std::unique_ptr<IdentifierAST>> id_args;
+  id_args.push_back(std::move(argument.value()->GetId()));
 
   if (Peek(TokenName::COMMA))
     ConsumeNext();
   else {
-    return std::make_unique<FunctionArgumentAST>(str_args);
+    return std::make_unique<FunctionArgumentAST>(id_args);
   }
 
   auto arguments = ParseFunctionArguments();
 
   if (!arguments.has_value()) {
     Expected("Unexpected ',' found", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
-  for (const auto &elt : arguments.value()->GetArgs()) {
-    str_args.push_back(elt);
+  for (auto &elt : arguments.value()->GetIds()) {
+    id_args.push_back(std::move(elt));
   }
 
-  return std::make_unique<FunctionArgumentAST>(str_args);
+  return std::make_unique<FunctionArgumentAST>(id_args);
 }
 
 std::optional<std::unique_ptr<FunctionDefinitionAST>> Parser::ParseFunction() {
@@ -373,10 +399,14 @@ Parser::ParseVariableDeclWithLet() {
       Unexpected("'" + GetCurrentToken().GetValue() + "'" +
                      " is a keyword, it cannot be used as a variable name.",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
   // push (0, 0) for now to mean none
@@ -387,6 +417,9 @@ Parser::ParseVariableDeclWithLet() {
   else {
     Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
+
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -416,10 +449,14 @@ Parser::ParseVariableDeclWithType() {
       Unexpected("'" + GetCurrentToken().GetValue() + "'" +
                      " is a keyword, it cannot be used as a variable name.",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -439,6 +476,8 @@ Parser::ParseVariableDeclWithType() {
   } else {
     Expected("Consider mentioning the type of the variable",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -447,6 +486,8 @@ Parser::ParseVariableDeclWithType() {
   else {
     Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -458,7 +499,6 @@ Parser::ParseVariableDecl() {
   auto result = ParseVariableDeclWithType();
 
   if (result.has_value()) {
-    std::cout << result.value()->GetVarName() << '\n';
     return result;
   }
 
@@ -466,7 +506,6 @@ Parser::ParseVariableDecl() {
   result = ParseVariableDeclWithLet();
 
   if (result.has_value()) {
-    std::cout << result.value()->GetVarName() << '\n';
     return result;
   }
 
@@ -479,10 +518,12 @@ Parser::ParseVariableAssignment() {
 
   std::vector<SourceLocation> locations;
   std::string var_name;
+  IdentifierAST id = {"", {}};
   if (Peek(TokenName::ID)) {
     ConsumeNext();
     var_name = GetCurrentToken().GetValue();
     locations.push_back(GetCurrentToken().GetSourceLocation());
+    id = {var_name, locations[0]};
   } else
     return {};
 
@@ -500,6 +541,8 @@ Parser::ParseVariableAssignment() {
   if (!result) {
     Expected("Expected an value or expression for the assignment",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
   for (const auto elt : loc) {
@@ -507,11 +550,13 @@ Parser::ParseVariableAssignment() {
   }
   if (Peek(TokenName::SEMI_COLON)) {
     ConsumeNext();
-    return std::make_unique<VariableAssignmentAST>(
-        var_name, std::move(expr.value()), locations);
+    return std::make_unique<VariableAssignmentAST>(id, std::move(expr.value()),
+                                                   locations);
   } else {
     Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
+    IncrementErrorCount();
+
     return {};
   }
 }
@@ -541,12 +586,16 @@ Parser::ParseVariableInitWithLet() {
       Unexpected("'" + GetCurrentToken().GetValue() + "'" +
                      " is a keyword, it cannot be used as a variable name.",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     BackTrack();
 
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
   if (Peek(TokenName::ASSIGN))
@@ -561,6 +610,8 @@ Parser::ParseVariableInitWithLet() {
   if (!expr.has_value()) {
     Expected("Expected an value or expression for the assignment",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -575,6 +626,9 @@ Parser::ParseVariableInitWithLet() {
   } else {
     Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
+
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -605,10 +659,16 @@ Parser::ParseVariableInitWithType() {
       Unexpected("'" + GetCurrentToken().GetValue() + "'" +
                      " is a keyword, it cannot be used as a variable name.",
                  GENERATE_CURRENT_POSITION);
+
+      IncrementErrorCount();
+
       return {};
     }
     Expected("A Variable name after a let expression is required",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
+    return {};
   }
 
   if (Peek(TokenName::COLON))
@@ -627,6 +687,8 @@ Parser::ParseVariableInitWithType() {
   } else {
     Expected("Consider mentioning the type of the variable",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -640,6 +702,8 @@ Parser::ParseVariableInitWithType() {
   if (!expr.has_value()) {
     Expected("Expected an value or expression for the assignment",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -648,6 +712,9 @@ Parser::ParseVariableInitWithType() {
   } else {
     Expected("Expected a ';' here.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean(";", GENERATE_POSITION_PAST_ONE_COLUMN, false);
+
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -688,6 +755,8 @@ Parser::ParseFunctionParameters() {
 
   if (!parameters.has_value()) {
     Expected("Unexpected ',' found", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -736,6 +805,7 @@ Parser::ParseExpressionBeginningWithID() {
     } else {
       Expected("Expected a closing pair ')'",
                GENERATE_POSITION_PAST_ONE_COLUMN);
+      IncrementErrorCount();
       return {};
     }
   }
@@ -776,6 +846,8 @@ Parser::ParseExpressionBeginningWithNumber() {
   if (decimal_count > 1) {
     Unexpected("Too many decimal points in a numerical value",
                GENERATE_CURRENT_POSITION);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -820,6 +892,8 @@ Parser::ParseExpressionBeginningWithBraces() {
       Expected("Expected a closing pair for '('",
                GENERATE_POSITION_PAST_ONE_COLUMN);
       DidYouMean(")", GENERATE_POSITION_PAST_ONE_COLUMN);
+      IncrementErrorCount();
+
       return {};
     }
   } else
@@ -1151,6 +1225,9 @@ Parser::ParseNotEqualsExpression() {
   }
 }
 
+// expr -> expr + term | expr - term | term
+// term -> term * factor | term / factor | factor
+// factor -> Number | (expr)
 std::optional<std::unique_ptr<ExpressionAST>> Parser::ParseExpression() {
   StoreParserPosition();
 
@@ -1184,6 +1261,8 @@ std::optional<std::unique_ptr<RangeAST>> Parser::ParseRange() {
 
   if (!result) {
     Expected("Expected an expression here", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1195,6 +1274,7 @@ std::optional<std::unique_ptr<RangeAST>> Parser::ParseRange() {
   } else {
     Expected("Expected the 'to' keyword.", GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean("to", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
   }
 
   auto end = ParseExpression();
@@ -1203,6 +1283,8 @@ std::optional<std::unique_ptr<RangeAST>> Parser::ParseRange() {
 
   if (!val) {
     Expected("Expected an expression here", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1225,6 +1307,8 @@ Parser::ParseCurlyBraceAndBody() {
   } else {
     ConsumeNext();
     Unexpected("Expected a '{' here", GENERATE_CURRENT_POSITION);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1240,6 +1324,8 @@ Parser::ParseCurlyBraceAndBody() {
     Expected("Expected a closing pair for '{'",
              token_vec[curly_brace_position].GetLine(),
              token_vec[curly_brace_position].GetColumn());
+    IncrementErrorCount();
+
     return {};
   }
 }
@@ -1252,6 +1338,8 @@ std::optional<std::unique_ptr<LoopAST>> Parser::ParseLoop() {
     if (!CheckInsideFunction()) {
       Unexpected("A 'loop' must be inside a function definition",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     status_list.push_back(ParserStatus::PARSING_LOOP);
@@ -1274,18 +1362,21 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
     if (!CheckInsideFunction()) {
       Unexpected("A 'for loop' must be inside a function definition",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     status_list.push_back(ParserStatus::PARSING_FOR_LOOP);
 
   } else
     return {};
-
-  std::string iteration_variable;
+  SourceLocation loc = GetCurrentToken().GetSourceLocation();
+  std::unique_ptr<IdentifierAST> iteration_variable;
 
   if (Peek(TokenName::ID)) {
     ConsumeNext();
-    iteration_variable = GetCurrentToken().GetValue();
+    iteration_variable = std::make_unique<IdentifierAST>(
+        GetCurrentToken().GetValue(), GetCurrentToken().GetSourceLocation());
   } else {
     StoreParserPosition();
     ConsumeNext();
@@ -1296,12 +1387,16 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
           "'" + GetCurrentToken().GetValue() + "'" +
               " is a keyword, it cannot be used as an iteration variable.",
           GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     BackTrack();
 
     Unexpected("Expected an iteration variable name after the 'for' keyword",
                GENERATE_CURRENT_POSITION);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1311,6 +1406,8 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
     Expected("You missed the 'in' keyword in the for loop",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean("in", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1326,8 +1423,9 @@ std::optional<std::unique_ptr<ForLoopAST>> Parser::ParseForLoop() {
 
   status_list.pop_back();
 
-  return std::make_unique<ForLoopAST>(
-      iteration_variable, std::move(range.value()), std::move(body.value()));
+  return std::make_unique<ForLoopAST>(std::move(iteration_variable),
+                                      std::move(range.value()),
+                                      std::move(body.value()), loc);
 }
 
 std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
@@ -1338,6 +1436,8 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
     if (!CheckInsideFunction()) {
       Unexpected("A 'while loop' must be inside a function definition",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     status_list.push_back(ParserStatus::PARSING_WHILE_LOOP);
@@ -1348,6 +1448,8 @@ std::optional<std::unique_ptr<WhileLoopAST>> Parser::ParseWhileLoop() {
   if (!loop_condition.has_value()) {
     Expected("Expected an expression after the 'while' keyword",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1404,6 +1506,8 @@ std::optional<std::unique_ptr<MatchArmAST>> Parser::ParseMatchArm() {
     Expected("Expected an '=>' after the expression in 'match' body",
              GENERATE_POSITION_PAST_ONE_COLUMN);
     DidYouMean("=>", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1426,6 +1530,8 @@ Parser::ParseMatchStatement() {
     if (!CheckInsideFunction()) {
       Unexpected("A 'match statement' must be inside a function definition",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
   } else
@@ -1435,6 +1541,8 @@ Parser::ParseMatchStatement() {
   if (!expr.has_value()) {
     Expected("Expected an expression after the 'match' keyword",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1444,6 +1552,8 @@ Parser::ParseMatchStatement() {
   } else {
     Expected("Expected an '{' after the expression in match",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1461,20 +1571,25 @@ Parser::ParseMatchStatement() {
     Expected("Expected a closing pair for '{'",
              token_vec[curly_brace_position].GetLine(),
              token_vec[curly_brace_position].GetColumn());
+    IncrementErrorCount();
+
     return {};
   }
 }
 
 std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   StoreParserPosition();
-
+  SourceLocation loc;
   if (Peek(TokenName::IF)) {
     ConsumeNext();
     if (!CheckInsideFunction()) {
       Unexpected("'if statement' must be inside a function definition",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
+    loc = GetCurrentToken().GetSourceLocation();
     status_list.push_back(ParserStatus::PARSING_IF_STATEMENT);
   } else
     return {};
@@ -1484,6 +1599,8 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
   if (!condition.has_value()) {
     Expected("Expected an condition after the 'if' keyword",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1491,8 +1608,25 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
 
   if (body.has_value()) {
     status_list.push_back(ParserStatus::PARSED_IF_STATEMENT);
-    return std::make_unique<IfStatementAST>(std::move(condition.value()),
-                                            std::move(body.value()));
+
+    std::vector<std::unique_ptr<ElseIfStatementAST>> elseifVec;
+    auto else_if_val = ParseElseIfStatement();
+    while (else_if_val.has_value()) {
+      elseifVec.push_back(std::move(else_if_val.value()));
+      else_if_val = ParseElseIfStatement();
+    }
+    BackTrack();
+    auto else_val = ParseElseStatement();
+    if (else_val.has_value()) {
+      return std::make_unique<IfStatementAST>(
+          std::move(condition.value()), std::move(body.value()), elseifVec,
+          std::move(else_val.value()), loc);
+    } else {
+      return std::make_unique<IfStatementAST>(std::move(condition.value()),
+                                              std::move(body.value()),
+                                              elseifVec, nullptr, loc);
+    }
+
   } else {
     status_list.push_back(ParserStatus::PARSING_IF_STATEMENT_FAILED);
     return {};
@@ -1502,10 +1636,11 @@ std::optional<std::unique_ptr<IfStatementAST>> Parser::ParseIfStatement() {
 std::optional<std::unique_ptr<ElseIfStatementAST>>
 Parser::ParseElseIfStatement() {
   StoreParserPosition();
-
-  if (Peek(TokenName::ELSE))
+  SourceLocation loc;
+  if (Peek(TokenName::ELSE)) {
     ConsumeNext();
-  else
+    loc = GetCurrentToken().GetSourceLocation();
+  } else
     return {};
 
   if (Peek(TokenName::IF)) {
@@ -1513,6 +1648,8 @@ Parser::ParseElseIfStatement() {
     if (!CheckInsideFunction()) {
       Unexpected("'else if' must be inside a function definition",
                  GENERATE_CURRENT_POSITION, 7);
+      IncrementErrorCount();
+
       return {};
     }
     // Check if we have an immediate else after either else-if or if statement
@@ -1520,6 +1657,8 @@ Parser::ParseElseIfStatement() {
         status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT) {
       Unexpected("'else if' without an previous 'if' found",
                  GENERATE_CURRENT_POSITION, 7);
+      IncrementErrorCount();
+
       return {};
     }
 
@@ -1532,6 +1671,8 @@ Parser::ParseElseIfStatement() {
   if (!condition.has_value()) {
     Expected("Expected an condition after 'else-if'",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1542,7 +1683,7 @@ Parser::ParseElseIfStatement() {
 
     status_list.push_back(ParserStatus::PARSED_ELSEIF_STATEMENT);
     return std::make_unique<ElseIfStatementAST>(std::move(condition.value()),
-                                                std::move(body.value()));
+                                                std::move(body.value()), loc);
   } else
     return {};
 }
@@ -1555,6 +1696,8 @@ std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
     if (!CheckInsideFunction()) {
       Unexpected("else' must be inside a function definition",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
     // Check if we have an immediate else after either else-if or if statement
@@ -1562,13 +1705,15 @@ std::optional<std::unique_ptr<ElseStatementAST>> Parser::ParseElseStatement() {
         status_list.back() != ParserStatus::PARSED_ELSEIF_STATEMENT) {
       Unexpected("else without an previous 'if' found",
                  GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+
       return {};
     }
-
+    SourceLocation loc = GetCurrentToken().GetSourceLocation();
     auto body = ParseCurlyBraceAndBody();
 
     if (body.has_value()) {
-      return std::make_unique<ElseStatementAST>(std::move(body.value()));
+      return std::make_unique<ElseStatementAST>(std::move(body.value()), loc);
     } else
       return {};
 
@@ -1583,29 +1728,60 @@ Parser::ParseBreakStatement() {
     if (status_list.back() != ParserStatus::PARSING_FOR_LOOP &&
         status_list.back() != ParserStatus::PARSING_WHILE_LOOP &&
         status_list.back() != ParserStatus::PARSING_LOOP) {
-      Unexpected("'break' not within a loop body", GENERATE_CURRENT_POSITION,
-                 5);
-      return {};
+
+      std::list<Parser::ParserStatus> backup_list;
+      while (!status_list.empty()) {
+        backup_list.push_back(status_list.back());
+        status_list.pop_back();
+
+        if (status_list.back() == ParserStatus::PARSING_FOR_LOOP ||
+            status_list.back() == ParserStatus::PARSING_WHILE_LOOP ||
+            status_list.back() == ParserStatus::PARSING_LOOP) {
+
+          status_list.splice(status_list.end(), backup_list);
+          break;
+        }
+      }
+
+      if (status_list.empty()) {
+        Unexpected("'break' not within a loop body", GENERATE_CURRENT_POSITION,
+                   5);
+        IncrementErrorCount();
+
+        return {};
+      }
     }
   } else
     return {};
 
+  SourceLocation loc = GetCurrentToken().GetSourceLocation();
+  if (status_list.empty()) {
+    Unexpected("'break' not within a loop body", GENERATE_CURRENT_POSITION, 5);
+    IncrementErrorCount();
+
+    return {};
+  }
+
   if (Peek(TokenName::SEMI_COLON)) {
     ConsumeNext();
-    return std::make_unique<BreakStatementAST>();
+    return std::make_unique<BreakStatementAST>(loc);
   } else {
     Expected("Expected semicolon after 'break'",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 }
 
 std::optional<std::unique_ptr<FunctionCallAST>>
 Parser::ParseFunctionCallStatement() {
-  std::string fn_name;
+  std::unique_ptr<IdentifierAST> fn_name;
   if (Peek(TokenName::ID)) {
     ConsumeNext();
-    fn_name = GetCurrentToken().GetValue();
+    fn_name = std::make_unique<IdentifierAST>(
+        GetCurrentToken().GetValue(), GetCurrentToken().GetSourceLocation());
+
   } else
     return {};
 
@@ -1621,6 +1797,8 @@ Parser::ParseFunctionCallStatement() {
   } else {
     Expected("Expected closing pair for '('",
              GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
@@ -1628,11 +1806,13 @@ Parser::ParseFunctionCallStatement() {
     ConsumeNext();
   } else {
     Expected("Expected a semi colon : ';'", GENERATE_POSITION_PAST_ONE_COLUMN);
+    IncrementErrorCount();
+
     return {};
   }
 
   std::vector<std::unique_ptr<StatementAST>> args;
-  return std::make_unique<FunctionCallAST>(fn_name, std::move(args));
+  return std::make_unique<FunctionCallAST>(std::move(fn_name), std::move(args));
 }
 
 std::optional<std::unique_ptr<StatementAST>> Parser::ParseStatement() {
@@ -1703,20 +1883,6 @@ std::optional<std::unique_ptr<StatementAST>> Parser::ParseStatement() {
   BackTrack();
 
   result = ParseIfStatement();
-  if (result.has_value()) {
-    return result;
-  }
-
-  BackTrack();
-
-  result = ParseElseIfStatement();
-  if (result.has_value()) {
-    return result;
-  }
-
-  BackTrack();
-
-  result = ParseElseStatement();
   if (result.has_value()) {
     return result;
   }

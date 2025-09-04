@@ -245,6 +245,13 @@ private:
   inline bool CheckInsideFunction();
 
   std::list<ParserStatus> status_list;
+
+private:
+  int error_count;
+
+public:
+  bool HasErrors() { return error_count > 0; }
+  void IncrementErrorCount() { error_count++; }
 };
 
 #endif

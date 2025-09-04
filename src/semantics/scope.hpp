@@ -2,7 +2,6 @@
 #define SCOPE_HPP
 
 #include <functional>
-#include <memory>
 #include <optional>
 #include <unordered_map>
 
@@ -11,9 +10,10 @@
 
 class Scope {
 public:
-  Scope(std::unique_ptr<Scope> parent = nullptr,
-        ScopeType type = ScopeType::GLOBAL)
-      : parent(std::move(parent)), type(type) {}
+  Scope(Scope *parent = nullptr, ScopeType type = ScopeType::GLOBAL)
+      : parent(parent), type(type) {}
+  Scope(const Scope &) = default;
+  Scope &operator=(const Scope &) = default;
   std::optional<std::reference_wrapper<Type>>
   FindSymbolInCurrentScope(std::string name);
   std::optional<std::reference_wrapper<Type>> FindSymbol(std::string name);
@@ -22,11 +22,11 @@ public:
   void UpdateSymbolTable(std::string var_name, std::string var_type);
 
   ScopeType GetType() { return type; }
-  std::unique_ptr<Scope> GetParent() { return std::move(parent); }
+  Scope *GetParent() { return parent; }
 
 private:
   std::unordered_map<std::string, std::unique_ptr<Type>> symbol_table;
-  std::unique_ptr<Scope> parent;
+  Scope *parent;
   ScopeType type;
 };
 

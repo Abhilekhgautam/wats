@@ -69,6 +69,9 @@ public:
 public:
   void Error(const std::string str, std::size_t line, std::size_t column,
              int len = 1);
+  template <typename... TArgs>
+  void MultiPartError(const std::string str, std::size_t line,
+                      std::size_t column, int len, TArgs... args);
   void Expected(const std::string, std::size_t line, std::size_t column);
   void Unexpected(const std::string, std::size_t line, std::size_t column,
                   std::size_t times = 0);
@@ -79,9 +82,14 @@ public:
     return table.FindInSymbolTable(name);
   }
 
+  bool HasErrors() const { return error_count > 0; }
+  void IncrementErrorCount() { error_count++; }
+
 private:
-  std::unique_ptr<Scope> current_scope;
+  Scope *current_scope;
   FunctionSymbolTable table;
+
+  int error_count = 0;
 };
 
 #endif

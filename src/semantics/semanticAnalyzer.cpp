@@ -1,7 +1,6 @@
 #include "functionSymbolTable.hpp"
 #include "scopeType.hpp"
 #include <memory>
-#include <type_traits>
 #ifdef __EMSCRIPTEN__
 #include <cerrno>
 #endif
@@ -14,6 +13,7 @@
 #include "../AST/FunctionCallExprAST.hpp"
 #include "../AST/FunctionDefinitionAST.hpp"
 #include "../AST/IdentifierAST.hpp"
+#include "../AST/LoopAST.hpp"
 #include "../AST/NumberAST.hpp"
 #include "../AST/StatementAST.hpp"
 #include "../AST/VariableAssignmentAST.hpp"
@@ -32,6 +32,20 @@ void SemanticAnalyzer::Error(const std::string str, std::size_t line,
 
   std::cout << context.source_code_by_line[line - 1] << '\n';
   Color("green", SetArrowLeft(column, len), true);
+}
+
+template <typename... Params>
+void SemanticAnalyzer::MultiPartError(const std::string str, std::size_t line,
+                                      std::size_t column, int len,
+                                      Params... rest) {
+  std::cout << "[ " << line << ":" << column << " ] ";
+  Color("red", "Error: ");
+  Color("blue", str, true);
+
+  std::cout << context.source_code_by_line[line - 1] << '\n';
+
+  Color("green", MultiPartArrow(column, len, std::forward<Params>(rest)...),
+        true);
 }
 
 void SemanticAnalyzer::Expected(const std::string str, std::size_t line,
@@ -65,11 +79,8 @@ void SemanticAnalyzer::Unexpected(const std::string str, std::size_t line,
 
 void SemanticAnalyzer::analyze() {
   // Create a Global Scope
-  current_scope = std::make_unique<Scope>(nullptr, ScopeType::GLOBAL);
-
-  if (!current_scope) {
-    std::cout << "This is nullptr.\n";
-  }
+  Scope temp_scope(nullptr, ScopeType::GLOBAL);
+  current_scope = &temp_scope;
 
   for (const auto &elt : stmt_ast) {
     elt->Accept(*this);
@@ -82,6 +93,7 @@ void SemanticAnalyzer::Visit(VariableDeclarationAST &ast) {
     Error("Variable " + ast.GetVarName() +
               " already declared in the current scope",
           ast.GetVarLocation().GetLine(), ast.GetVarLocation().GetColumn());
+    IncrementErrorCount();
   } else {
     current_scope->AddSymbol(ast.GetVarName(), ast.GetType());
   }
@@ -99,7 +111,7 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
       Error(num + "  is not within the f64 range",
             ast.GetSourceLocation().front().GetLine(),
             ast.GetSourceLocation().front().GetColumn(), num.length());
-
+      IncrementErrorCount();
       return;
     }
 #endif
@@ -112,7 +124,7 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
       Error(num + "  is not within the f64 range",
             ast.GetSourceLocation().front().GetLine(),
             ast.GetSourceLocation().front().GetColumn(), num.length());
-
+      IncrementErrorCount();
       return;
     }
 #endif
@@ -126,7 +138,7 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
 
     if (result.ec == std::errc::result_out_of_range) {
       // Out of range error
-
+      IncrementErrorCount();
       return;
     }
     // Set to i64 by default
@@ -142,16 +154,17 @@ void SemanticAnalyzer::Visit(IdentifierAST &ast) {
     Error("No such variable " + ast.GetName() + " in the current scope",
           ast.GetSourceLocation().front().GetLine(),
           ast.GetSourceLocation().front().GetColumn());
+    IncrementErrorCount();
   } else {
     // Annotate the node with type information
-    ast.SetType(result->get().GetType());
+    ast.SetType(result.value().get().GetType());
   }
 }
 
 void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
   // Check type of the operands
-  auto &left_operand = ast.GetLeftOperand().get();
-  auto &right_operand = ast.GetRightOperand().get();
+  ExpressionAST &left_operand = ast.GetLeftOperand();
+  ExpressionAST &right_operand = ast.GetRightOperand();
 
   // Visit the left operand
   left_operand.Accept(*this);
@@ -166,6 +179,8 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
           // Fix me: this is just a quick fix
           ast.GetSourceLocation()[1].GetLine(),
           ast.GetSourceLocation()[1].GetColumn());
+
+    IncrementErrorCount();
   } else {
     // We are sure that all the operands are of the same type
     ast.SetType(left_operand.GetType());
@@ -174,11 +189,12 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
 
 void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
   std::string var_name = ast.GetVarName();
-  auto result = current_scope->FindSymbolInCurrentScope(var_name);
+  auto result = current_scope->FindSymbol(var_name);
   if (!result.has_value()) {
     Error("No variable: " + var_name + "  in the current scope",
-          ast.GetSourceLocation()[0].GetLine(),
-          ast.GetSourceLocation()[0].GetColumn(), var_name.length());
+          ast.GetSourceLocation().GetLine(),
+          ast.GetSourceLocation().GetColumn(), var_name.length());
+    IncrementErrorCount();
     return;
   } else {
     auto &assigned_expr = ast.GetExpr();
@@ -195,7 +211,14 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
 
     if (assigned_expr.GetType() != var_type) {
       // Error: Type mismatch
-      std::cout << "Type Mismatch\n";
+      MultiPartError("Type Mismatch: " + assigned_expr.GetType() +
+                         " cannot be assigned to variable of type " + var_type +
+                         ".",
+                     ast.GetSourceLocation().GetLine(),
+                     ast.GetSourceLocation().GetColumn(), var_name.length(),
+                     ast.GetExpr().GetSourceLocation()[0].GetColumn(),
+                     ast.GetExpr().GetLength());
+      IncrementErrorCount();
     }
   }
 }
@@ -205,8 +228,9 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
   auto result = current_scope->FindSymbolInCurrentScope(var_name);
   if (result.has_value()) {
     Error("Variable " + var_name + " already declared in the current scope",
-          ast.GetSourceLocation()[0].GetLine(),
-          ast.GetSourceLocation()[0].GetColumn(), var_name.length());
+          ast.GetSourceLocation().GetLine(),
+          ast.GetSourceLocation().GetColumn(), var_name.length());
+    IncrementErrorCount();
     return;
   } else {
     auto &expr = ast.GetExpr();
@@ -220,10 +244,12 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
       current_scope->AddSymbol(var_name, expr_type);
     } else {
       if (var_type != expr_type) {
-        Error("Type Mimatch: " + expr_type +
+        Error("Type Mismatch: " + expr_type +
                   " cannot be assigned to a variable of " + var_type,
-              ast.GetSourceLocation()[0].GetLine(),
-              ast.GetSourceLocation()[0].GetColumn(), var_name.length());
+              ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetColumn(), var_name.length());
+
+        IncrementErrorCount();
       } else {
         current_scope->AddSymbol(var_name, expr_type);
       }
@@ -237,10 +263,9 @@ void SemanticAnalyzer::Visit(ForLoopAST &ast) {
     return;
   }
   // Create a new scope
-  auto for_scope =
-      std::make_unique<Scope>(std::move(current_scope), ScopeType::LOOP);
+  Scope for_scope(current_scope, ScopeType::LOOP);
 
-  current_scope = std::move(for_scope);
+  current_scope = &for_scope;
   // Add the iteration variable to the current scope
   current_scope->AddSymbol(ast.GetIterationVariableName(), "i64");
 
@@ -249,7 +274,7 @@ void SemanticAnalyzer::Visit(ForLoopAST &ast) {
   range.Accept(*this);
 
   // Check the type of start and end expr in range
-  if (range.GetStart().get().GetType() != range.GetEnd().get().GetType()) {
+  if (range.GetStart().GetType() != range.GetEnd().GetType()) {
     // Todo: Report better error
     std::cout << "Types in range expr doesn't match";
     return;
@@ -271,9 +296,27 @@ void SemanticAnalyzer::Visit(LoopAST &ast) {
           2. Create a new scope
           3. Visit the loop body
   */
+  if (current_scope->GetType() != ScopeType::FUNCTION) {
+    std::cout << "A loop must be inside a function definition\n";
+    IncrementErrorCount();
+    return;
+  }
+  // Create a new scope
+  Scope for_scope(current_scope, ScopeType::LOOP);
+
+  current_scope = &for_scope;
+
+  // Visit the loop body
+  for (auto &elt : ast.GetLoopBody()) {
+    elt->Accept(*this);
+  }
+
+  // After the loop body is completed
+  // Switch back to the parent scope
+  current_scope = current_scope->GetParent();
 }
 
-void SemanticAnalyzer::Visit(WhileLoopAST &ast) {
+void SemanticAnalyzer::Visit([[maybe_unused]] WhileLoopAST &ast) {
   /*
     STEP: 1. Check for global scope
           2. Create a new scope
@@ -282,26 +325,36 @@ void SemanticAnalyzer::Visit(WhileLoopAST &ast) {
   */
 }
 
-void SemanticAnalyzer::Visit(IfStatementAST &ast) {}
-void SemanticAnalyzer::Visit(ElseIfStatementAST &ast) {}
-void SemanticAnalyzer::Visit(ElseStatementAST &ast) {}
-void SemanticAnalyzer::Visit(MatchStatementAST &ast) {}
-void SemanticAnalyzer::Visit(MatchArmAST &ast) {}
-void SemanticAnalyzer::Visit(FunctionCallAST &ast) {}
-void SemanticAnalyzer::Visit(FunctionCallExprAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] IfStatementAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] ElseIfStatementAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] ElseStatementAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] MatchStatementAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] MatchArmAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] FunctionCallAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] FunctionCallExprAST &ast) {}
 void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
 
   if (current_scope->GetType() != ScopeType::GLOBAL) {
-    std::cout << "A function definition must be within a global scope.\n";
+    Error("A function definition must be within a global scope",
+          ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetLine());
+    IncrementErrorCount();
     return;
   }
   // Create a new scope
-  auto fn_scope =
-      std::make_unique<Scope>(std::move(current_scope), ScopeType::FUNCTION);
+  Scope fn_scope(current_scope, ScopeType::FUNCTION);
 
-  current_scope = std::move(fn_scope);
+  // add the fn arguments to the fn scope
+  auto opt_args = ast.GetFunctionArguments();
+  if (opt_args.has_value()) {
+    auto fn_args = opt_args.value();
 
-  std::cout << "Visiting fn defn node\n";
+    auto args = fn_args.get().GetArgs();
+
+    for (const auto &elt : args) {
+      fn_scope.AddSymbol(elt, "i64");
+    }
+  }
+  current_scope = &fn_scope;
 
   auto args = ast.GetFunctionArguments();
 
@@ -310,7 +363,7 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
   if (!args.has_value())
     fn_info = FunctionInfo{{}, ast.GetFunctionReturnType()};
   else
-    fn_info = FunctionInfo(ast.GetFunctionArguments().value().GetArgs());
+    fn_info = FunctionInfo(ast.GetFunctionArguments().value().get().GetArgs());
 
   auto val = FindSymbolTable(ast.GetFunctionName());
 
@@ -318,7 +371,11 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
 
     if (val.value() == fn_info) {
       // TODO: better error message
-      std::cout << ast.GetFunctionName() + " is already defined\n";
+      Error("The function: " + ast.GetFunctionName() + " is alreadydefined.",
+            ast.GetSourceLocation().GetLine(),
+            ast.GetSourceLocation().GetLine(),
+            ast.GetSourceLocation().GetLine());
+      IncrementErrorCount();
       return;
     }
   }
@@ -331,17 +388,15 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
 
   // After the loop body is completed
   // Switch back to the parent scope
-  if (!current_scope) {
-    std::cout << "nullptr\n";
-  }
+
   current_scope = current_scope->GetParent();
 }
-void SemanticAnalyzer::Visit(FunctionArgumentAST &ast) {}
-void SemanticAnalyzer::Visit(BreakStatementAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] FunctionArgumentAST &ast) {}
+void SemanticAnalyzer::Visit([[maybe_unused]] BreakStatementAST &ast) {}
 void SemanticAnalyzer::Visit(RangeAST &ast) {
-  auto start = ast.GetStart();
-  auto end = ast.GetEnd();
+  ExpressionAST &start = ast.GetStart();
+  ExpressionAST &end = ast.GetEnd();
 
-  start.get().Accept(*this);
-  end.get().Accept(*this);
+  start.Accept(*this);
+  end.Accept(*this);
 }

@@ -12,7 +12,6 @@
 #include "../AST/NumberAST.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -79,7 +78,7 @@ void Parser::Expected(const std::string str, std::size_t line,
   Color("blue", str, true);
 
   std::cout << context.source_code_by_line[line - 1] << '\n';
-  Color("green", SetArrow(column), true);
+  Color("green", MultiPartArrow(column, 1), true);
 }
 
 void Parser::Unexpected(const std::string str, std::size_t line,

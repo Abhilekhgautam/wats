@@ -285,7 +285,7 @@ std::string Lexer::String() {
 
 void Lexer::Error(const std::string &err_msg) {
   std::cout << context.source_code_by_line[line - 1] << '\n';
-  Color("green", SetArrow(column), true);
+  Color("green", SetArrow(column, 1), true);
   std::cout << "[ " << line << ":" << column << " ] ";
   Color("red", "Error: ");
   Color("blue", err_msg);

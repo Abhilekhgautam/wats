@@ -247,7 +247,7 @@ private:
   std::list<ParserStatus> status_list;
 
 private:
-  int error_count;
+  int error_count = 0;
 
 public:
   bool HasErrors() { return error_count > 0; }

@@ -82,7 +82,7 @@ public:
     return table.FindInSymbolTable(name);
   }
 
-  bool HasErrors() const { return error_count > 0; }
+  bool HasErrors() { return error_count > 0; }
   void IncrementErrorCount() { error_count++; }
 
 private:

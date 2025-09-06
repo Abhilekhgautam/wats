@@ -31,7 +31,7 @@ void SemanticAnalyzer::Error(const std::string str, std::size_t line,
   Color("blue", str, true);
 
   std::cout << context.source_code_by_line[line - 1] << '\n';
-  Color("green", SetArrowLeft(column, len), true);
+  Color("green", SetArrow(column, len), true);
 }
 
 template <typename... Params>
@@ -56,7 +56,7 @@ void SemanticAnalyzer::Expected(const std::string str, std::size_t line,
   Color("blue", str, true);
 
   std::cout << context.source_code_by_line[line - 1] << '\n';
-  Color("green", SetArrow(column), true);
+  Color("green", SetArrow(column, 1), true);
 }
 
 void SemanticAnalyzer::Unexpected(const std::string str, std::size_t line,
@@ -191,7 +191,8 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
   std::string var_name = ast.GetVarName();
   auto result = current_scope->FindSymbol(var_name);
   if (!result.has_value()) {
-    Error("No variable: " + var_name + "  in the current scope",
+    Error("Variable: '" + var_name +
+              "' used without previous declaration in the current scope",
           ast.GetSourceLocation().GetLine(),
           ast.GetSourceLocation().GetColumn(), var_name.length());
     IncrementErrorCount();
@@ -215,8 +216,10 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
                          " cannot be assigned to variable of type " + var_type +
                          ".",
                      ast.GetSourceLocation().GetLine(),
-                     ast.GetSourceLocation().GetColumn(), var_name.length(),
-                     ast.GetExpr().GetSourceLocation()[0].GetColumn(),
+                     ast.GetSourceLocation().GetColumn() - var_name.length(),
+                     var_name.length(),
+                     ast.GetExpr().GetSourceLocation()[0].GetColumn() -
+                         ast.GetExpr().GetLength(),
                      ast.GetExpr().GetLength());
       IncrementErrorCount();
     }
@@ -244,10 +247,14 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
       current_scope->AddSymbol(var_name, expr_type);
     } else {
       if (var_type != expr_type) {
-        Error("Type Mismatch: " + expr_type +
-                  " cannot be assigned to a variable of " + var_type,
-              ast.GetSourceLocation().GetLine(),
-              ast.GetSourceLocation().GetColumn(), var_name.length());
+        MultiPartError("Type Mismatch: " + expr_type +
+                           " cannot be assigned to a variable of " + var_type,
+                       ast.GetSourceLocation().GetLine(),
+                       ast.GetSourceLocation().GetColumn() - var_name.length(),
+                       var_name.length(),
+                       ast.GetExpr().GetSourceLocation()[0].GetColumn() -
+                           ast.GetExpr().GetLength(),
+                       ast.GetExpr().GetLength());
 
         IncrementErrorCount();
       } else {
@@ -259,7 +266,9 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
 
 void SemanticAnalyzer::Visit(ForLoopAST &ast) {
   if (current_scope->GetType() != ScopeType::FUNCTION) {
-    std::cout << "A for loop must be inside a function definition\n";
+    Error("A for loop must be inside a function definition",
+          ast.GetSourceLocation().GetLine(),
+          ast.GetSourceLocation().GetColumn(), /* for - 3 characters long*/ 3);
     return;
   }
   // Create a new scope
@@ -297,7 +306,9 @@ void SemanticAnalyzer::Visit(LoopAST &ast) {
           3. Visit the loop body
   */
   if (current_scope->GetType() != ScopeType::FUNCTION) {
-    std::cout << "A loop must be inside a function definition\n";
+    Error("A loop must be inside a function definition",
+          ast.GetSourceLocation().GetLine(),
+          ast.GetSourceLocation().GetColumn(), /* loop - 3 characters long*/ 4);
     IncrementErrorCount();
     return;
   }
@@ -371,10 +382,11 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
 
     if (val.value() == fn_info) {
       // TODO: better error message
-      Error("The function: " + ast.GetFunctionName() + " is alreadydefined.",
-            ast.GetSourceLocation().GetLine(),
-            ast.GetSourceLocation().GetLine(),
-            ast.GetSourceLocation().GetLine());
+      Error(
+          "The function: " + ast.GetFunctionName() + " is already defined.",
+          ast.GetSourceLocation().GetLine(),
+          ast.GetFunctionNameAsIdentifier().GetSourceLocation()[0].GetColumn(),
+          ast.GetFunctionName().length());
       IncrementErrorCount();
       return;
     }

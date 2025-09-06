@@ -47,5 +47,6 @@ public:
   std::string GetFunctionReturnType() const { return ret_type; }
   void Debug() override;
   SourceLocation GetSourceLocation() override { return loc; }
+  IdentifierAST &GetFunctionNameAsIdentifier() { return *fn_name; }
 };
 #endif

@@ -29,14 +29,14 @@ void compile_program(const char *source_code) {
   auto ast_vec = P.Parse();
 
   if (P.HasErrors()) {
-    return 1;
+    return;
   }
 
   SemanticAnalyzer s(context, ast_vec.value());
   s.analyze();
 
   if (s.HasErrors()) {
-    return 0;
+    return;
   }
 
   nlohmann::json program = {{"functions", nlohmann::json::array({})}};
@@ -62,7 +62,8 @@ void compile_program(const char *source_code) {
       }
     }
   }
-  std::cout << program.dump(4) << '\n';
+  // Also flush the buffer ...
+  std::cout << program.dump(4) << std::endl;
 }
 }
 #endif
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
   auto ast_vec = P.Parse();
 
   if (P.HasErrors()) {
-    return 1;
+    return 0;
   }
 
   SemanticAnalyzer s(context, ast_vec.value());

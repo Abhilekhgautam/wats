@@ -263,17 +263,31 @@ json IRGenerator::Generate(LoopAST &ast) {
   instruction.push_back(label_instruction);
   for (const auto &elt : ast.GetLoopBody()) {
     auto val = Generate(*elt);
-    if (!val.is_array())
-      instruction.push_back(Generate(*elt));
-    else {
+    if (!val.is_array()) {
+      // handle break: exactly within the loop body (not within any other
+      // block)
+      if (val["op"] == "jmp") {
+        val["labels"].push_back("test_out");
+      }
+      instruction.push_back(val);
+    } else {
       for (auto &v : val) {
+        // handle break: not exactly within the loop body (within any other
+        // block)
+        if (v["op"] == "jmp" && v["labels"].is_null()) {
+          v["labels"].push_back("test_out");
+        }
         instruction.push_back(v);
       }
     }
   }
   json jump_instruction;
-  jump_instruction = {{"op", "jmp"}, {"labels", "test"}};
+  jump_instruction = {{"op", "jmp"}, {"labels", {"test"}}};
   instruction.push_back(jump_instruction);
+
+  json exit_label_instruction = {{"label", "test_out"}};
+  instruction.push_back(exit_label_instruction);
+
   return instruction;
 }
 

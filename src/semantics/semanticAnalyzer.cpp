@@ -13,6 +13,7 @@
 #include "../AST/FunctionCallExprAST.hpp"
 #include "../AST/FunctionDefinitionAST.hpp"
 #include "../AST/IdentifierAST.hpp"
+#include "../AST/IfStatementAST.hpp"
 #include "../AST/LoopAST.hpp"
 #include "../AST/NumberAST.hpp"
 #include "../AST/StatementAST.hpp"
@@ -336,7 +337,56 @@ void SemanticAnalyzer::Visit([[maybe_unused]] WhileLoopAST &ast) {
   */
 }
 
-void SemanticAnalyzer::Visit([[maybe_unused]] IfStatementAST &ast) {}
+void SemanticAnalyzer::Visit(IfStatementAST &ast) {
+  if (current_scope->GetType() == ScopeType::GLOBAL) {
+    Error("An 'if statement' must be within a function body",
+          ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetLine());
+    IncrementErrorCount();
+    return;
+  }
+
+  ExpressionAST &if_condition = ast.GetIfCondition();
+
+  if_condition.Accept(*this);
+
+  Scope if_scope(current_scope, ScopeType::BRANCH);
+
+  current_scope = &if_scope;
+  for (auto &elt : ast.GetIfBody()) {
+    elt->Accept(*this);
+  }
+
+  current_scope = current_scope->GetParent();
+
+  if (ast.hasElseIf()) {
+    auto &else_if_vec = ast.GetElseIfStatements();
+
+    for (const auto &elt : else_if_vec) {
+      ExpressionAST &else_if_condition = elt->GetCondition();
+
+      else_if_condition.Accept(*this);
+
+      Scope else_if_scope(current_scope, ScopeType::BRANCH);
+      current_scope = &else_if_scope;
+
+      for (auto &stmt : elt->GetBody()) {
+        stmt->Accept(*this);
+      }
+      current_scope = current_scope->GetParent();
+    }
+  }
+
+  if (ast.hasElse()) {
+    auto &else_stmt = ast.GetElseStatement();
+
+    Scope else_scope(current_scope, ScopeType::BRANCH);
+    current_scope = &else_scope;
+    for (auto &body : else_stmt.GetBody()) {
+      body->Accept(*this);
+    }
+    current_scope = current_scope->GetParent();
+  }
+}
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseIfStatementAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseStatementAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] MatchStatementAST &ast) {}

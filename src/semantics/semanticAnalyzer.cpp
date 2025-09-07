@@ -20,6 +20,7 @@
 #include "../AST/VariableAssignmentAST.hpp"
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
+#include "../AST/WhileLoopAST.hpp"
 
 #include <cassert>
 #include <charconv>
@@ -335,6 +336,27 @@ void SemanticAnalyzer::Visit([[maybe_unused]] WhileLoopAST &ast) {
           3. Visit the loop condition
           4. Visit the loop body
   */
+
+  if (current_scope->GetType() == ScopeType::GLOBAL) {
+    Error("A 'while loop' must be within a function body.",
+          ast.GetSourceLocation().GetLine(),
+          ast.GetSourceLocation().GetColumn(), /* while - 4 char long */ 4);
+    IncrementErrorCount();
+    return;
+  }
+
+  ExpressionAST &cond = ast.GetCondition();
+
+  cond.Accept(*this);
+
+  Scope while_scope(current_scope, ScopeType::LOOP);
+  current_scope = &while_scope;
+
+  for (auto &elt : ast.GetBody()) {
+    elt->Accept(*this);
+  }
+
+  current_scope = current_scope->GetParent();
 }
 
 void SemanticAnalyzer::Visit(IfStatementAST &ast) {

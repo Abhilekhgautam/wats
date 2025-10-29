@@ -135,7 +135,7 @@ json IRGenerator::Generate(BinaryExpressionAST &ast) {
 
   json instrVec = json::array({});
 
-  if (!rhs_val.is_array() && rhs_val["op"] == "const") {
+  if (!rhs_val.is_array() && (rhs_val["op"] == "const" || rhs_val["op"] == "id")) {
     return GenerateArithmeticOperations(*this, ast, "abhilekh_todo");
   }
 
@@ -160,7 +160,7 @@ json IRGenerator::Generate(NumberAST &ast) {
 
 json IRGenerator::Generate(IdentifierAST &ast) {
   json instruction;
-  instruction["op"] = "const";
+  instruction["op"] = "id";
   instruction["type"] = ast.GetType();
   instruction["args"] = json::array({ast.GetName()});
 

@@ -23,50 +23,50 @@ json GenerateArithmeticOperations(IRGenerator &generator,
     instruction = {{"op", "add"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
   } else if (ast.GetOperator() == "-") {
     instruction = {{"op", "sub"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
     return instruction;
   } else if (ast.GetOperator() == "*") {
     instruction = {{"op", "mul"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
     return instruction;
   } else if (ast.GetOperator() == "/") {
     instruction = {{"op", "div"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
     return instruction;
   } else if (ast.GetOperator() == ">") {
     instruction = {{"op", "gt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
   } else if (ast.GetOperator() == "<") {
     instruction = {{"op", "lt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
   } else if (ast.GetOperator() == "==") {
     instruction = {{"op", "eq"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
   } else if (ast.GetOperator() == ">=") {
     instruction = {{"op", "ge"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
   } else if (ast.GetOperator() == "<=") {
     instruction = {{"op", "le"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["val"], rhs["val"]})}};
+                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
   }
   return instruction;
 }
@@ -83,7 +83,7 @@ json IRGenerator::Generate(VariableAssignmentAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
   json gen_code = Generate(expr);
   json instruction;
-  if (gen_code["op"] == "const")
+  if (gen_code["op"] == "const" && gen_code.contains("val"))
     instruction = {{"op", "const"},
                    {"dest", ast.GetVarName()},
                    {"type", gen_code["type"]},
@@ -103,7 +103,7 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
   json gen_code = Generate(expr);
   json instruction;
-  if (!gen_code.is_array() && gen_code["op"] == "const") {
+  if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val")) {
     instruction = {{"op", "const"},
                    {"dest", ast.GetVarName()},
                    {"type", gen_code["type"]},
@@ -140,7 +140,7 @@ json IRGenerator::Generate(BinaryExpressionAST &ast) {
   }
 
   else {
-    BinaryExpressionAST &another_rhs = dynamic_cast<BinaryExpressionAST &>(rhs);
+    auto &another_rhs = dynamic_cast<BinaryExpressionAST &>(rhs);
     // ExpressionAST &new_lhs = another_rhs.GetLeftOperand();
     ExpressionAST &new_rhs = another_rhs.GetRightOperand();
 
@@ -153,7 +153,7 @@ json IRGenerator::Generate(NumberAST &ast) {
   json instruction;
   instruction["op"] = "const";
   instruction["type"] = ast.GetType();
-  instruction["val"] = ast.GetNumber();
+  instruction["val"] = std::stol(ast.GetNumber());
 
   return instruction;
 }
@@ -162,7 +162,7 @@ json IRGenerator::Generate(IdentifierAST &ast) {
   json instruction;
   instruction["op"] = "const";
   instruction["type"] = ast.GetType();
-  instruction["val"] = ast.GetName();
+  instruction["args"] = json::array({ast.GetName()});
 
   return instruction;
 }
@@ -177,11 +177,9 @@ json IRGenerator::Generate(VariableDeclarationAST &ast) {
 }
 
 json IRGenerator::Generate([[maybe_unused]] BreakStatementAST &ast) {
-  json instruction;
-
-  instruction = {
-      {"op", "jmp"},
-      {"labels", {}},
+  json instruction = {
+    {"op", "jmp"},
+    {"labels", {}},
   };
 
   return instruction;
@@ -281,8 +279,7 @@ json IRGenerator::Generate(LoopAST &ast) {
       }
     }
   }
-  json jump_instruction;
-  jump_instruction = {{"op", "jmp"}, {"labels", {"test"}}};
+  json jump_instruction = {{"op", "jmp"}, {"labels", {"test"}}};
   instruction.push_back(jump_instruction);
 
   json exit_label_instruction = {{"label", "test_out"}};

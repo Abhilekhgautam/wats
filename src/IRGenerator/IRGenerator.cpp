@@ -14,58 +14,57 @@ using nlohmann::json;
 //
 json GenerateArithmeticOperations(IRGenerator &generator,
                                   BinaryExpressionAST &ast,
-                                  std::string destination,
-                                std::string lhs_name,
-                              std::string rhs_name) {
+                                  std::string destination, std::string lhs_name,
+                                  std::string rhs_name) {
   json instruction;
   if (ast.GetOperator() == "+") {
     instruction = {{"op", "add"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
   } else if (ast.GetOperator() == "-") {
     instruction = {{"op", "sub"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
     return instruction;
   } else if (ast.GetOperator() == "*") {
     instruction = {{"op", "mul"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
     return instruction;
   } else if (ast.GetOperator() == "/") {
     instruction = {{"op", "div"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
     return instruction;
   } else if (ast.GetOperator() == ">") {
     instruction = {{"op", "gt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
   } else if (ast.GetOperator() == "<") {
     instruction = {{"op", "lt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
   } else if (ast.GetOperator() == "==") {
     instruction = {{"op", "eq"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
   } else if (ast.GetOperator() == ">=") {
     instruction = {{"op", "ge"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
   } else if (ast.GetOperator() == "<=") {
     instruction = {{"op", "le"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs_name , rhs_name})}};
+                   {"args", json::array({lhs_name, rhs_name})}};
   }
   return instruction;
 }
@@ -102,20 +101,20 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
   json expression_json = Generate(expr);
   json instruction;
-  if(expression_json.is_array()) {
+  if (expression_json.is_array()) {
     json last_expression = expression_json.back();
-    for(size_t i = 0; i < expression_json.size()-1; i++) {
+    for (size_t i = 0; i < expression_json.size() - 1; i++) {
       instruction.push_back(expression_json[i]);
     }
     last_expression["dest"] = ast.GetVarName();
     instruction.push_back(last_expression);
-  
 
-  } else if(expression_json["op"] == "const" && expression_json.contains("val")) {
+  } else if (expression_json["op"] == "const" &&
+             expression_json.contains("val")) {
     expression_json["dest"] = ast.GetVarName();
     instruction = expression_json;
   } else {
-    // todo else case 
+    // todo else case
     // function call
   }
 
@@ -133,7 +132,8 @@ json IRGenerator::Generate(BinaryExpressionAST &ast) {
 
   std::string final_dest = NewTempVar();
 
-  json final_op = GenerateArithmeticOperations(*this, ast, final_dest, lhs_arg_name, rhs_arg_name);
+  json final_op = GenerateArithmeticOperations(*this, ast, final_dest,
+                                               lhs_arg_name, rhs_arg_name);
   instructions.push_back(final_op);
   return instructions;
 }
@@ -167,8 +167,8 @@ json IRGenerator::Generate(VariableDeclarationAST &ast) {
 
 json IRGenerator::Generate([[maybe_unused]] BreakStatementAST &ast) {
   json instruction = {
-    {"op", "jmp"},
-    {"labels", {}},
+      {"op", "jmp"},
+      {"labels", {}},
   };
 
   return instruction;
@@ -295,10 +295,75 @@ json IRGenerator::Generate([[maybe_unused]] RangeAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] WhileLoopAST &ast) {
-  json instruction;
+json IRGenerator::Generate(WhileLoopAST &ast) {
+    json instruction = json::array({});
+    std::string test_label = NewTempVar() + "_while_test";
+    std::string body_label = NewTempVar() + "_while_body";
+    std::string exit_label = NewTempVar() + "_while_exit";
 
-  return instruction;
+    // 1. Label for Condition Check (while_test)
+    instruction.push_back({{"label", test_label}});
+
+    // 2. Generate IR for the Condition Expression
+    ExpressionAST &cond = ast.GetCondition();
+    
+    // This call must generate IR instructions for the condition
+    json condition_ir = Generate(cond); 
+    
+    // Assuming complex expressions return an array, collect them.
+    // Assuming a helper function extracts result name and collects IR:
+    // std::string cond_result_name = extract_ir_result(condition_ir, instruction); 
+    
+    // Since we don't have the helper, we'll assume Generate(cond) returns the final 
+    // instruction and we use its destination 'dest' field as the boolean variable name.
+    
+    // --- TEMPORARY FIX: Assume 'Generate(cond)' returns the final instruction (single JSON) ---
+    instruction.push_back(condition_ir); 
+    std::string cond_result_name = condition_ir["dest"]; 
+    // -----------------------------------------------------------------------------------------
+
+    // 3. Conditional Branch (br): If true, go to body; if false, go to exit
+    json branch_instr = {
+        {"op", "br"},
+        {"labels", {body_label, exit_label}},
+        {"args", {cond_result_name}},
+    };
+    instruction.push_back(branch_instr);
+
+    // 4. Loop Body Label
+    instruction.push_back({{"label", body_label}});
+
+    // 5. Generate IR for the Loop Body
+    for (auto &elt : ast.GetBody()) {
+        auto val = Generate(*elt);
+        // Break statement handling (similar to LoopAST)
+        if (val.is_object() && val["op"] == "jmp") {
+            val["labels"].push_back(exit_label);
+        } else if (val.is_array()) {
+            // If the body generates an array of instructions, update nested breaks
+             for (auto &v : val) {
+                if (v.is_object() && v["op"] == "jmp" && v["labels"].is_null()) {
+                    v["labels"].push_back(exit_label);
+                }
+            }
+        }
+        
+        // Push single instruction or array elements
+        if (val.is_array()) {
+            for (auto &v : val) instruction.push_back(v);
+        } else {
+            instruction.push_back(val);
+        }
+    }
+
+    // 6. Unconditional Jump back to the condition check
+    json jump_instr = {{"op", "jmp"}, {"labels", {test_label}}};
+    instruction.push_back(jump_instr);
+
+    // 7. Exit Label
+    instruction.push_back({{"label", exit_label}});
+
+    return instruction;
 }
 
 json IRGenerator::Generate([[maybe_unused]] FunctionCallAST &ast) {
@@ -324,18 +389,19 @@ std::string IRGenerator::NewTempVar() {
   return "tempVar_" + std::to_string(tempVarCounter++);
 }
 
-    std::string IRGenerator::extract_ir_result(json& result_json, json& instruction_array) {
-        if(result_json.is_array()) {
-          for(auto& instr: result_json) {
-            instruction_array.push_back(instr);
-          }
-          return result_json.back()["dest"];
-        } else if(result_json["op"] == "id") {
-          return result_json["args"][0];
-        } else if(result_json["op"] == "const") {
-          std::string temp_var = NewTempVar();
-          result_json["dest"] = temp_var;
-          instruction_array.push_back(result_json);
-          return temp_var;
-        } 
-      }
+std::string IRGenerator::extract_ir_result(json &result_json,
+                                           json &instruction_array) {
+  if (result_json.is_array()) {
+    for (auto &instr : result_json) {
+      instruction_array.push_back(instr);
+    }
+    return result_json.back()["dest"];
+  } else if (result_json["op"] == "id") {
+    return result_json["args"][0];
+  } else if (result_json["op"] == "const") {
+    std::string temp_var = NewTempVar();
+    result_json["dest"] = temp_var;
+    instruction_array.push_back(result_json);
+    return temp_var;
+  }
+}

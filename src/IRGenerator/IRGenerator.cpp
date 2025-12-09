@@ -114,6 +114,9 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
   } else if(expression_json["op"] == "const" && expression_json.contains("val")) {
     expression_json["dest"] = ast.GetVarName();
     instruction = expression_json;
+  } else {
+    // todo else case 
+    // function call
   }
 
   return instruction;

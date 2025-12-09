@@ -296,74 +296,84 @@ json IRGenerator::Generate([[maybe_unused]] RangeAST &ast) {
 }
 
 json IRGenerator::Generate(WhileLoopAST &ast) {
-    json instruction = json::array({});
-    std::string test_label = NewTempVar() + "_while_test";
-    std::string body_label = NewTempVar() + "_while_body";
-    std::string exit_label = NewTempVar() + "_while_exit";
+  json instruction = json::array({});
+  std::string test_label = NewTempVar() + "_while_test";
+  std::string body_label = NewTempVar() + "_while_body";
+  std::string exit_label = NewTempVar() + "_while_exit";
 
-    // 1. Label for Condition Check (while_test)
-    instruction.push_back({{"label", test_label}});
+  // 1. Label for Condition Check (while_test)
+  instruction.push_back({{"label", test_label}});
 
-    // 2. Generate IR for the Condition Expression
-    ExpressionAST &cond = ast.GetCondition();
-    
-    // This call must generate IR instructions for the condition
-    json condition_ir = Generate(cond); 
-    
-    // Assuming complex expressions return an array, collect them.
-    // Assuming a helper function extracts result name and collects IR:
-    // std::string cond_result_name = extract_ir_result(condition_ir, instruction); 
-    
-    // Since we don't have the helper, we'll assume Generate(cond) returns the final 
-    // instruction and we use its destination 'dest' field as the boolean variable name.
-    
-    // --- TEMPORARY FIX: Assume 'Generate(cond)' returns the final instruction (single JSON) ---
-    instruction.push_back(condition_ir); 
-    std::string cond_result_name = condition_ir["dest"]; 
-    // -----------------------------------------------------------------------------------------
+  // 2. Generate IR for the Condition Expression
+  ExpressionAST &cond = ast.GetCondition();
 
-    // 3. Conditional Branch (br): If true, go to body; if false, go to exit
-    json branch_instr = {
-        {"op", "br"},
-        {"labels", {body_label, exit_label}},
-        {"args", {cond_result_name}},
-    };
-    instruction.push_back(branch_instr);
+  // This call must generate IR instructions for the condition
+  json condition_ir = Generate(cond);
 
-    // 4. Loop Body Label
-    instruction.push_back({{"label", body_label}});
+  // Assuming complex expressions return an array, collect them.
+  // Assuming a helper function extracts result name and collects IR:
+  // std::string cond_result_name = extract_ir_result(condition_ir,
+  // instruction);
 
-    // 5. Generate IR for the Loop Body
-    for (auto &elt : ast.GetBody()) {
-        auto val = Generate(*elt);
-        // Break statement handling (similar to LoopAST)
-        if (val.is_object() && val["op"] == "jmp") {
-            val["labels"].push_back(exit_label);
-        } else if (val.is_array()) {
-            // If the body generates an array of instructions, update nested breaks
-             for (auto &v : val) {
-                if (v.is_object() && v["op"] == "jmp" && v["labels"].is_null()) {
-                    v["labels"].push_back(exit_label);
-                }
-            }
+  // Since we don't have the helper, we'll assume Generate(cond) returns the
+  // final instruction and we use its destination 'dest' field as the boolean
+  // variable name.
+
+  // --- TEMPORARY FIX: Assume 'Generate(cond)' returns the final instruction
+  // (single JSON) ---
+  if (condition_ir.is_array()) {
+    // If it's an array, we need to extract the last instruction
+    for (auto &instr : condition_ir) {
+      instruction.push_back(instr);
+    }
+    condition_ir = condition_ir.back();
+  }
+  std::string cond_result_name = condition_ir["dest"];
+  // -----------------------------------------------------------------------------------------
+
+  // 3. Conditional Branch (br): If true, go to body; if false, go to exit
+  json branch_instr = {
+      {"op", "br"},
+      {"labels", {body_label, exit_label}},
+      {"args", {cond_result_name}},
+  };
+  instruction.push_back(branch_instr);
+
+  // 4. Loop Body Label
+  instruction.push_back({{"label", body_label}});
+
+  // 5. Generate IR for the Loop Body
+  for (auto &elt : ast.GetBody()) {
+    auto val = Generate(*elt);
+    // Break statement handling (similar to LoopAST)
+    if (val.is_object() && val["op"] == "jmp") {
+      val["labels"].push_back(exit_label);
+    } else if (val.is_array()) {
+      // If the body generates an array of instructions, update nested breaks
+      for (auto &v : val) {
+        if (v.is_object() && v["op"] == "jmp" && v["labels"].is_null()) {
+          v["labels"].push_back(exit_label);
         }
-        
-        // Push single instruction or array elements
-        if (val.is_array()) {
-            for (auto &v : val) instruction.push_back(v);
-        } else {
-            instruction.push_back(val);
-        }
+      }
     }
 
-    // 6. Unconditional Jump back to the condition check
-    json jump_instr = {{"op", "jmp"}, {"labels", {test_label}}};
-    instruction.push_back(jump_instr);
+    // Push single instruction or array elements
+    if (val.is_array()) {
+      for (auto &v : val)
+        instruction.push_back(v);
+    } else {
+      instruction.push_back(val);
+    }
+  }
 
-    // 7. Exit Label
-    instruction.push_back({{"label", exit_label}});
+  // 6. Unconditional Jump back to the condition check
+  json jump_instr = {{"op", "jmp"}, {"labels", {test_label}}};
+  instruction.push_back(jump_instr);
 
-    return instruction;
+  // 7. Exit Label
+  instruction.push_back({{"label", exit_label}});
+
+  return instruction;
 }
 
 json IRGenerator::Generate([[maybe_unused]] FunctionCallAST &ast) {

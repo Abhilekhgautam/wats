@@ -14,59 +14,58 @@ using nlohmann::json;
 //
 json GenerateArithmeticOperations(IRGenerator &generator,
                                   BinaryExpressionAST &ast,
-                                  std::string destination) {
-  json lhs = generator.Generate(ast.GetLeftOperand());
-  json rhs = generator.Generate(ast.GetRightOperand());
-
+                                  std::string destination,
+                                std::string lhs_name,
+                              std::string rhs_name) {
   json instruction;
   if (ast.GetOperator() == "+") {
     instruction = {{"op", "add"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "-") {
     instruction = {{"op", "sub"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
     return instruction;
   } else if (ast.GetOperator() == "*") {
     instruction = {{"op", "mul"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
     return instruction;
   } else if (ast.GetOperator() == "/") {
     instruction = {{"op", "div"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
     return instruction;
   } else if (ast.GetOperator() == ">") {
     instruction = {{"op", "gt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "<") {
     instruction = {{"op", "lt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "==") {
     instruction = {{"op", "eq"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == ">=") {
     instruction = {{"op", "ge"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "<=") {
     instruction = {{"op", "le"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   }
   return instruction;
 }
@@ -126,27 +125,19 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
 }
 
 json IRGenerator::Generate(BinaryExpressionAST &ast) {
-  ExpressionAST &lhs = ast.GetLeftOperand();
-  ExpressionAST &rhs = ast.GetRightOperand();
+  json instructions = json::array({});
 
-  json lhs_val = Generate(lhs);
+  json lhs_ir = Generate(ast.GetLeftOperand());
+  std::string lhs_arg_name = extract_ir_result(lhs_ir, instructions);
 
-  json rhs_val = Generate(rhs);
+  json rhs_ir = Generate(ast.GetRightOperand());
+  std::string rhs_arg_name = extract_ir_result(rhs_ir, instructions);
 
-  json instrVec = json::array({});
+  std::string final_dest = NewTempVar();
 
-  if (!rhs_val.is_array() && (rhs_val["op"] == "const" || rhs_val["op"] == "id")) {
-    return GenerateArithmeticOperations(*this, ast, "abhilekh_todo");
-  }
-
-  else {
-    auto &another_rhs = dynamic_cast<BinaryExpressionAST &>(rhs);
-    // ExpressionAST &new_lhs = another_rhs.GetLeftOperand();
-    ExpressionAST &new_rhs = another_rhs.GetRightOperand();
-
-    return Generate(new_rhs);
-    // Generate(new_lhs);
-  }
+  json final_op = GenerateArithmeticOperations(*this, ast, final_dest, lhs_arg_name, rhs_arg_name);
+  instructions.push_back(final_op);
+  return instructions;
 }
 
 json IRGenerator::Generate(NumberAST &ast) {
@@ -329,3 +320,24 @@ json IRGenerator::Generate([[maybe_unused]] FunctionArgumentAST &ast) {
 
   return instruction;
 }
+
+std::string IRGenerator::NewTempVar() {
+  static int tempVarCounter = 0;
+  return "tempVar_" + std::to_string(tempVarCounter++);
+}
+
+    std::string IRGenerator::(json& result_json, json& instruction_array) {
+        if(result_json.is_array()) {
+          for(auto& instr: result_json) {
+            instruction_array.push_back(instr);
+          }
+          return result_json.back()["dest"];
+        } else if(result_json["op"] == "id") {
+          return result_json["args"][0];
+        } else if(result_json["op"] == "const") {
+          std::string temp_var = NewTempVar();
+          result_json["dest"] = temp_var;
+          instruction_array.push_back(result_json);
+          return temp_var;
+        } 
+      }

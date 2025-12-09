@@ -32,6 +32,9 @@ class IRGenerator{
       nlohmann::json Generate(RangeAST& ast);
       nlohmann::json Generate(VariableDeclarationAST& ast);
       nlohmann::json Generate(WhileLoopAST& ast);
+
+      std::string NewTempVar();
+      std::string extract_ir_result(json& result_json, json& instruction_array);
 };
 
 #endif

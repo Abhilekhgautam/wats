@@ -100,27 +100,25 @@ json IRGenerator::Generate(VariableAssignmentAST &ast) {
 
 json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
-  json gen_code = Generate(expr);
+  json expression_json = Generate(expr);
   json instruction;
-  if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val")) {
-    instruction = {{"op", "const"},
-                   {"dest", ast.GetVarName()},
-                   {"type", gen_code["type"]},
-                   {"value", gen_code["val"]}};
-  } else if (gen_code.is_array()) {
-    instruction = {{"op", "array"},
-                   {"dest", ast.GetVarName()},
-                   /*{"type", gen_code[0]["type"]},
-                   {"value", gen_code[0]["val"]}*/};
+  if(expression_json.is_array()) {
+    json last_expression = expression_json.back();
+    for(size_t i = 0; i < expression_json.size()-1; i++) {
+      instruction.push_back(expression_json[i]);
+    }
+    last_expression["dest"] = ast.GetVarName();
+    instruction.push_back(last_expression);
+  
 
   } else {
-    instruction = {
-        {"op", gen_code["op"]},
-        {"dest", ast.GetVarName()},
-        {"type", gen_code["type"]},
-        {"args", gen_code["args"]},
-    };
+    instruction = {{"op", "const"},
+    {"dest", ast.GetVarName()},
+    {"type", expression_json["type"]},
+    {"value", expression_json["val"]}
+  };
   }
+
   return instruction;
 }
 
@@ -326,7 +324,7 @@ std::string IRGenerator::NewTempVar() {
   return "tempVar_" + std::to_string(tempVarCounter++);
 }
 
-    std::string IRGenerator::(json& result_json, json& instruction_array) {
+    std::string IRGenerator::extract_ir_result(json& result_json, json& instruction_array) {
         if(result_json.is_array()) {
           for(auto& instr: result_json) {
             instruction_array.push_back(instr);

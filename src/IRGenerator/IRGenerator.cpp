@@ -6,6 +6,7 @@
 #include "../AST/NumberAST.hpp"
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
+#include "../AST/WhileLoopAST.hpp"
 
 using nlohmann::json;
 
@@ -300,7 +301,6 @@ json IRGenerator::Generate(WhileLoopAST &ast) {
   std::string test_label = NewTempVar() + "_while_test";
   std::string body_label = NewTempVar() + "_while_body";
   std::string exit_label = NewTempVar() + "_while_exit";
-
   // 1. Label for Condition Check (while_test)
   instruction.push_back({{"label", test_label}});
 

@@ -111,12 +111,9 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
     instruction.push_back(last_expression);
   
 
-  } else {
-    instruction = {{"op", "const"},
-    {"dest", ast.GetVarName()},
-    {"type", expression_json["type"]},
-    {"value", expression_json["val"]}
-  };
+  } else if(expression_json["op"] == "const" && expression_json.contains("val")) {
+    expression_json["dest"] = ast.GetVarName();
+    instruction = expression_json;
   }
 
   return instruction;

@@ -18,6 +18,21 @@ struct FunctionInfo {
     }
     return false;
   }
+
+  // Inside struct FunctionInfo { ...
+public:
+  FunctionInfo() : fn_args_type({}), fn_ret_type("") {}
+  // Missing getters:
+  const std::vector<std::string> &GetArgs() const {
+    return fn_args_type;
+  } // For error 520
+  const std::string &GetRetType() const { return fn_ret_type; } // For error 559
+
+  // Constructor fix (required based on your semantic analyzer logic):
+  FunctionInfo(std::vector<std::string> args)
+      : fn_args_type(std::move(args)), fn_ret_type("") {}
+  FunctionInfo(std::vector<std::string> args, std::string ret_type)
+      : fn_args_type(std::move(args)), fn_ret_type(std::move(ret_type)) {}
 };
 
 class FunctionSymbolTable {

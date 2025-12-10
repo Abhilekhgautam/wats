@@ -21,6 +21,9 @@
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
 #include "../AST/WhileLoopAST.hpp"
+#include "../AST/MatchStatementAST.hpp"
+#include "../AST/MatchArmAST.hpp"
+#include "../AST/FunctionCallStatementAST.hpp"
 
 #include <cassert>
 #include <charconv>

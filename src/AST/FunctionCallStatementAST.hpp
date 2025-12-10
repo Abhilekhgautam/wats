@@ -9,22 +9,25 @@
 #include "IdentifierAST.hpp"
 
 class FunctionCallAST : public StatementAST {
-    public:
-       FunctionCallAST(std::unique_ptr<IdentifierAST> fn_name, std::vector<std::unique_ptr<StatementAST>> args)
-       : fn_name(std::move(fn_name)), args(std::move(args)){}
+public:
+  FunctionCallAST(std::unique_ptr<IdentifierAST> fn_name,
+                  std::vector<std::unique_ptr<StatementAST>> args)
+      : fn_name(std::move(fn_name)), args(std::move(args)) {}
 
-       virtual ~FunctionCallAST() = default;
+  virtual ~FunctionCallAST() = default;
 
-      void Accept(SemanticAnalyzer& analyzer) override;
-      nlohmann::json Accept(IRGenerator& generator) override;
+  void Accept(SemanticAnalyzer &analyzer) override;
+  nlohmann::json Accept(IRGenerator &generator) override;
 
-    private:
-      std::unique_ptr<IdentifierAST> fn_name;
-      std::vector<std::unique_ptr<StatementAST>> args;
+private:
+  std::unique_ptr<IdentifierAST> fn_name;
+  std::vector<std::unique_ptr<StatementAST>> args;
 
-    public:
-      void Debug() override;
-      SourceLocation GetSourceLocation() override;
+public:
+  IdentifierAST *GetFunctionName() { return fn_name.get(); }
+  std::vector<std::unique_ptr<StatementAST>> &GetArgs() { return args; }
+  void Debug() override;
+  SourceLocation GetSourceLocation() override;
 };
 
 #endif

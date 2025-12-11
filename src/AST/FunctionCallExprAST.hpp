@@ -15,7 +15,7 @@ public:
 
   virtual ~FunctionCallExprAST() = default;
   void Accept(SemanticAnalyzer &analyzer) override;
-  nlohmann::json Accept(IRGenerator& generator) override;
+  nlohmann::json Accept(IRGenerator &generator) override;
 
 private:
   std::string fn_name;
@@ -23,6 +23,10 @@ private:
   SourceLocation loc;
 
 public:
+  std::string GetFunctionName() const { return fn_name; }
+  void SetType([[maybe_unused]] std::string type) {
+    // implementation
+  }
   void Debug() override;
   std::span<const SourceLocation> GetSourceLocation() override {
     return {&loc, 1};

@@ -120,10 +120,10 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
                    {"value", expression_json["val"]}};
   } else {
     instruction = {
-        {"op", gen_code["op"]},
+        {"op", expression_json["op"]},
         {"dest", ast.GetVarName()},
-        {"type", gen_code["type"]},
-        {"args", gen_code["args"]},
+        {"type", expression_json["type"]},
+        {"args", expression_json["args"]},
     };
   }
 
@@ -141,7 +141,7 @@ json IRGenerator::Generate(BinaryExpressionAST &ast) {
 
   std::string final_dest = NewTempVar();
 
-  json final_op = GenerateArithmeticOperations(*this, ast, final_dest,
+  json final_op = GenerateArithmeticOperations(ast, final_dest,
                                                lhs_arg_name, rhs_arg_name);
   instructions.push_back(final_op);
   return instructions;

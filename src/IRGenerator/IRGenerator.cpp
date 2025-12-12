@@ -79,21 +79,31 @@ json IRGenerator::Generate(StatementAST &ast) { return ast.Accept(*this); }
 
 json IRGenerator::Generate(VariableAssignmentAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
-  json gen_code = Generate(expr);
+  json expression_json = Generate(expr);
   json instruction;
-  if (gen_code["op"] == "const" && gen_code.contains("val"))
+  if (expression_json.is_array()) {
+    json last_expression = expression_json.back();
+    for (size_t i = 0; i < expression_json.size() - 1; i++) {
+      instruction.push_back(expression_json[i]);
+    }
+    last_expression["dest"] = ast.GetVarName();
+    instruction.push_back(last_expression);
+
+  } else if (expression_json["op"] == "const" &&
+             expression_json.contains("val")) {
     instruction = {{"op", "const"},
                    {"dest", ast.GetVarName()},
-                   {"type", gen_code["type"]},
-                   {"value", gen_code["val"]}};
-  else {
+                   {"type", expression_json["type"]},
+                   {"value", expression_json["val"]}};
+  } else {
     instruction = {
-        {"op", gen_code["op"]},
+        {"op", expression_json["op"]},
         {"dest", ast.GetVarName()},
-        {"type", gen_code["type"]},
-        {"args", gen_code["args"]},
+        {"type", expression_json["type"]},
+        {"args", expression_json["args"]},
     };
   }
+
   return instruction;
 }
 
@@ -138,8 +148,8 @@ json IRGenerator::Generate(BinaryExpressionAST &ast) {
 
   std::string final_dest = NewTempVar();
 
-  json final_op = GenerateArithmeticOperations(ast, final_dest,
-                                               lhs_arg_name, rhs_arg_name);
+  json final_op =
+      GenerateArithmeticOperations(ast, final_dest, lhs_arg_name, rhs_arg_name);
   instructions.push_back(final_op);
   return instructions;
 }

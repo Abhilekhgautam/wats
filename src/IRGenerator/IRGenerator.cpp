@@ -13,8 +13,7 @@ using nlohmann::json;
 // Helper for Arithmetic Operations
 // ===================================================
 //
-json GenerateArithmeticOperations(IRGenerator &generator,
-                                  BinaryExpressionAST &ast,
+json GenerateArithmeticOperations(BinaryExpressionAST &ast,
                                   std::string destination, std::string lhs_name,
                                   std::string rhs_name) {
   json instruction;
@@ -107,16 +106,25 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
     for (size_t i = 0; i < expression_json.size() - 1; i++) {
       instruction.push_back(expression_json[i]);
     }
-    last_expression["dest"] = ast.GetVarName();
-    instruction.push_back(last_expression);
+    json instruction1 = {{"op", "const"},
+                         {"dest", ast.GetVarName()},
+                         {"type", last_expression["type"]},
+                         {"value", last_expression["val"]}};
+    instruction.push_back(instruction1);
 
   } else if (expression_json["op"] == "const" &&
              expression_json.contains("val")) {
-    expression_json["dest"] = ast.GetVarName();
-    instruction = expression_json;
+    instruction = {{"op", "const"},
+                   {"dest", ast.GetVarName()},
+                   {"type", expression_json["type"]},
+                   {"value", expression_json["val"]}};
   } else {
-    // todo else case
-    // function call
+    instruction = {
+        {"op", gen_code["op"]},
+        {"dest", ast.GetVarName()},
+        {"type", gen_code["type"]},
+        {"args", gen_code["args"]},
+    };
   }
 
   return instruction;

@@ -260,8 +260,104 @@ json IRGenerator::Generate(ElseStatementAST &ast) {
   return instructions;
 }
 
-json IRGenerator::Generate([[maybe_unused]] ForLoopAST &ast) {
-  json instruction;
+json IRGenerator::Generate(ForLoopAST &ast) {
+  json instruction = json::array({});
+
+  // 1. Setup unique labels and iteration variable
+  std::string iter_var = ast.GetIterationVariableName();
+  std::string loop_start_label = NewTempVar() + "_for_test";
+  std::string loop_body_label = NewTempVar() + "_for_body";
+  std::string loop_exit_label = NewTempVar() + "_for_exit";
+
+  RangeAST &range = ast.GetRange();
+
+  // --- 2. Initialization (i = start_value) ---
+  // Generate IR for the start expression (e.g., 0)
+  json start_ir = Generate(range.GetStart());
+  std::string start_value_name = extract_ir_result(start_ir, instruction);
+
+  // Assign the start value to the iteration variable 'i'
+  json init_instr = {{"op", "id"}, // Use 'id' (identity copy) for assignment
+                     {"dest", iter_var},
+                     {"type", "i64"}, // Assuming standard integer type
+                     {"args", json::array({start_value_name})}};
+  instruction.push_back(init_instr);
+
+  // --- 3. Condition Check Block (Loop Header) ---
+  instruction.push_back({{"label", loop_start_label}});
+
+  // a) Generate IR for the end expression (e.g., 10)
+  json end_ir = Generate(range.GetEnd());
+  std::string end_value_name = extract_ir_result(end_ir, instruction);
+
+  // b) Generate comparison: temp_bool = (i <= end_value_name)
+  std::string cond_result_name = NewTempVar();
+  json comparison_instr = {{"op", "le"}, // <= operator for range
+                           {"dest", cond_result_name},
+                           {"type", "bool"},
+                           {"args", json::array({iter_var, end_value_name})}};
+  instruction.push_back(comparison_instr);
+
+  // c) Conditional Branch: If true, go to body; if false, go to exit
+  json branch_instr = {
+      {"op", "br"},
+      {"labels", {loop_body_label, loop_exit_label}},
+      {"args", {cond_result_name}},
+  };
+  instruction.push_back(branch_instr);
+
+  // --- 4. Loop Body ---
+  instruction.push_back({{"label", loop_body_label}});
+
+  for (auto &elt : ast.GetLoopBody()) {
+    auto val = Generate(*elt);
+
+    // Handle 'break' statements (jmp instruction without a fixed label)
+    if (val.is_object() && val["op"] == "jmp" && val["labels"].empty()) {
+      val["labels"].push_back(loop_exit_label); // Retarget break to loop exit
+    } else if (val.is_array()) {
+      // Handle breaks nested inside complex statements
+      for (auto &v : val) {
+        if (v.is_object() && v["op"] == "jmp" && v["labels"].empty()) {
+          v["labels"].push_back(loop_exit_label);
+        }
+      }
+    }
+
+    // Push instructions
+    if (val.is_array()) {
+      for (auto &v : val)
+        instruction.push_back(v);
+    } else {
+      instruction.push_back(val);
+    }
+  }
+
+  // --- 5. Increment (i = i + 1) ---
+  std::string one_const = NewTempVar();
+
+  // a) Generate constant '1'
+  instruction.push_back(
+      {{"op", "const"}, {"dest", one_const}, {"type", "i64"}, {"value", 1}});
+
+  // b) Generate add: temp_add = i + 1
+  std::string temp_add = NewTempVar();
+  instruction.push_back({{"op", "add"},
+                         {"dest", temp_add},
+                         {"type", "i64"},
+                         {"args", json::array({iter_var, one_const})}});
+
+  // c) Assign back: i = temp_add
+  instruction.push_back({{"op", "id"},
+                         {"dest", iter_var},
+                         {"type", "i64"},
+                         {"args", json::array({temp_add})}});
+
+  // 6. Unconditional Jump back to the condition check
+  instruction.push_back({{"op", "jmp"}, {"labels", {loop_start_label}}});
+
+  // 7. Exit Label
+  instruction.push_back({{"label", loop_exit_label}});
 
   return instruction;
 }

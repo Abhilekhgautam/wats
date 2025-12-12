@@ -190,16 +190,74 @@ json IRGenerator::Generate([[maybe_unused]] BreakStatementAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] ElseIfStatementAST &ast) {
-  json instruction;
+json IRGenerator::Generate(ElseIfStatementAST &ast) {
+  json instructions = json::array({});
 
-  return instruction;
+  // Generate a unique label for this block's body
+  std::string elseif_body_label = NewTempVar() + "_elseif_body";
+
+  // We use a placeholder for the exit jump, which the parent (IfStatementAST)
+  // will fix to point to the next 'else if' or the final 'if_exit_label'.
+  std::string temp_exit_label = NewTempVar() + "_temp_exit_jmp";
+
+  ExpressionAST &cond = ast.GetCondition();
+
+  // 1. Generate IR for the Condition Expression
+  json condition_ir = Generate(cond);
+  std::string cond_result_name = extract_ir_result(condition_ir, instructions);
+
+  // 2. Conditional Branch: True -> elseif_body, False -> temp_exit_label
+  //    (temp_exit_label will be retargeted by the parent to be the next block's
+  //    check)
+  json branch_instr = {
+      {"op", "br"},
+      {"labels", {elseif_body_label, temp_exit_label}},
+      {"args", {cond_result_name}},
+  };
+  instructions.push_back(branch_instr);
+
+  // 3. Else-If Body Label
+  instructions.push_back({{"label", elseif_body_label}});
+
+  // 4. Generate IR for the Body Statements
+  for (auto &elt : ast.GetBody()) {
+    auto val = Generate(*elt);
+    if (val.is_array()) {
+      for (auto &v : val)
+        instructions.push_back(v);
+    } else {
+      instructions.push_back(val);
+    }
+  }
+
+  // 5. Unconditional Jump: Must jump to the overall 'if_exit_label'
+  //    (The parent will retarget this placeholder)
+  instructions.push_back({{"op", "jmp"}, {"labels", {temp_exit_label}}});
+
+  // The parent function (IfStatementAST) will collect this array and fix the
+  // labels.
+  return instructions;
 }
 
-json IRGenerator::Generate([[maybe_unused]] ElseStatementAST &ast) {
-  json instruction;
+json IRGenerator::Generate(ElseStatementAST &ast) {
+  json instructions = json::array({});
 
-  return instruction;
+  // 1. Generate IR for the Body Statements
+  for (auto &body : ast.GetBody()) {
+    auto val = Generate(*body);
+    if (val.is_array()) {
+      for (auto &v : val)
+        instructions.push_back(v);
+    } else {
+      instructions.push_back(val);
+    }
+  }
+
+  // NOTE: We do not add a jump instruction here. Execution simply proceeds
+  // to the next label placed by the parent (IfStatementAST), which is the final
+  // 'if_exit_label'.
+
+  return instructions;
 }
 
 json IRGenerator::Generate([[maybe_unused]] ForLoopAST &ast) {
@@ -217,45 +275,115 @@ json IRGenerator::Generate([[maybe_unused]] FunctionDefinitionAST &ast) {
 json IRGenerator::Generate(IfStatementAST &ast) {
   json instruction = json::array({});
 
+  // 1. Generate Unique Labels for the entire structure
+  std::string if_body_label = NewTempVar() + "_if_body";
+  std::string if_exit_label = NewTempVar() + "_if_exit"; // Overall exit point
+  std::string next_test_label =
+      NewTempVar() + "_next_check"; // Entry for the else if chain
+
+  // --- A. IF Condition and Branch Setup ---
   ExpressionAST &if_condition = ast.GetIfCondition();
 
   json condition_val = Generate(if_condition);
+  // Use extract_ir_result to handle array/complex conditions and get the result
+  // name
+  std::string cond_result_name = extract_ir_result(condition_val, instruction);
 
-  json cond;
+  // Note: The original condition standardization is now largely handled by
+  // extract_ir_result and the BinaryExpressionAST visitor, but the resulting
+  // boolean must be in 'cond_result_name'.
 
-  if (!condition_val["val"].is_null()) {
-    cond = {{"op", "const"},
-            {"dest", "cond"},
-            {"type", "bool"},
-            {"value", condition_val["val"]}};
-  } else {
-    cond = {{"op", condition_val["op"]},
-            {"dest", "cond"},
-            {"type", "bool"},
-            {"args", condition_val["args"]}};
-  }
-
-  instruction.push_back(cond);
-
-  json break_instruction = {
+  // Conditional Branch: IF True -> if_body_label, IF False -> next_test_label
+  json initial_branch_instr = {
       {"op", "br"},
-      {"labels", {"if_body", "after_if"}},
-      {"args", {"cond"}},
+      {"labels", {if_body_label, next_test_label}},
+      {"args", {cond_result_name}},
   };
+  instruction.push_back(initial_branch_instr);
 
-  instruction.push_back(break_instruction);
+  // --- B. IF Body Block ---
+  instruction.push_back({{"label", if_body_label}});
 
-  json label_instruction = {{"label", "if_body"}};
-  instruction.push_back(label_instruction);
-
+  // Generate IR for the IF Body statements
   for (const auto &elt : ast.GetIfBody()) {
-    instruction.push_back(Generate(*elt));
+    auto val = Generate(*elt);
+    if (val.is_array()) {
+      for (auto &v : val)
+        instruction.push_back(v);
+    } else {
+      instruction.push_back(val);
+    }
   }
 
-  if (!ast.hasElse() && !ast.hasElseIf()) {
-    json label_instruction = {{"label", "after_if"}};
-    instruction.push_back(label_instruction);
+  // CRITICAL FIX: Jump to the overall exit after the IF body completes
+  instruction.push_back({{"op", "jmp"}, {"labels", {if_exit_label}}});
+
+  // --- C. ELSE IF Chain ---
+  std::string current_test_label = next_test_label; // Start of the chain
+
+  if (ast.hasElseIf()) {
+    auto &elseifVec = ast.GetElseIfStatements();
+
+    for (size_t i = 0; i < elseifVec.size(); ++i) {
+
+      // 1. Place the label for the current check (jump target from the previous
+      // block)
+      instruction.push_back({{"label", current_test_label}});
+
+      // 2. Generate IR for the current else-if block
+      json elseif_ir = Generate(*elseifVec[i]);
+
+      // 3. Define the jump target for the NEXT block (either the next else-if
+      // or the else/exit)
+      std::string next_chain_label =
+          NewTempVar() + "_chain_" + std::to_string(i + 1);
+
+      // 4. FIX LABELS within the generated ELSE IF block (Assuming structure:
+      // [br, ..., jmp])
+
+      // Fix the branch's 'false' label (which is index 1 of the 'labels' array)
+      if (elseif_ir.is_array() && elseif_ir[0]["op"] == "br") {
+        elseif_ir[0]["labels"][1] = next_chain_label;
+      }
+
+      // Fix the exit jump (the last instruction in the array) to point to the
+      // overall exit
+      if (elseif_ir.is_array() && elseif_ir.back()["op"] == "jmp") {
+        elseif_ir.back()["labels"][0] = if_exit_label;
+      }
+
+      // 5. Collect all instructions from this else-if block
+      for (auto &instr : elseif_ir) {
+        instruction.push_back(instr);
+      }
+
+      // 6. Update the test label for the next iteration
+      current_test_label = next_chain_label;
+    }
   }
+
+  // --- D. ELSE Statement / Fallthrough ---
+  // Place the label for the ELSE block (or the final fallthrough point)
+  instruction.push_back({{"label", current_test_label}});
+
+  if (ast.hasElse()) {
+    // Generate IR for the else body
+    json else_ir = Generate(ast.GetElseStatement());
+
+    // Collect else body instructions
+    if (else_ir.is_array()) {
+      for (auto &instr : else_ir) {
+        instruction.push_back(instr);
+      }
+    } else {
+      instruction.push_back(else_ir);
+    }
+    // No JMP needed, execution naturally falls into the exit label.
+  }
+
+  // --- E. Overall Exit Label ---
+  // All branches (if, else if bodies, and the else body) converge here.
+  instruction.push_back({{"label", if_exit_label}});
 
   return instruction;
 }

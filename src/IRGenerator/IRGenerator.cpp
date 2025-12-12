@@ -342,8 +342,12 @@ json IRGenerator::Generate(IfStatementAST &ast) {
       // [br, ..., jmp])
 
       // Fix the branch's 'false' label (which is index 1 of the 'labels' array)
-      if (elseif_ir.is_array() && elseif_ir[0]["op"] == "br") {
-        elseif_ir[0]["labels"][1] = next_chain_label;
+
+      for (auto &instr : elseif_ir) {
+        if (instr.is_object() && instr["op"] == "br") {
+          instr["labels"][1] = next_chain_label;
+          break;
+        }
       }
 
       // Fix the exit jump (the last instruction in the array) to point to the

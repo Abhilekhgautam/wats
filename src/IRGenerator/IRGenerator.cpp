@@ -10,6 +10,7 @@
 #include "../AST/WhileLoopAST.hpp"
 #include "../AST/FunctionDefinitionAST.hpp
 #include "../AST/ForLoopAST.hpp"
+#include "../AST/RangeExpressionAST.hpp"
 using nlohmann::json;
 
 // Helper for Arithmetic Operations

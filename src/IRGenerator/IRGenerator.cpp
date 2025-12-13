@@ -8,7 +8,7 @@
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
 #include "../AST/WhileLoopAST.hpp"
-#include "../AST/FunctionDefinitionAST.hpp
+#include "../AST/FunctionDefinitionAST.hpp"
 #include "../AST/ForLoopAST.hpp"
 #include "../AST/RangeExpressionAST.hpp"
 using nlohmann::json;

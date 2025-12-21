@@ -21,17 +21,18 @@ private:
   std::string fn_name;
   std::unique_ptr<FunctionParameterAST> args;
   SourceLocation loc;
+  std::string expr_type;
 
 public:
   std::string GetFunctionName() const { return fn_name; }
-  void SetType([[maybe_unused]] std::string type) {
-    // implementation
-  }
+  void SetType([[maybe_unused]] std::string type) { this->expr_type = type; }
   void Debug() override;
   std::span<const SourceLocation> GetSourceLocation() override {
     return {&loc, 1};
   }
-  std::string GetType() override { return "call"; }
+  std::string GetType() override {
+    return expr_type.empty() ? "unknown" : expr_type;
+  }
 
   int GetLength() override;
 };

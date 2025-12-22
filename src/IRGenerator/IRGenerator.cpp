@@ -1,16 +1,16 @@
 #include "IRGenerator.hpp"
 #include "../AST/BinaryExpressionAST.hpp"
 #include "../AST/ExpressionAST.hpp"
+#include "../AST/ForLoopAST.hpp"
+#include "../AST/FunctionDefinitionAST.hpp"
 #include "../AST/IdentifierAST.hpp"
 #include "../AST/IfStatementAST.hpp"
 #include "../AST/LoopAST.hpp"
 #include "../AST/NumberAST.hpp"
+#include "../AST/RangeExpressionAST.hpp"
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
 #include "../AST/WhileLoopAST.hpp"
-#include "../AST/FunctionDefinitionAST.hpp"
-#include "../AST/ForLoopAST.hpp"
-#include "../AST/RangeExpressionAST.hpp"
 using nlohmann::json;
 
 // Helper for Arithmetic Operations
@@ -673,21 +673,70 @@ json IRGenerator::Generate(WhileLoopAST &ast) {
 }
 
 json IRGenerator::Generate([[maybe_unused]] FunctionCallAST &ast) {
-  json instruction;
+  json instruction = json::array({});
+  json params = json::array();
 
-  return instruction;
+  // 1. Evaluate each argument expression
+  // FunctionCallAST typically stores a vector of StatementAST/ExpressionAST
+  for (auto &arg : ast.GetArguments()) {
+    json arg_ir = Generate(*arg);
+    // extract_ir_result appends intermediate code to 'instruction'
+    // and returns the final variable name
+    params.push_back(extract_ir_result(arg_ir, instruction));
+  }
+
+  // 2. Create the call instruction (no 'dest' field)
+  json call_instr = {
+      {"op", "call"}, {"funcs", {ast.GetFunctionName()}}, {"args", params}};
+
+  // If we had complex arguments, instruction is an array of those calculations
+  if (instruction.is_array() && !instruction.empty()) {
+    instruction.push_back(call_instr);
+    return instruction;
+  }
+
+  return call_instr;
 }
 
 json IRGenerator::Generate([[maybe_unused]] FunctionCallExprAST &ast) {
-  json instruction;
+  json instruction = json::array({});
+  json params = json::array();
 
-  return instruction;
+  // 1. Process arguments (FunctionParameterAST)
+  // We assume ast.GetArgs() returns the parameters to be evaluated
+  if (ast.GetArgs()) {
+    // Generate IR for the parameters and extract the resulting variable names
+    // This assumes your FunctionParameterAST generates an array of arg names
+    params = Generate(*ast.GetArgs());
+  }
+
+  // 2. Create a temporary variable for the return value
+  std::string result_var = NewTempVar();
+
+  json call_instr = {
+      {"op", "call"},
+      {"dest", result_var},
+      {"type",
+       ast.GetType()}, // "i64", "f64", etc., set during Semantic Analysis
+      {"funcs", {ast.GetFunctionName()}},
+      {"args", params}};
+
+  return call_instr;
 }
 
 json IRGenerator::Generate([[maybe_unused]] FunctionArgumentAST &ast) {
-  json instruction;
+  json args = json::array();
 
-  return instruction;
+  // GetIds() returns the vector of unique_ptr<IdentifierAST>
+  for (auto &id_node : ast.GetIds()) {
+    args.push_back({
+        {"name", id_node->GetName()},
+        {"type", id_node->GetType()} // Defaulting to i64; should ideally use
+                                     // id_node->GetType()
+    });
+  }
+
+  return args;
 }
 
 std::string IRGenerator::NewTempVar() {

@@ -12,26 +12,9 @@ nlohmann::json FunctionArgumentAST::Accept(IRGenerator& generator){
 
 void FunctionArgumentAST::Debug(){
     std::cout << "Function Argument:\n";
-    for(const auto& elt: args){
-        std::cout << elt->GetName() << ' ';
-    }
+    std::cout << GetIdName() << " : " << GetTypeName() << "\n";
 }
 
-std::string FunctionArgumentAST::GetArg(){
-    if (args.size() >= 1){
-        return args[0]->GetName();
-    }
-    else return "";
-}
-
-std::vector<std::string> FunctionArgumentAST::GetArgs(){
-    std::vector<std::string> arg_str;
-    for(const auto& elt: args){
-       arg_str.push_back(elt->GetName());
-    }
-    return arg_str;
-}
-
-std::vector<std::unique_ptr<IdentifierAST>>& FunctionArgumentAST::GetIds(){return args;}
-
-std::unique_ptr<IdentifierAST>& FunctionArgumentAST::GetId(){return args[0];}
+std::string FunctionArgumentAST::GetIdName() const {return idName;};
+std::string FunctionArgumentAST::GetTypeName() const {return typeName;};
+std::pair<std::string, std::string> FunctionArgumentAST::GetArg() const {return std::make_pair(GetIdName(), GetTypeName());}

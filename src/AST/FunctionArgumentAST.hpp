@@ -4,33 +4,31 @@
 #include "StatementAST.hpp"
 #include "IdentifierAST.hpp"
 #include <string>
-#include <memory>
-#include <vector>
-#include <cassert>
+
 
 class FunctionArgumentAST : public StatementAST{
     public:
-     FunctionArgumentAST(std::unique_ptr<IdentifierAST> arg){
-         args.push_back(std::move(arg));
-     }
-     FunctionArgumentAST(std::vector<std::unique_ptr<IdentifierAST>>& args)
-     : args(std::move(args)){}
+     FunctionArgumentAST(const std::string& id, const std::string& type, const SourceLocation& loc) :
+      idName(id), typeName(type), loc(loc){}
+
 
      virtual ~FunctionArgumentAST() = default;
      void Debug() override;
-     std::string GetArg();
-     std::unique_ptr<IdentifierAST>& GetId();
-     std::vector<std::string> GetArgs();
-     std::vector<std::unique_ptr<IdentifierAST>>& GetIds();
+     [[nodiscard]]std::string GetIdName() const ;
+     [[nodiscard]]std::string GetTypeName() const ;
+     [[nodiscard]]std::pair<std::string, std::string> GetArg() const;
 
      // Returns locaton to first arg
-     SourceLocation GetSourceLocation() override {assert(args.size() > 0);return args[0]->GetSourceLocation().front();}
+     SourceLocation GetSourceLocation() override {
+         return loc;
+     }
 
      void Accept(SemanticAnalyzer& analyzer) override;
      nlohmann::json Accept(IRGenerator& generator) override;
 
     private:
-     std::vector<std::unique_ptr<IdentifierAST>> args;
+     std::string idName;
+     std::string typeName;
      SourceLocation loc;
 };
 #endif

@@ -427,26 +427,19 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
   Scope fn_scope(current_scope, ScopeType::FUNCTION);
 
   // add the fn arguments to the fn scope
-  auto opt_args = ast.GetFunctionArguments();
-  if (opt_args.has_value()) {
-    auto fn_args = opt_args.value();
+  auto& opt_args = ast.GetFunctionArguments();
+  std::vector<std::string> arg_types;
 
-    auto args = fn_args.get().GetArgs();
-
-    for (const auto &elt : args) {
-      fn_scope.AddSymbol(elt, "i64");
-    }
+  for (const auto& arg : opt_args) {
+    fn_scope.AddSymbol(arg->GetIdName(), arg->GetTypeName());
+    arg_types.push_back(arg->GetTypeName());
   }
+
   current_scope = &fn_scope;
 
-  auto args = ast.GetFunctionArguments();
+  //auto args = ast.GetFunctionArguments();
 
-  FunctionInfo fn_info;
-
-  if (!args.has_value())
-    fn_info = FunctionInfo{{}, ast.GetFunctionReturnType()};
-  else
-    fn_info = FunctionInfo(ast.GetFunctionArguments().value().get().GetArgs());
+  FunctionInfo fn_info(arg_types, ast.GetFunctionReturnType());
 
   auto val = FindSymbolTable(ast.GetFunctionName());
 

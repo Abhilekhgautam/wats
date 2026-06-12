@@ -14,7 +14,7 @@ class FunctionDefinitionAST : public StatementAST {
 public:
   FunctionDefinitionAST(
       std::unique_ptr<IdentifierAST> fn_name,
-      std::unique_ptr<FunctionArgumentAST> arguments,
+      std::vector<std::unique_ptr<FunctionArgumentAST>> arguments,
       std::vector<std::unique_ptr<StatementAST>> function_body,
       std::string ret_type, SourceLocation loc)
       : fn_name(std::move(fn_name)), arguments(std::move(arguments)),
@@ -27,24 +27,21 @@ public:
 
 private:
   std::unique_ptr<IdentifierAST> fn_name;
-  std::unique_ptr<FunctionArgumentAST> arguments;
+  std::vector<std::unique_ptr<FunctionArgumentAST>> arguments;
   std::vector<std::unique_ptr<StatementAST>> function_body;
   std::string ret_type;
   SourceLocation loc;
 
 public:
-  std::string GetFunctionName() const { return fn_name->GetName(); }
+  [[nodiscard]] std::string GetFunctionName() const { return fn_name->GetName(); }
   std::vector<std::unique_ptr<StatementAST>> &GetFunctionBody() {
     return function_body;
   }
-  std::optional<std::reference_wrapper<FunctionArgumentAST>>
+  std::vector<std::unique_ptr<FunctionArgumentAST>>&
   GetFunctionArguments() {
-    if (!arguments)
-      return {};
-    else
-      return std::ref(*arguments);
+    return arguments;
   }
-  std::string GetFunctionReturnType() const { return ret_type; }
+  [[nodiscard]]std::string GetFunctionReturnType() const { return ret_type; }
   void Debug() override;
   SourceLocation GetSourceLocation() override { return loc; }
   IdentifierAST &GetFunctionNameAsIdentifier() { return *fn_name; }

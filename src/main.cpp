@@ -109,14 +109,10 @@ int main(int argc, char **argv) {
         fnName = val->GetFunctionName();
 
         std::map<std::string, std::string> name2type;
-        auto args = val->GetFunctionArguments();
+        auto& args = val->GetFunctionArguments();
 
-        std::vector<std::string> argVec;
-        if (args.has_value()) {
-          for (const auto &elt : args->get().GetArgs()) {
-            name2type[elt] = "i64";
-          }
-          argVec = args->get().GetArgs();
+        for (const auto& arg: args) {
+          name2type[arg->GetIdName()] = arg->GetTypeName();
         }
 
         // IRContext ctx(fnName);

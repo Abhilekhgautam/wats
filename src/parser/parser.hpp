@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <string_view>
 
 #include "../AST/BreakStatementAST.hpp"
 #include "../AST/ElseIfStatementAST.hpp"
@@ -37,8 +38,8 @@ public:
 
   std::size_t GetExprLength();
 
-  void DidYouMean(std::string to_add, std::size_t line, std::size_t column,
-                  bool space_before = true);
+  void DidYouMean(const std::string_view to_add, std::size_t line, std::size_t column,
+                  bool space_before = true) const;
   void Error(const std::string &err_msg);
 
 private:
@@ -152,38 +153,39 @@ private:
   std::size_t GetNextTokenLength();
 
   // Utility for Parsing Function Definition
-  std::optional<std::unique_ptr<FunctionDefinitionAST>>
+  std::unique_ptr<FunctionDefinitionAST>
   ParseFunctionWithRetType();
-  std::optional<std::unique_ptr<FunctionDefinitionAST>>
+  std::unique_ptr<FunctionDefinitionAST>
   ParseFunctionWithoutRetType();
-  std::optional<std::unique_ptr<FunctionDefinitionAST>> ParseFunction();
+  std::unique_ptr<FunctionDefinitionAST> ParseFunction();
 
-  std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArguments();
-  std::optional<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArgument();
+  std::vector<std::unique_ptr<FunctionArgumentAST>> ParseFunctionArguments();
+  std::unique_ptr<FunctionArgumentAST> ParseFunctionArgument();
 
-  std::optional<std::unique_ptr<FunctionParameterAST>>
+  std::unique_ptr<FunctionParameterAST>
   ParseFunctionParameters();
-  std::optional<std::unique_ptr<ExpressionAST>> ParseFunctionParameter();
+
+  std::unique_ptr<ExpressionAST> ParseFunctionParameter();
 
   // Utility for Parsing Variable Declaration
-  std::optional<std::unique_ptr<VariableDeclarationAST>>
+  std::unique_ptr<VariableDeclarationAST>
   ParseVariableDeclWithLet();
-  std::optional<std::unique_ptr<VariableDeclarationAST>>
+  std::unique_ptr<VariableDeclarationAST>
   ParseVariableDeclWithType();
-  std::optional<std::unique_ptr<VariableAssignmentAST>>
+  std::unique_ptr<VariableAssignmentAST>
   ParseVariableAssignment();
-  std::optional<std::unique_ptr<VariableDeclareAndAssignAST>>
+  std::unique_ptr<VariableDeclareAndAssignAST>
   ParseVariableInitWithLet();
-  std::optional<std::unique_ptr<VariableDeclareAndAssignAST>>
+  std::unique_ptr<VariableDeclareAndAssignAST>
   ParseVariableInitWithType();
-  std::optional<std::unique_ptr<VariableDeclarationAST>> ParseVariableDecl();
+  std::unique_ptr<VariableDeclarationAST> ParseVariableDecl();
 
   // Utility for Parsing Expression
-  std::optional<std::unique_ptr<ExpressionAST>>
+  std::unique_ptr<ExpressionAST>
   ParseExpressionBeginningWithID();
-  std::optional<std::unique_ptr<ExpressionAST>>
+  std::unique_ptr<ExpressionAST>
   ParseExpressionBeginningWithNumber();
-  std::optional<std::unique_ptr<ExpressionAST>>
+  std::unique_ptr<ExpressionAST>
   ParseExpressionBeginningWithBraces();
 
   std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
@@ -213,36 +215,36 @@ private:
   std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
   ParseSubExpression();
 
-  std::optional<std::unique_ptr<ExpressionAST>> ParseExpression();
+  std::unique_ptr<ExpressionAST> ParseExpression();
 
-  std::optional<std::unique_ptr<RangeAST>> ParseRange();
+  std::unique_ptr<RangeAST> ParseRange();
 
-  std::optional<std::vector<std::unique_ptr<StatementAST>>>
+  std::vector<std::unique_ptr<StatementAST>>
   ParseCurlyBraceAndBody();
 
-  std::optional<std::vector<std::unique_ptr<MatchArmAST>>> ParseMatchArms();
-  std::optional<std::unique_ptr<MatchArmAST>> ParseMatchArm();
-  std::optional<std::unique_ptr<MatchStatementAST>> ParseMatchStatement();
+  std::vector<std::unique_ptr<MatchArmAST>> ParseMatchArms();
+  std::unique_ptr<MatchArmAST> ParseMatchArm();
+  std::unique_ptr<MatchStatementAST> ParseMatchStatement();
 
-  std::optional<std::unique_ptr<IfStatementAST>> ParseIfStatement();
-  std::optional<std::unique_ptr<ElseStatementAST>> ParseElseStatement();
-  std::optional<std::unique_ptr<ElseIfStatementAST>> ParseElseIfStatement();
+  std::unique_ptr<IfStatementAST> ParseIfStatement();
+  std::unique_ptr<ElseStatementAST> ParseElseStatement();
+  std::unique_ptr<ElseIfStatementAST> ParseElseIfStatement();
 
-  std::optional<std::unique_ptr<BreakStatementAST>> ParseBreakStatement();
-  std::optional<std::unique_ptr<FunctionCallAST>> ParseFunctionCallStatement();
+  std::unique_ptr<BreakStatementAST> ParseBreakStatement();
+  std::unique_ptr<FunctionCallAST> ParseFunctionCallStatement();
 
-  std::optional<std::unique_ptr<LoopAST>> ParseLoop();
-  std::optional<std::unique_ptr<ForLoopAST>> ParseForLoop();
-  std::optional<std::unique_ptr<WhileLoopAST>> ParseWhileLoop();
+  std::unique_ptr<LoopAST> ParseLoop();
+  std::unique_ptr<ForLoopAST> ParseForLoop();
+  std::unique_ptr<WhileLoopAST> ParseWhileLoop();
 
-  std::optional<std::unique_ptr<StatementAST>> ParseStatement();
-  std::optional<std::vector<std::unique_ptr<StatementAST>>> ParseStatements();
+  std::unique_ptr<StatementAST> ParseStatement();
+  std::vector<std::unique_ptr<StatementAST>> ParseStatements();
 
   void Expected(const std::string, std::size_t line, std::size_t column);
   void Unexpected(const std::string, std::size_t line, std::size_t column,
                   std::size_t times = 0);
 
-  inline bool CheckInsideFunction();
+  inline bool CheckInsideFunction() const;
 
   std::list<ParserStatus> status_list;
 

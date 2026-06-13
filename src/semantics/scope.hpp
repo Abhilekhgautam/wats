@@ -18,8 +18,8 @@ public:
   FindSymbolInCurrentScope(std::string name);
   std::optional<std::reference_wrapper<Type>> FindSymbol(std::string name);
 
-  void AddSymbol(std::string name, std::string type);
-  void UpdateSymbolTable(std::string var_name, std::string var_type);
+  void AddSymbol(const std::string& name, const std::string& type);
+  void UpdateSymbolTable(const std::string& var_name, const std::string& var_type);
 
   ScopeType GetType() { return type; }
   Scope *GetParent() { return parent; }

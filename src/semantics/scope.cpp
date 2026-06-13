@@ -33,11 +33,11 @@ Scope::FindSymbol(std::string name) {
   }
 }
 
-void Scope::AddSymbol(std::string name, std::string type) {
+void Scope::AddSymbol(const std::string& name, const std::string& type) {
   symbol_table[name] = TypeFactory::CreateType(type);
 }
 
-void Scope::UpdateSymbolTable(std::string var_name,
-                              [[maybe_unused]] std::string var_type) {
-  symbol_table[var_name] = TypeFactory::CreateType(var_name);
+void Scope::UpdateSymbolTable(const std::string& var_name,
+                              const std::string& var_type) {
+  symbol_table[var_name] = TypeFactory::CreateType(var_type);
 }

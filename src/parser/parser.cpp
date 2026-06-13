@@ -194,24 +194,39 @@ Parser::ParseFunctionWithRetType() {
     return {};
   }
 
-  // fixme: add other types later.
-  if (Peek(TokenName::I32)) {
-    // todo: store the type
+  std::string returnType{};
+  if (Peek(TokenName::RET_ARROW)) {
+    ConsumeNext();
+    if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64)) {
+       ConsumeNext();
+        returnType = GetCurrentToken().GetValue();
+    }
+    else {
+      ConsumeNext();
+      status_list.clear();
+      IncrementErrorCount();
+      Expected(std::format("Expected a type name after `->` found {}", GetCurrentToken().GetValue()), GENERATE_CURRENT_POSITION);
+      return {};
+    }
+  }
+  else {
+    status_list.clear();
+    return {};
   }
 
-  auto result = ParseCurlyBraceAndBody();
-  if (!result.empty()) {
+  if ( auto result = ParseCurlyBraceAndBody() ; !result.empty()) {
     auto val = !fn_args.empty()
                    ? std::make_unique<FunctionDefinitionAST>(
                          std::move(fn_name), std::move(fn_args),
-                         std::move(result), "", loc)
+                         std::move(result), returnType, loc)
                    : std::make_unique<FunctionDefinitionAST>(
                          std::move(fn_name), std::vector<std::unique_ptr<FunctionArgumentAST>>{}, std::move(result),
-                         "", loc);
+                         returnType, loc);
 
     status_list.clear();
     return val;
-  } else {
+  }
+  else {
     return {};
   }
 }

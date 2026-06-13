@@ -30,6 +30,7 @@ enum class TokenName {
   CLOSE_CURLY,
   COMMA,
   ARROW,
+  RET_ARROW,
   ASSIGN,
   COLON,
   NUMBER,
@@ -53,7 +54,8 @@ enum class TokenName {
   MATCH,
   IF,
   ELSE,
-  BREAK
+  BREAK,
+  RETURN
 };
 
 std::ostream &operator<<(std::ostream &os, TokenName type);

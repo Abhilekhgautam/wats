@@ -16,7 +16,9 @@ std::map<std::string, TokenName> Lexer::keywords = {
     {"in", TokenName::IN},         {"for", TokenName::FOR},
     {"while", TokenName::WHILE},   {"loop", TokenName::LOOP},
     {"match", TokenName::MATCH},   {"if", TokenName::IF},
-    {"else", TokenName::ELSE},     {"break", TokenName::BREAK}};
+    {"else", TokenName::ELSE},     {"break", TokenName::BREAK},
+  {"return", TokenName::RETURN}
+};
 
 Lexer::Lexer(CompilerContext &context) : context(context) {
   column = 1;
@@ -89,8 +91,16 @@ void Lexer::ScanToken(const char c) {
     break;
   }
   case '-': {
-    AddToken(Token{TokenName::MINUS, {line, column}, c});
-    column = column + 1;
+    if (Peek() == '>') {
+      AddToken(Token{TokenName::RET_ARROW, {line, column + 1}, "->"});
+      ConsumeNext();
+      column = column + 2;
+    }
+    else {
+      AddToken(Token{TokenName::MINUS, {line, column}, c});
+      column = column + 1;
+    }
+
     break;
   }
   case '*': {

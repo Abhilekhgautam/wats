@@ -1,6 +1,8 @@
 #include "functionSymbolTable.hpp"
 #include "scopeType.hpp"
 #include <memory>
+
+#include "../AST/ReturnStatementAST.h"
 #ifdef __EMSCRIPTEN__
 #include <cerrno>
 #endif
@@ -25,6 +27,7 @@
 #include <cassert>
 #include <charconv>
 #include <iostream>
+#include <format>
 
 void SemanticAnalyzer::Error(const std::string str, std::size_t line,
                              std::size_t column, int len) {
@@ -102,7 +105,7 @@ void SemanticAnalyzer::Visit(VariableDeclarationAST &ast) {
 }
 
 void SemanticAnalyzer::Visit(NumberAST &ast) {
-  std::string num = ast.GetNumber();
+  const std::string num = ast.GetNumber();
 
   if (ast.HasDecimal()) {
     double value;
@@ -130,8 +133,8 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
       return;
     }
 #endif
-    // Set to f64 by default
-    ast.SetType("f64");
+    // later decide the bitwidth based on the usage.
+    ast.SetType("float");
     ast.SetValue(value);
   } else {
     long long value;
@@ -143,8 +146,8 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
       IncrementErrorCount();
       return;
     }
-    // Set to i64 by default
-    ast.SetType("i64");
+    // decide the bit-width later based on the usage.
+    ast.SetType("int");
     ast.SetValue(value);
   }
 }
@@ -174,6 +177,28 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
   // Visit the right operand
   right_operand.Accept(*this);
 
+  if (left_operand.GetType() == "float") {
+    if (right_operand.GetType() == "f32" || right_operand.GetType() == "f64") {
+        left_operand.SetType(right_operand.GetType());
+    }
+  }
+  if (left_operand.GetType() == "int") {
+    if (right_operand.GetType() == "i32" || right_operand.GetType() == "i64") {
+      left_operand.SetType(right_operand.GetType());
+    }
+  }
+
+  if (right_operand.GetType() == "float") {
+    if (left_operand.GetType() == "f32" || left_operand.GetType() == "f64") {
+      right_operand.SetType(left_operand.GetType());
+    }
+  }
+  if (right_operand.GetType() == "int") {
+    if (left_operand.GetType() == "i32" || left_operand.GetType() == "i64") {
+      right_operand.SetType(left_operand.GetType());
+    }
+  }
+
   if (left_operand.GetType() != right_operand.GetType()) {
     Error("The operation { " + left_operand.GetType() + " } " +
               ast.GetOperator() + " { " + right_operand.GetType() +
@@ -198,7 +223,6 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
           ast.GetSourceLocation().GetLine(),
           ast.GetSourceLocation().GetColumn(), var_name.length());
     IncrementErrorCount();
-    return;
   } else {
     auto &assigned_expr = ast.GetExpr();
     // Visit the expression
@@ -210,6 +234,25 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
       // Update the symbol table
       current_scope->UpdateSymbolTable(var_name, assigned_expr.GetType());
       return;
+    }
+
+    if (assigned_expr.GetType() == "int") {
+      if (var_type == "i64" || var_type == "i32") {
+        assigned_expr.SetType(var_type);
+        if (const auto id = dynamic_cast<IdentifierAST*>(&assigned_expr)) {
+          // Update the symbol table.
+          current_scope->UpdateSymbolTable(id->GetName(), var_type);
+        }
+      }
+    }
+    else if (assigned_expr.GetType() == "float") {
+      if (var_type == "f32" || var_type == "f64") {
+        assigned_expr.SetType(var_type);
+        if (const auto id = dynamic_cast<IdentifierAST*>(&assigned_expr)) {
+          // Update the symbol table.
+          current_scope->UpdateSymbolTable(id->GetName(), var_type);
+        }
+      }
     }
 
     if (assigned_expr.GetType() != var_type) {
@@ -236,20 +279,38 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
           ast.GetSourceLocation().GetLine(),
           ast.GetSourceLocation().GetColumn(), var_name.length());
     IncrementErrorCount();
-    return;
   } else {
     auto &expr = ast.GetExpr();
     expr.Accept(*this);
 
-    std::string var_type = ast.GetType();
-    std::string expr_type = expr.GetType();
+    const std::string var_type = ast.GetType();
+    const std::string expr_type = expr.GetType();
 
     if (var_type.empty()) {
       ast.SetType(expr_type);
       current_scope->AddSymbol(var_name, expr_type);
     } else {
       if (var_type != expr_type) {
-        MultiPartError("Type Mismatch: " + expr_type +
+        if (expr_type == "int" && (var_type == "i32" || var_type == "i64")) {
+          expr.SetType(var_type);
+          ast.SetType(var_type);
+          current_scope->AddSymbol(var_name, var_type);
+
+          if (const auto id = dynamic_cast<IdentifierAST*>(&expr)) {
+              current_scope->UpdateSymbolTable(id->GetName(), var_type);
+          }
+        }
+        else if (expr_type == "float" && (var_type == "f32" || var_type == "f64")) {
+          expr.SetType(var_type);
+          ast.SetType(var_type);
+          current_scope->AddSymbol(var_name, var_type);
+
+          if (const auto id = dynamic_cast<IdentifierAST*>(&expr)) {
+              current_scope->UpdateSymbolTable(id->GetName(), var_type);
+          }
+        }
+        else {
+          MultiPartError("Type Mismatch: " + expr_type +
                            " cannot be assigned to a variable of " + var_type,
                        ast.GetSourceLocation().GetLine(),
                        ast.GetSourceLocation().GetColumn() - var_name.length(),
@@ -258,8 +319,11 @@ void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
                            ast.GetExpr().GetLength(),
                        ast.GetExpr().GetLength());
 
-        IncrementErrorCount();
-      } else {
+          IncrementErrorCount();
+        }
+
+      }
+      else {
         current_scope->AddSymbol(var_name, expr_type);
       }
     }
@@ -461,6 +525,33 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
   // Visit the function body
   for (auto &elt : ast.GetFunctionBody()) {
     elt->Accept(*this);
+    if (auto returnAST = dynamic_cast<ReturnStatementAST*>(elt.get())) {
+      auto& returnExpr = returnAST->GetReturnExpression();
+
+      if (returnExpr.GetType() == "int" && (ast.GetFunctionReturnType() == "i32" || ast.GetFunctionReturnType() == "i64")) {
+        returnExpr.SetType(ast.GetFunctionReturnType());
+      }
+      else if (returnExpr.GetType() == "float" && (ast.GetFunctionReturnType() == "f32" || ast.GetFunctionReturnType() == "f64")) {
+        returnExpr.SetType(ast.GetFunctionReturnType());
+      }
+      else {
+        if (returnExpr.GetType() == "int") {
+          // Defaults to i64
+          returnExpr.SetType("i64");
+        }
+        else if (returnExpr.GetType() == "float") {
+          // Defaults to f64;
+          returnExpr.SetType("f64");
+        }
+        if (returnExpr.GetType() == "i32" || returnExpr.GetType() == "i64" || returnExpr.GetType() == "f32" || returnExpr.GetType() == "f64") {
+          if (returnExpr.GetType() != ast.GetFunctionReturnType()) {
+            Unexpected(std::format("Cannot return a {} from function whose return type is {}", returnExpr.GetType(), ast.GetFunctionReturnType()), returnAST->GetSourceLocation().GetLine(), returnAST->GetSourceLocation().GetColumn(), 1);
+            IncrementErrorCount();
+            return;
+          }
+        }
+      }
+    }
   }
 
   // After the loop body is completed
@@ -476,4 +567,9 @@ void SemanticAnalyzer::Visit(RangeAST &ast) {
 
   start.Accept(*this);
   end.Accept(*this);
+}
+
+void SemanticAnalyzer::Visit(ReturnStatementAST& ast) {
+  auto& expr = ast.GetReturnExpression();
+  expr.Accept(*this);
 }

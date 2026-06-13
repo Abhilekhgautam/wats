@@ -20,6 +20,7 @@ class FunctionCallAST;
 class FunctionDefinitionAST;
 class MatchStatementAST;
 class MatchArmAST;
+class ReturnStatementAST;
 
 class ExpressionAST;
 class BinaryExpressionAST;
@@ -65,6 +66,8 @@ public:
   void Visit(NumberAST &ast);
   void Visit(RangeAST &ast);
   void Visit(FunctionCallExprAST &ast);
+  void Visit(ReturnStatementAST& ast);
+
 
 public:
   void Error(const std::string str, std::size_t line, std::size_t column,

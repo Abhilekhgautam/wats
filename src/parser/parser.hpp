@@ -237,6 +237,8 @@ private:
   std::unique_ptr<ForLoopAST> ParseForLoop();
   std::unique_ptr<WhileLoopAST> ParseWhileLoop();
 
+  std::unique_ptr<ReturnStatementAST> ParseReturnStatement();
+
   std::unique_ptr<StatementAST> ParseStatement();
   std::vector<std::unique_ptr<StatementAST>> ParseStatements();
 

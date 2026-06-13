@@ -19,6 +19,8 @@
 #include <string_view>
 #include <format>
 
+#include "../AST/ReturnStatementAST.h"
+
 #define GENERATE_POSITION_PAST_ONE_COLUMN                                      \
   token_vec[current_parser_position].GetLine(),                                \
       token_vec[current_parser_position].GetColumn() + 1
@@ -1238,6 +1240,8 @@ std::unique_ptr<ExpressionAST> Parser::ParseExpression() {
   if (expr)
     return expr;
 
+  BackTrack();
+
   return {};
 }
 
@@ -1706,6 +1710,7 @@ std::unique_ptr<ElseStatementAST> Parser::ParseElseStatement() {
 
 std::unique_ptr<BreakStatementAST>
 Parser::ParseBreakStatement() {
+  StoreParserPosition();
   if (Peek(TokenName::BREAK)) {
     ConsumeNext();
     if (status_list.back() != ParserStatus::PARSING_FOR_LOOP &&
@@ -1759,6 +1764,7 @@ Parser::ParseBreakStatement() {
 
 std::unique_ptr<FunctionCallAST>
 Parser::ParseFunctionCallStatement() {
+  StoreParserPosition();
   std::unique_ptr<IdentifierAST> fn_name;
   if (Peek(TokenName::ID)) {
     ConsumeNext();
@@ -1798,6 +1804,37 @@ Parser::ParseFunctionCallStatement() {
   return std::make_unique<FunctionCallAST>(std::move(fn_name), std::move(args));
 }
 
+std::unique_ptr<ReturnStatementAST>
+Parser::ParseReturnStatement() {
+  StoreParserPosition();
+  if (Peek(TokenName::RETURN)) {
+    ConsumeNext();
+    if (!CheckInsideFunction()) {
+      Unexpected("A `return` statement cannot be outside a function body.", GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+      return {};
+    }
+
+    auto expr = ParseExpression();
+
+    if (!expr) {
+      Expected("Expected an expression after the `return` keyword", GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+      return {};
+    }
+
+    if (!Peek(TokenName::SEMI_COLON)) {
+      Expected("Expected a `;` here", GENERATE_CURRENT_POSITION);
+      IncrementErrorCount();
+      return {};
+    }
+    ConsumeNext();
+    return std::make_unique<ReturnStatementAST>(std::move(expr), expr->GetSourceLocation().front());
+  }
+
+  return {};
+}
+
 std::unique_ptr<StatementAST> Parser::ParseStatement() {
   StoreParserPosition();
 
@@ -1831,6 +1868,13 @@ std::unique_ptr<StatementAST> Parser::ParseStatement() {
   BackTrack();
 
   result = ParseBreakStatement();
+  if (result) {
+    return result;
+  }
+
+  BackTrack();
+
+  result = ParseReturnStatement();
   if (result) {
     return result;
   }

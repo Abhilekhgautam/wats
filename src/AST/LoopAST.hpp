@@ -20,7 +20,9 @@ class LoopAST : public StatementAST{
 	 std::vector<std::unique_ptr<StatementAST>> loop_body;
 	public:
     void Debug() override;
-    std::vector<std::unique_ptr<StatementAST>>& GetLoopBody();
+    const std::vector<std::unique_ptr<StatementAST>>& GetLoopBody() const {return loop_body;}
+	std::vector<std::unique_ptr<StatementAST>>& GetLoopBody() {return loop_body;}
+
     SourceLocation GetSourceLocation() override {return {};}
 };
 #endif

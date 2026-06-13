@@ -10,7 +10,8 @@
 class IRGenerator;
 class ExpressionAST {
 public:
-  virtual std::string GetType() = 0;
+  virtual std::string GetType() const {return type;}
+  virtual void SetType(const std::string& t) {type = t;}
   virtual ~ExpressionAST() = default;
   virtual void Accept(SemanticAnalyzer &analyzer) = 0;
   virtual nlohmann::json Accept(IRGenerator& generator) = 0;
@@ -19,6 +20,8 @@ public:
   virtual std::span<const SourceLocation> GetSourceLocation() = 0;
 
   virtual int GetLength() = 0;
+private:
+  std::string type;
 };
 
 #endif

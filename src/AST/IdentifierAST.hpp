@@ -11,7 +11,6 @@ public:
 
 private:
   std::string name;
-  std::string type;
   SourceLocation loc;
 
 public:
@@ -19,9 +18,7 @@ public:
   void Accept(SemanticAnalyzer &analyzer) override;
   nlohmann::json Accept(IRGenerator& generator) override;
 
-  std::string GetName() const { return name; }
-  std::string GetType() override { return type; }
-  void SetType(std::string type) { this->type = type; }
+  [[nodiscard]] std::string GetName() const { return name; }
   std::span<const SourceLocation> GetSourceLocation() override {
     return {&loc, 1};
   }

@@ -7,7 +7,7 @@
 
 class NumberAST : public ExpressionAST {
 public:
-  NumberAST(std::string num, bool has_decimal, SourceLocation &loc)
+  NumberAST(const std::string num, bool has_decimal, const SourceLocation loc)
       : num(num), has_decimal(has_decimal), loc(loc) {}
 
   virtual ~NumberAST() = default;
@@ -17,7 +17,6 @@ private:
   bool has_decimal;
 
   std::variant<long long, double> value;
-  std::string type;
   SourceLocation loc;
 
 public:
@@ -29,13 +28,12 @@ public:
   bool HasDecimal() const { return has_decimal; }
   void SetValue(long long val) { value = val; }
   void SetValue(double val) { value = val; }
-  std::string GetType() const { return type; }
-  void SetType(std::string type) { this->type = type; }
-  std::string GetType() override { return type; }
+  void SetValue(std::variant<long long, double> v) {value = v;}
   std::span<const SourceLocation> GetSourceLocation() override {
     return {&loc, 1};
   }
   int GetLength() override{return num.length();}
+  std::variant<long long, double> GetValue() const {return value;}
 };
 
 #endif

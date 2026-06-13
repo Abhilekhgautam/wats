@@ -18,6 +18,3 @@ void LoopAST::Debug(){
    }
 }
 
-std::vector<std::unique_ptr<StatementAST>>& LoopAST::GetLoopBody(){
-    return loop_body;
-}

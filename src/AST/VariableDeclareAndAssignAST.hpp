@@ -33,7 +33,11 @@ public:
   std::string GetType() const { return type_name; }
   ExpressionAST &GetExpr() const { return *expr; }
 
-  void SetType(std::string type) { type_name = type; }
+  void SetType(std::string type) {
+    type_name = type;
+    // Also populate the tree backward
+    expr->SetType(type);
+  }
   SourceLocation GetSourceLocation() override { return locations[0]; }
 };
 

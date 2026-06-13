@@ -38,12 +38,14 @@ private:
 public:
   void Debug() override;
   SourceLocation GetSourceLocation() override { return loc; };
-  std::vector<std::unique_ptr<StatementAST>> &GetIfBody() { return if_body; }
+  const std::vector<std::unique_ptr<StatementAST>>& GetIfBody() const { return if_body; }
+  std::vector<std::unique_ptr<StatementAST>>& GetIfBody(){ return if_body; }
 
-  ExpressionAST &GetIfCondition() { return *condition; }
 
-  bool hasElse() { return else_ast ? true : false; }
-  bool hasElseIf() { return else_if_ast.size(); }
+  ExpressionAST &GetIfCondition() const { return *condition; }
+
+  bool hasElse() const { return else_ast ? true : false; }
+  bool hasElseIf() const { return else_if_ast.size(); }
 
   ElseStatementAST &GetElseStatement() { return *else_ast; }
   std::vector<std::unique_ptr<ElseIfStatementAST>> &GetElseIfStatements() {

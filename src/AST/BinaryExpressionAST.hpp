@@ -21,7 +21,6 @@ private:
   std::unique_ptr<ExpressionAST> expr_lhs;
   std::unique_ptr<ExpressionAST> expr_rhs;
   OperatorNode op;
-  std::string type;
 
   std::vector<SourceLocation> loc;
 
@@ -31,11 +30,8 @@ public:
   nlohmann::json Accept(IRGenerator &generator) override;
 
   std::string GetOperator() const { return op.GetOperatorSymbol(); }
-  ExpressionAST &GetLeftOperand() { return *expr_lhs; }
-  ExpressionAST &GetRightOperand() { return *expr_rhs; }
-
-  std::string GetType() override { return type; }
-  void SetType(std::string type) { this->type = type; }
+  ExpressionAST &GetLeftOperand() const{ return *expr_lhs; }
+  ExpressionAST &GetRightOperand() const { return *expr_rhs; }
 
   std::span<const SourceLocation> GetSourceLocation() override { return loc; }
 

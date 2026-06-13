@@ -22,7 +22,7 @@ public:
   void Accept(SemanticAnalyzer &analyzer) override;
   nlohmann::json Accept(IRGenerator& generator) override;
 
-  std::string GetType() override { return "range"; }
+  std::string GetType() const override { return "range"; }
   ExpressionAST& GetStart() { return *start; }
   ExpressionAST& GetEnd() { return *end; }
   std::span<const SourceLocation> GetSourceLocation() override { return loc; }

@@ -27,7 +27,7 @@ public:
   std::span<const SourceLocation> GetSourceLocation() override {
     return {&loc, 1};
   }
-  std::string GetType() override { return "call"; }
+  std::string GetType() const override { return "call"; }
 
   int GetLength() override;
 };

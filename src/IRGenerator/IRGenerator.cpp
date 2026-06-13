@@ -4,17 +4,30 @@
 #include "../AST/IfStatementAST.hpp"
 #include "../AST/LoopAST.hpp"
 #include "../AST/NumberAST.hpp"
+#include "../AST/ReturnStatementAST.h"
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
 
+#include <format>
+
 using nlohmann::json;
+
+static std::string GetTemporaryVariableName() {
+  static int count = 1;
+  return std::format("var_{}", count++);
+}
+
+static std::string GetLabelName() {
+  static int count = 0;
+  return std::format(".bb_{}", count++);
+}
 
 // Helper for Arithmetic Operations
 // ===================================================
 //
 json GenerateArithmeticOperations(IRGenerator &generator,
-                                  BinaryExpressionAST &ast,
-                                  std::string destination) {
+                                  const BinaryExpressionAST &ast,
+                                  const std::string& destination) {
   json lhs = generator.Generate(ast.GetLeftOperand());
   json rhs = generator.Generate(ast.GetRightOperand());
 
@@ -79,7 +92,7 @@ json IRGenerator::Generate(ExpressionAST &ast) { return ast.Accept(*this); }
 
 json IRGenerator::Generate(StatementAST &ast) { return ast.Accept(*this); }
 
-json IRGenerator::Generate(VariableAssignmentAST &ast) {
+json IRGenerator::Generate(const VariableAssignmentAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
   json gen_code = Generate(expr);
   json instruction;
@@ -99,14 +112,15 @@ json IRGenerator::Generate(VariableAssignmentAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
+json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
+  std::string type = expr.GetType();
   json gen_code = Generate(expr);
   json instruction;
   if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val")) {
     instruction = {{"op", "const"},
                    {"dest", ast.GetVarName()},
-                   {"type", gen_code["type"]},
+                   {"type", type},
                    {"value", gen_code["val"]}};
   } else if (gen_code.is_array()) {
     instruction = {{"op", "array"},
@@ -118,14 +132,14 @@ json IRGenerator::Generate(VariableDeclareAndAssignAST &ast) {
     instruction = {
         {"op", gen_code["op"]},
         {"dest", ast.GetVarName()},
-        {"type", gen_code["type"]},
+        {"type", type},
         {"args", gen_code["args"]},
     };
   }
   return instruction;
 }
 
-json IRGenerator::Generate(BinaryExpressionAST &ast) {
+json IRGenerator::Generate(const BinaryExpressionAST &ast) {
   ExpressionAST &lhs = ast.GetLeftOperand();
   ExpressionAST &rhs = ast.GetRightOperand();
 
@@ -149,7 +163,7 @@ json IRGenerator::Generate(BinaryExpressionAST &ast) {
   }
 }
 
-json IRGenerator::Generate(NumberAST &ast) {
+json IRGenerator::Generate(const NumberAST &ast) {
   json instruction;
   instruction["op"] = "const";
   instruction["type"] = ast.GetType();
@@ -158,7 +172,7 @@ json IRGenerator::Generate(NumberAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate(IdentifierAST &ast) {
+json IRGenerator::Generate(const IdentifierAST &ast) {
   json instruction;
   instruction["op"] = "id";
   instruction["type"] = ast.GetType();
@@ -167,7 +181,7 @@ json IRGenerator::Generate(IdentifierAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate(VariableDeclarationAST &ast) {
+json IRGenerator::Generate(const VariableDeclarationAST &ast) {
   json instruction = {{"op", "const"},
                       {"dest", ast.GetVarName()},
                       {"type", ""},
@@ -176,7 +190,7 @@ json IRGenerator::Generate(VariableDeclarationAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] BreakStatementAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const BreakStatementAST &ast) {
   json instruction = {
     {"op", "jmp"},
     {"labels", {}},
@@ -185,31 +199,31 @@ json IRGenerator::Generate([[maybe_unused]] BreakStatementAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] ElseIfStatementAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const ElseIfStatementAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] ElseStatementAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const ElseStatementAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] ForLoopAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] FunctionDefinitionAST &ast) {
+json IRGenerator::Generate([[maybe_unused]]const FunctionDefinitionAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate(IfStatementAST &ast) {
+json IRGenerator::Generate(const IfStatementAST &ast) {
   json instruction = json::array({});
 
   ExpressionAST &if_condition = ast.GetIfCondition();
@@ -232,15 +246,17 @@ json IRGenerator::Generate(IfStatementAST &ast) {
 
   instruction.push_back(cond);
 
+  std::string success_label = GetLabelName();
+  std::string failure_label = GetLabelName();
   json break_instruction = {
       {"op", "br"},
-      {"labels", {"if_body", "after_if"}},
+      {"labels", {success_label, failure_label}},
       {"args", {"cond"}},
   };
 
   instruction.push_back(break_instruction);
 
-  json label_instruction = {{"label", "if_body"}};
+  json label_instruction = {{"label", success_label}};
   instruction.push_back(label_instruction);
 
   for (const auto &elt : ast.GetIfBody()) {
@@ -248,14 +264,14 @@ json IRGenerator::Generate(IfStatementAST &ast) {
   }
 
   if (!ast.hasElse() && !ast.hasElseIf()) {
-    json label_instruction = {{"label", "after_if"}};
+    json label_instruction = {{"label", failure_label}};
     instruction.push_back(label_instruction);
   }
 
   return instruction;
 }
 
-json IRGenerator::Generate(LoopAST &ast) {
+json IRGenerator::Generate(const LoopAST &ast) {
   json instruction = json::array({});
   json label_instruction = {{"label", "test"}};
   instruction.push_back(label_instruction);
@@ -288,44 +304,84 @@ json IRGenerator::Generate(LoopAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] MatchArmAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const MatchArmAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] MatchStatementAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const MatchStatementAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] RangeAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const RangeAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] WhileLoopAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const WhileLoopAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] FunctionCallAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const FunctionCallAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] FunctionCallExprAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const FunctionCallExprAST &ast) {
   json instruction;
 
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] FunctionArgumentAST &ast) {
+json IRGenerator::Generate([[maybe_unused]] const FunctionArgumentAST &ast) {
   json instruction;
 
   return instruction;
+}
+
+json IRGenerator::Generate(const ReturnStatementAST& ast) {
+
+  const std::string type = ast.GetReturnExpression().GetType();
+
+  if (const auto idAST = dynamic_cast<IdentifierAST*>(&ast.GetReturnExpression())) {
+    json instruction;
+
+    instruction["op"] = "ret";
+    instruction["args"] = json::array({idAST->GetName()});
+
+    return instruction;
+  }
+
+  if (const auto numAST = dynamic_cast<NumberAST*>(&ast.GetReturnExpression())) {
+    json instruction = json::array();
+    std::vector<SourceLocation> unknown;
+    // Create a temporary variable
+    auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(), numAST->GetSourceLocation().front());
+    std::string num = numAST->GetNumber();
+
+    tempNumAST->SetValue(numAST->GetValue());
+
+    VariableDeclareAndAssignAST tempAST(GetTemporaryVariableName(), type, std::move(tempNumAST), unknown);
+    tempAST.SetType(type);
+
+    const json declAssignJson = Generate(tempAST);
+    instruction.push_back(declAssignJson);
+
+    json returnJson;
+
+    returnJson["op"] = "ret";
+    returnJson["args"] = json::array({tempAST.GetVarName()});
+
+    instruction.push_back(returnJson);
+    return instruction;
+  }
+
+  return {};
 }

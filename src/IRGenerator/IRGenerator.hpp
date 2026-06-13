@@ -1,6 +1,7 @@
 #ifndef ID_GEN_H
 #define ID_GEN_H
 
+#include <numbers>
 #include <nlohmann/json.hpp>
 #include "../AST/VariableAssignmentAST.hpp"
 #include "../AST/BreakStatementAST.hpp"
@@ -12,26 +13,28 @@ class IRGenerator{
       nlohmann::json Generate(ExpressionAST& ast);
       nlohmann::json Generate(StatementAST& ast);
 
-      nlohmann::json Generate(VariableAssignmentAST& ast);
-      nlohmann::json Generate(VariableDeclareAndAssignAST& ast);
-      nlohmann::json Generate(BinaryExpressionAST& ast);
-      nlohmann::json Generate(BreakStatementAST& ast);
-      nlohmann::json Generate(ElseIfStatementAST& ast);
-      nlohmann::json Generate(ElseStatementAST& ast);
-      nlohmann::json Generate(ForLoopAST& ast);
-      nlohmann::json Generate(FunctionArgumentAST& ast);
-      nlohmann::json Generate(FunctionCallExprAST& ast);
-      nlohmann::json Generate(FunctionCallAST& ast);
-      nlohmann::json Generate(FunctionDefinitionAST& ast);
-      nlohmann::json Generate(IdentifierAST& ast);
-      nlohmann::json Generate(IfStatementAST& ast);
-      nlohmann::json Generate(LoopAST& ast);
-      nlohmann::json Generate(MatchArmAST& ast);
-      nlohmann::json Generate(MatchStatementAST& ast);
-      nlohmann::json Generate(NumberAST& ast);
-      nlohmann::json Generate(RangeAST& ast);
-      nlohmann::json Generate(VariableDeclarationAST& ast);
-      nlohmann::json Generate(WhileLoopAST& ast);
+      nlohmann::json Generate(const VariableAssignmentAST& ast);
+      nlohmann::json Generate(const VariableDeclareAndAssignAST& ast);
+      nlohmann::json Generate(const BinaryExpressionAST& ast);
+      nlohmann::json Generate(const BreakStatementAST& ast);
+      nlohmann::json Generate(const ElseIfStatementAST& ast);
+      nlohmann::json Generate(const ElseStatementAST& ast);
+      nlohmann::json Generate(const ForLoopAST& ast);
+      nlohmann::json Generate(const FunctionArgumentAST& ast);
+      nlohmann::json Generate(const FunctionCallExprAST& ast);
+      nlohmann::json Generate(const FunctionCallAST& ast);
+      nlohmann::json Generate(const FunctionDefinitionAST& ast);
+      nlohmann::json Generate(const IdentifierAST& ast);
+      nlohmann::json Generate(const IfStatementAST& ast);
+      nlohmann::json Generate(const LoopAST& ast);
+      nlohmann::json Generate(const MatchArmAST& ast);
+      nlohmann::json Generate(const MatchStatementAST& ast);
+      nlohmann::json Generate(const NumberAST& ast);
+      nlohmann::json Generate(const RangeAST& ast);
+      nlohmann::json Generate(const VariableDeclarationAST& ast);
+      nlohmann::json Generate(const WhileLoopAST& ast);
+      nlohmann::json Generate(const ReturnStatementAST& ast);
+
 };
 
 #endif

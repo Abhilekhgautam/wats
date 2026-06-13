@@ -26,62 +26,106 @@ static std::string GetLabelName() {
 // ===================================================
 //
 json GenerateArithmeticOperations(IRGenerator &generator,
-                                  const BinaryExpressionAST &ast,
-                                  const std::string& destination) {
-  json lhs = generator.Generate(ast.GetLeftOperand());
-  json rhs = generator.Generate(ast.GetRightOperand());
+                                  const BinaryExpressionAST &ast
+                                  ) {
+  json retInstruction = json::array();
+
+  auto& lhs_expr = ast.GetLeftOperand();
+  const std::string lhs_type = lhs_expr.GetType();
+
+  std::vector<SourceLocation> unknown;
+
+  std::string lhs_name;
+  std::string rhs_name;
+  if (auto numAST = dynamic_cast<NumberAST *>(&lhs_expr)) {
+    auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(), numAST->GetSourceLocation().front());
+    std::string num = numAST->GetNumber();
+
+    tempNumAST->SetValue(numAST->GetValue());
+    const std::string tempVarName = GetTemporaryVariableName();
+    VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type, std::move(tempNumAST), unknown);
+    tempAST.SetType(lhs_type);
+
+    json tempASTJSON = generator.Generate(tempAST);
+    retInstruction.push_back(tempASTJSON);
+    lhs_name = tempVarName;
+  } else {
+    json lhs = generator.Generate(ast.GetLeftOperand());
+    lhs_name = lhs["args"][0];
+  }
+
+  auto& rhs_expr = ast.GetRightOperand();
+  const std::string rhs_type = rhs_expr.GetType();
+
+  if (auto numAST = dynamic_cast<NumberAST *>(&rhs_expr)) {
+    auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(), numAST->GetSourceLocation().front());
+    std::string num = numAST->GetNumber();
+
+    tempNumAST->SetValue(numAST->GetValue());
+    const std::string tempVarName = GetTemporaryVariableName();
+    VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type, std::move(tempNumAST), unknown);
+    tempAST.SetType(lhs_type);
+
+    json tempASTJSON = generator.Generate(tempAST);
+    retInstruction.push_back(tempASTJSON);
+    rhs_name = tempVarName;
+  } else {
+    json rhs = generator.Generate(ast.GetRightOperand());
+    rhs_name = rhs["args"][0];
+  }
+
 
   json instruction;
+  const std::string destination = GetTemporaryVariableName();
   if (ast.GetOperator() == "+") {
     instruction = {{"op", "add"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "-") {
     instruction = {{"op", "sub"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
-    return instruction;
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "*") {
     instruction = {{"op", "mul"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
-    return instruction;
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "/") {
     instruction = {{"op", "div"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
-    return instruction;
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == ">") {
     instruction = {{"op", "gt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "<") {
     instruction = {{"op", "lt"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "==") {
     instruction = {{"op", "eq"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == ">=") {
     instruction = {{"op", "ge"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "<=") {
     instruction = {{"op", "le"},
                    {"dest", destination},
                    {"type", ast.GetType()},
-                   {"args", json::array({lhs["args"][0] , rhs["args"][0]})}};
+                   {"args", json::array({lhs_name , rhs_name})}};
   }
-  return instruction;
+  retInstruction.push_back(instruction);
+
+  return retInstruction;
 }
 
 // End Helper
@@ -116,30 +160,34 @@ json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
   std::string type = expr.GetType();
   json gen_code = Generate(expr);
-  json instruction;
+  json retInstruction;
   if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val")) {
-    instruction = {{"op", "const"},
+    retInstruction .push_back({{"op", "const"},
                    {"dest", ast.GetVarName()},
                    {"type", type},
-                   {"value", gen_code["val"]}};
+                   {"value", gen_code["val"]}});
   } else if (gen_code.is_array()) {
-    instruction = {{"op", "array"},
+    for (const auto& elt: gen_code) {
+      retInstruction.push_back(elt);
+    }
+    retInstruction .push_back({{"op", "id"},
                    {"dest", ast.GetVarName()},
-                   /*{"type", gen_code[0]["type"]},
-                   {"value", gen_code[0]["val"]}*/};
-
+                   {"type", type},
+                   {"value", retInstruction.back()["dest"]}});
   } else {
-    instruction = {
+    retInstruction.push_back({
         {"op", gen_code["op"]},
         {"dest", ast.GetVarName()},
         {"type", type},
         {"args", gen_code["args"]},
-    };
+    });
   }
-  return instruction;
+  return retInstruction;
 }
 
 json IRGenerator::Generate(const BinaryExpressionAST &ast) {
+  return GenerateArithmeticOperations(*this, ast);
+  /*
   ExpressionAST &lhs = ast.GetLeftOperand();
   ExpressionAST &rhs = ast.GetRightOperand();
 
@@ -161,6 +209,7 @@ json IRGenerator::Generate(const BinaryExpressionAST &ast) {
     return Generate(new_rhs);
     // Generate(new_lhs);
   }
+  */
 }
 
 json IRGenerator::Generate(const NumberAST &ast) {

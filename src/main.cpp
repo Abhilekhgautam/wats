@@ -47,9 +47,9 @@ void compile_program(const char *source_code) {
     for (const auto &elt : stmt_vec) {
       if (auto val = dynamic_cast<FunctionDefinitionAST *>(elt.get())) {
         std::vector<nlohmann::json> instrVec;
-        std::string fnName;
 
-        fnName = val->GetFunctionName();
+        const std::string fnName = val->GetFunctionName();
+        const std::string fnRetType = val->GetFunctionReturnType();
 
         std::map<std::string, std::string> name2type;
         auto& args = val->GetFunctionArguments();
@@ -78,6 +78,10 @@ void compile_program(const char *source_code) {
 
         nlohmann::json fn_obj = {
           {"name", fnName}, {"instrs", instrVec}, {"args", fnArgs}};
+
+        if (!fnRetType.empty()) {
+          fn_obj["type"] = fnRetType;
+        }
 
         program["functions"].push_back(fn_obj);
       }
@@ -125,9 +129,9 @@ int main(int argc, char **argv) {
     for (const auto &elt : stmt_vec) {
       if (auto val = dynamic_cast<FunctionDefinitionAST *>(elt.get())) {
         std::vector<nlohmann::json> instrVec;
-        std::string fnName;
 
-        fnName = val->GetFunctionName();
+        const std::string fnName = val->GetFunctionName();
+        const std::string fnRetType = val->GetFunctionReturnType();
 
         std::map<std::string, std::string> name2type;
         auto& args = val->GetFunctionArguments();
@@ -154,8 +158,12 @@ int main(int argc, char **argv) {
           fnArgs.push_back({{"name", name}, {"type", type}});
         }
 
-        nlohmann::json fn_obj = {
+        json fn_obj = {
             {"name", fnName}, {"instrs", instrVec}, {"args", fnArgs}};
+
+        if (!fnRetType.empty()) {
+          fn_obj["type"] = fnRetType;
+        }
 
         program["functions"].push_back(fn_obj);
       }

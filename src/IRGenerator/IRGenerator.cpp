@@ -316,7 +316,7 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
   auto condition_expr = retInstruction.back();
   const std::string cond_val = condition_expr["dest"];
 
-  json cond =  {{"op", "const"},
+  json cond =  {{"op", "id"},
             {"dest", "cond"},
             {"type", "bool"},
             {"value", cond_val}};

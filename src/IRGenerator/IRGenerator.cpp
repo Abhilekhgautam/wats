@@ -19,7 +19,7 @@ static std::string GetTemporaryVariableName() {
 
 static std::string GetLabelName() {
   static int count = 0;
-  return std::format(".bb_{}", count++);
+  return std::format("bb_{}", count++);
 }
 
 // Helper for Arithmetic Operations
@@ -354,6 +354,12 @@ json IRGenerator::Generate(const LoopAST &ast) {
     } else {
       if (bodyElementJson.is_array()) {
         for (const auto& element: bodyElementJson) {
+           // FIXME: a quick fix only for certain edge case, maybe flatten the array early.
+           if (element.is_array()) {
+             for (const auto& e : element) {
+               retInstruction.push_back(e);
+             }
+           }
           retInstruction.push_back(element);
         }
       } else {

@@ -215,9 +215,8 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
 }
 
 void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
-  std::string var_name = ast.GetVarName();
-  auto result = current_scope->FindSymbol(var_name);
-  if (!result.has_value()) {
+  const std::string var_name = ast.GetVarName();
+  if (auto result = current_scope->FindSymbol(var_name); !result.has_value()) {
     Error("Variable: '" + var_name +
               "' used without previous declaration in the current scope",
           ast.GetSourceLocation().GetLine(),
@@ -228,7 +227,7 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
     // Visit the expression
     assigned_expr.Accept(*this);
 
-    auto var_type = result.value().get().GetType();
+    std::string var_type = result.value().get().GetType();
 
     if (var_type.empty()) {
       // Update the symbol table
@@ -254,7 +253,13 @@ void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
         }
       }
     }
+    else if (var_type == "int" || var_type == "float") {
+      if (assigned_expr.GetType() == "i32" || assigned_expr.GetType() == "i64" || assigned_expr.GetType() == "f32" || assigned_expr.GetType() == "f64") {
+        var_type = assigned_expr.GetType();
+        current_scope->UpdateSymbolTable(var_name, var_type);
 
+      }
+    }
     if (assigned_expr.GetType() != var_type) {
       // Error: Type mismatch
       MultiPartError("Type Mismatch: " + assigned_expr.GetType() +
@@ -342,18 +347,19 @@ void SemanticAnalyzer::Visit(ForLoopAST &ast) {
 
   current_scope = &for_scope;
   // Add the iteration variable to the current scope
-  current_scope->AddSymbol(ast.GetIterationVariableName(), "i64");
+  current_scope->AddSymbol(ast.GetIterationVariableName(), "int");
 
   auto &range = ast.GetRange();
   // Visit the range node
   range.Accept(*this);
 
+  //TODO: Check for the range type...
   // Check the type of start and end expr in range
-  if (range.GetStart().GetType() != range.GetEnd().GetType()) {
-    // Todo: Report better error
-    std::cout << "Types in range expr doesn't match";
-    return;
-  }
+  // if (range.GetStart().GetType() != range.GetEnd().GetType()) {
+  //   // Todo: Report better error
+  //   std::cout << "Types in range expr doesn't match";
+  //   return;
+  // }
 
   // Visit the loop body
   for (auto &elt : ast.GetLoopBody()) {
@@ -525,7 +531,7 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
   // Visit the function body
   for (auto &elt : ast.GetFunctionBody()) {
     elt->Accept(*this);
-    if (auto returnAST = dynamic_cast<ReturnStatementAST*>(elt.get())) {
+    if (const auto returnAST = dynamic_cast<ReturnStatementAST*>(elt.get())) {
       auto& returnExpr = returnAST->GetReturnExpression();
 
       if (returnExpr.GetType() == "int" && (ast.GetFunctionReturnType() == "i32" || ast.GetFunctionReturnType() == "i64")) {

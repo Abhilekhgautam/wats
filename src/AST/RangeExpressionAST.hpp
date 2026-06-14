@@ -24,7 +24,10 @@ public:
 
   std::string GetType() const override { return "range"; }
   ExpressionAST& GetStart() { return *start; }
+  const ExpressionAST& GetStart() const { return *start; }
+
   ExpressionAST& GetEnd() { return *end; }
+  const ExpressionAST& GetEnd() const { return *end; }
   std::span<const SourceLocation> GetSourceLocation() override { return loc; }
 
   int GetLength() override{

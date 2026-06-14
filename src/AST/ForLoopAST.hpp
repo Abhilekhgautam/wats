@@ -33,7 +33,12 @@ public:
   std::string GetIterationVariableName() const { return iter_var->GetName(); }
   std::unique_ptr<IdentifierAST>& GetIterVar() {return iter_var;}
   RangeAST &GetRange() { return *range; }
+  const RangeAST &GetRange() const { return *range; }
+
   std::vector<std::unique_ptr<StatementAST>> &GetLoopBody() {
+    return loop_body;
+  }
+  const std::vector<std::unique_ptr<StatementAST>> &GetLoopBody() const {
     return loop_body;
   }
   SourceLocation GetSourceLocation() override {return loc;}

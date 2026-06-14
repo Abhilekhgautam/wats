@@ -50,13 +50,34 @@ void compile_program(const char *source_code) {
         std::string fnName;
 
         fnName = val->GetFunctionName();
+
+        std::map<std::string, std::string> name2type;
+        auto& args = val->GetFunctionArguments();
+
+        for (const auto& arg: args) {
+          name2type[arg->GetIdName()] = arg->GetTypeName();
+        }
+
         // IRContext ctx(fnName);
         IRGenerator brilGenerator;
         for (const auto &elt : val->GetFunctionBody()) {
-          instrVec.push_back(brilGenerator.Generate(*elt));
+          json generated_json = brilGenerator.Generate(*elt);
+          if (!generated_json.is_array())
+            instrVec.push_back(brilGenerator.Generate(*elt));
+          else {
+            for (const auto &elt : generated_json) {
+              instrVec.push_back(elt);
+            }
+          }
         }
 
-        nlohmann::json fn_obj = {{"name", fnName}, {"instrs", instrVec}};
+        json fnArgs = json::array({});
+        for (const auto &[name, type] : name2type) {
+          fnArgs.push_back({{"name", name}, {"type", type}});
+        }
+
+        nlohmann::json fn_obj = {
+          {"name", fnName}, {"instrs", instrVec}, {"args", fnArgs}};
 
         program["functions"].push_back(fn_obj);
       }

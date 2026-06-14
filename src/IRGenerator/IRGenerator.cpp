@@ -403,10 +403,17 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   idAST->SetType("i32");
 
   // Add 1 to the iteration variable.
-  const auto addAST = std::make_unique<BinaryExpressionAST>(std::move(idAST), std::move(numAST), OperatorNode("+", unknown_loc), unknown);
+  std::unique_ptr<ExpressionAST> addAST = std::make_unique<BinaryExpressionAST>(std::move(idAST), std::move(numAST), OperatorNode("+", unknown_loc), unknown);
   addAST->SetType("i32");
 
-  const auto increment_json = Generate(*addAST);
+  auto newIdAST = IdentifierAST(iter_var_name, unknown_loc);
+  newIdAST.SetType("i32");
+
+  std::vector<SourceLocation> loc = {unknown_loc};
+  const auto assignAddResultAST = std::make_unique<VariableAssignmentAST>(newIdAST, std::move(addAST), loc);
+
+  // Update the iteration variable
+  const auto increment_json = Generate(*assignAddResultAST);
 
   for (const auto& elt : increment_json) {
     retInstruction.push_back(elt);

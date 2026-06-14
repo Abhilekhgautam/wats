@@ -12,7 +12,7 @@ public:
 
 class PrimitiveType : public Type {
 public:
-  PrimitiveType(const std::string type_name) : type_name(type_name) {}
+  PrimitiveType(const std::string& type_name) : type_name(type_name) {}
   std::string GetType() override { return type_name; }
 
   virtual ~PrimitiveType() = default;
@@ -23,7 +23,7 @@ private:
 
 class UserDefinedType : public Type {
 public:
-  UserDefinedType(const std::string type_name) : type_name(type_name) {}
+  UserDefinedType(const std::string& type_name) : type_name(type_name) {}
   std::string GetType() override { return type_name; }
 
   virtual ~UserDefinedType() = default;
@@ -34,18 +34,11 @@ private:
 
 class TypeFactory {
 public:
-  static std::unique_ptr<Type> CreateType(std::string name) {
-    if (name == "i32") {
+  static std::unique_ptr<Type> CreateType(const std::string& name) {
+    if (name == "i32" || name == "i64" || name == "f32" || name == "f64") {
       return std::make_unique<PrimitiveType>(name);
-    } else if (name == "i64") {
-      return std::make_unique<PrimitiveType>(name);
-    } else if (name == "f32") {
-      return std::make_unique<PrimitiveType>(name);
-    } else if (name == "f64") {
-      return std::make_unique<PrimitiveType>(name);
-    } else {
-      return std::make_unique<UserDefinedType>(name);
     }
+    return std::make_unique<UserDefinedType>(name);
   }
 };
 

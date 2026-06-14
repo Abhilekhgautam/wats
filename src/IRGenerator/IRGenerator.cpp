@@ -33,6 +33,9 @@ json GenerateArithmeticOperations(IRGenerator &generator,
   auto& lhs_expr = ast.GetLeftOperand();
   const std::string lhs_type = lhs_expr.GetType();
 
+  auto& rhs_expr = ast.GetRightOperand();
+  const std::string rhs_type = rhs_expr.GetType();
+
   std::vector<SourceLocation> unknown;
 
   std::string lhs_name;
@@ -54,8 +57,6 @@ json GenerateArithmeticOperations(IRGenerator &generator,
     lhs_name = lhs["args"][0];
   }
 
-  auto& rhs_expr = ast.GetRightOperand();
-  const std::string rhs_type = rhs_expr.GetType();
 
   if (auto numAST = dynamic_cast<NumberAST *>(&rhs_expr)) {
     auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(), numAST->GetSourceLocation().front());
@@ -139,21 +140,33 @@ json IRGenerator::Generate(StatementAST &ast) { return ast.Accept(*this); }
 json IRGenerator::Generate(const VariableAssignmentAST &ast) {
   ExpressionAST &expr = ast.GetExpr();
   json gen_code = Generate(expr);
-  json instruction;
-  if (gen_code["op"] == "const" && gen_code.contains("val"))
-    instruction = {{"op", "const"},
+  json retInstruction = json::array();
+  if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val"))
+    retInstruction.push_back({{"op", "const"},
                    {"dest", ast.GetVarName()},
                    {"type", gen_code["type"]},
-                   {"value", gen_code["val"]}};
+                   {"value", gen_code["val"]}});
   else {
-    instruction = {
+    if (gen_code.is_array()) {
+      for (const auto& elt : gen_code) {
+        retInstruction.push_back(elt);
+      }
+      retInstruction .push_back({{"op", "id"},
+                   {"dest", ast.GetVarName()},
+                   {"type", expr.GetType()},
+                   {"value", retInstruction.back()["dest"]}});
+    }
+    else {
+      retInstruction.push_back({
         {"op", gen_code["op"]},
         {"dest", ast.GetVarName()},
         {"type", gen_code["type"]},
         {"args", gen_code["args"]},
-    };
+    });
+    }
+
   }
-  return instruction;
+  return retInstruction;
 }
 
 json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
@@ -321,36 +334,40 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
 }
 
 json IRGenerator::Generate(const LoopAST &ast) {
-  json instruction = json::array({});
-  json label_instruction = {{"label", "test"}};
-  instruction.push_back(label_instruction);
+  json retInstruction = json::array({});
+
+  const std::string body_label = GetLabelName();
+  const std::string outside_loop_body_label = GetLabelName();
+
+  const json label_instruction = {{"label", body_label}};
+  retInstruction.push_back(label_instruction);
+
   for (const auto &elt : ast.GetLoopBody()) {
-    auto val = Generate(*elt);
-    if (!val.is_array()) {
-      // handle break: exactly within the loop body (not within any other
-      // block)
-      if (val["op"] == "jmp") {
-        val["labels"].push_back("test_out");
-      }
-      instruction.push_back(val);
-    } else {
-      for (auto &v : val) {
-        // handle break: not exactly within the loop body (within any other
-        // block)
-        if (v["op"] == "jmp" && v["labels"].is_null()) {
-          v["labels"].push_back("test_out");
+    auto bodyElementJson = Generate(*elt);
+    if (auto breakStatement = dynamic_cast<BreakStatementAST*>(elt.get())) {
+        if (!bodyElementJson.is_array()) {
+          if (bodyElementJson["op"] == "jmp" && bodyElementJson["labels"].is_null()) {
+            bodyElementJson["labels"].push_back(outside_loop_body_label);
+            retInstruction.push_back(bodyElementJson);
+          }
         }
-        instruction.push_back(v);
+    } else {
+      if (bodyElementJson.is_array()) {
+        for (const auto& element: bodyElementJson) {
+          retInstruction.push_back(element);
+        }
+      } else {
+        retInstruction.push_back(bodyElementJson);
       }
     }
   }
-  json jump_instruction = {{"op", "jmp"}, {"labels", {"test"}}};
-  instruction.push_back(jump_instruction);
+  const json jump_instruction = {{"op", "jmp"}, {"labels", {body_label}}};
+  retInstruction.push_back(jump_instruction);
 
-  json exit_label_instruction = {{"label", "test_out"}};
-  instruction.push_back(exit_label_instruction);
+  const json exit_label_instruction = {{"label", outside_loop_body_label}};
+  retInstruction.push_back(exit_label_instruction);
 
-  return instruction;
+  return retInstruction;
 }
 
 json IRGenerator::Generate([[maybe_unused]] const MatchArmAST &ast) {

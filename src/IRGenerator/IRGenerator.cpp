@@ -10,6 +10,8 @@
 
 #include <format>
 
+#include "../AST/ForLoopAST.hpp"
+
 using nlohmann::json;
 
 static std::string GetTemporaryVariableName() {
@@ -289,9 +291,143 @@ json IRGenerator::Generate([[maybe_unused]] const ElseStatementAST &ast) {
 }
 
 json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
-  json instruction;
+  json retInstruction = json::array();
 
-  return instruction;
+  const std::string loop_header = GetLabelName();
+
+  const std::string iter_var_name = ast.GetIterationVariableName();
+  const auto& range_expr =  ast.GetRange();
+
+  const auto& start_expr = range_expr.GetStart();
+
+  std::vector<SourceLocation> unknown;
+  SourceLocation unknown_loc;
+  std::unique_ptr<ExpressionAST> temp_start_expr;
+
+  if (const auto id = dynamic_cast<const IdentifierAST*>(&start_expr)) {
+      temp_start_expr = std::make_unique<IdentifierAST>(id->GetName(), unknown_loc);
+  }
+  else if (const auto num = dynamic_cast<const NumberAST*>(&start_expr)) {
+    temp_start_expr = std::make_unique<NumberAST>(num->GetNumber(), num->HasDecimal(), unknown_loc);
+  }
+
+  temp_start_expr->SetType("i32");
+  // FIXME: set type to actual type later.
+  const auto tempAST = VariableDeclareAndAssignAST(iter_var_name, "i32", std::move(temp_start_expr), unknown);
+  const json iter_arg_json = Generate(tempAST);
+
+  for (const auto& elt : iter_arg_json) {
+    retInstruction.push_back(elt);
+  }
+
+  // Start for loop header
+  retInstruction.push_back({
+    {
+      "label", {loop_header}
+    }});
+  const auto& end_expr = range_expr.GetEnd();
+  std::unique_ptr<ExpressionAST> temp_end_expr;
+
+  if (const auto id = dynamic_cast<const IdentifierAST*>(&end_expr)) {
+    temp_end_expr = std::make_unique<IdentifierAST>(id->GetName(), unknown_loc);
+  }
+  else if (const auto num = dynamic_cast<const NumberAST*>(&end_expr)) {
+    temp_end_expr = std::make_unique<NumberAST>(num->GetNumber(), num->HasDecimal(), unknown_loc);
+  }
+  auto temp_iter_var_ast = std::make_unique<IdentifierAST>(iter_var_name, unknown_loc);
+
+  const auto condition_check_ast = std::make_unique<BinaryExpressionAST>(std::move(temp_iter_var_ast), std::move(temp_end_expr), OperatorNode("<=", unknown_loc), unknown);
+
+  const json condition_expr = Generate(*condition_check_ast);
+
+  for (const auto& elt : condition_expr) {
+    retInstruction.push_back(elt);
+  }
+
+  const std::string cond_val = condition_expr.back()["dest"];
+
+  const std::string cond_var = GetTemporaryVariableName();
+  json cond =  {{"op", "id"},
+            {"dest", cond_var},
+            {"type", "bool"},
+            {"value", cond_val}};
+
+  retInstruction.push_back(cond);
+
+  const std::string loop_body = GetLabelName();
+  const std::string loop_exit = GetLabelName();
+
+  // Create conditional jump
+  const json break_instruction = {
+    {"op", "br"},
+    {"labels", {loop_body, loop_exit}},
+    {"args", {cond_var}},
+  };
+
+  retInstruction.push_back(break_instruction);
+  // end for loop header
+
+  // start for loop body
+
+  // Start for loop header
+  retInstruction.push_back({
+    {
+      "label", {loop_body}
+    }});
+
+  for (const auto& elt : ast.GetLoopBody()) {
+    if ([[maybe_unused]]auto breakStmt = dynamic_cast<BreakStatementAST*>(elt.get())) {
+      const json break_json = {{"op", "jmp"}, {"labels", {loop_exit}}};
+      retInstruction.push_back(break_json);
+      continue;
+    }
+    auto loop_stmt_json = Generate(*elt);
+    if (loop_stmt_json.is_array()) {
+      for (const auto& stmt: loop_stmt_json) {
+        retInstruction.push_back(stmt);
+      }
+    } else {
+      retInstruction.push_back(loop_stmt_json);
+    }
+  }
+
+  // Increment the loop iteration variable
+  // FIXME: use the step instead of 1.
+
+  // Create a constant 1
+  std::unique_ptr<ExpressionAST> numAST = std::make_unique<NumberAST>("1", false, unknown_loc);
+  numAST->SetType("i32");
+  std::string const_one = GetTemporaryVariableName();
+
+  auto idAST = std::make_unique<IdentifierAST>(iter_var_name, unknown_loc);
+  idAST->SetType("i32");
+
+  // Add 1 to the iteration variable.
+  const auto addAST = std::make_unique<BinaryExpressionAST>(std::move(idAST), std::move(numAST), OperatorNode("+", unknown_loc), unknown);
+  addAST->SetType("i32");
+
+  const auto increment_json = Generate(*addAST);
+
+  for (const auto& elt : increment_json) {
+    retInstruction.push_back(elt);
+  }
+
+  // Unconditional jump to the loop header
+  const json jmp_loop_header = { {"op", "jmp"}, {"labels", {loop_header}}};
+
+  retInstruction.push_back(jmp_loop_header);
+
+  // End of loop body
+
+  // Start of loop exit
+  const json loop_exit_label = {
+    {
+      "label", {loop_exit}
+    }};
+
+  retInstruction.push_back(loop_exit_label);
+
+  return retInstruction;
 }
 
 json IRGenerator::Generate([[maybe_unused]]const FunctionDefinitionAST &ast) {

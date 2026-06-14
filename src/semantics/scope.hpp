@@ -15,10 +15,10 @@ public:
   Scope(const Scope &) = default;
   Scope &operator=(const Scope &) = default;
   std::optional<std::reference_wrapper<Type>>
-  FindSymbolInCurrentScope(std::string name);
-  std::optional<std::reference_wrapper<Type>> FindSymbol(std::string name);
+  FindSymbolInCurrentScope(const std::string& name);
+  std::optional<std::reference_wrapper<Type>> FindSymbol(const std::string& name);
 
-  void AddSymbol(const std::string& name, const std::string& type);
+  void AddSymbol(const std::string& name, const std::string& type_name);
   void UpdateSymbolTable(const std::string& var_name, const std::string& var_type);
 
   ScopeType GetType() { return type; }

@@ -49,8 +49,15 @@ json GenerateArithmeticOperations(IRGenerator &generator,
     VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type, std::move(tempNumAST), unknown);
     tempAST.SetType(lhs_type);
 
-    json tempASTJSON = generator.Generate(tempAST);
-    retInstruction.push_back(tempASTJSON);
+    const json tempASTJSON = generator.Generate(tempAST);
+    if (tempASTJSON.is_array()) {
+      for (const auto& elt: tempASTJSON) {
+        retInstruction.push_back(elt);
+      }
+    }
+    else {
+      retInstruction.push_back(tempASTJSON);
+    }
     lhs_name = tempVarName;
   } else {
     json lhs = generator.Generate(ast.GetLeftOperand());
@@ -67,8 +74,16 @@ json GenerateArithmeticOperations(IRGenerator &generator,
     VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type, std::move(tempNumAST), unknown);
     tempAST.SetType(lhs_type);
 
-    json tempASTJSON = generator.Generate(tempAST);
-    retInstruction.push_back(tempASTJSON);
+    const json tempASTJSON = generator.Generate(tempAST);
+    if (tempASTJSON.is_array()) {
+      for (const auto& elt: tempASTJSON) {
+        retInstruction.push_back(elt);
+      }
+    }
+    else {
+      retInstruction.push_back(tempASTJSON);
+    }
+
     rhs_name = tempVarName;
   } else {
     json rhs = generator.Generate(ast.GetRightOperand());
@@ -106,22 +121,22 @@ json GenerateArithmeticOperations(IRGenerator &generator,
   } else if (ast.GetOperator() == "<") {
     instruction = {{"op", "lt"},
                    {"dest", destination},
-                   {"type", ast.GetType()},
+                   {"type", "bool"},
                    {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "==") {
     instruction = {{"op", "eq"},
                    {"dest", destination},
-                   {"type", ast.GetType()},
+                   {"type", "bool"},
                    {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == ">=") {
     instruction = {{"op", "ge"},
                    {"dest", destination},
-                   {"type", ast.GetType()},
+                   {"type", "bool"},
                    {"args", json::array({lhs_name , rhs_name})}};
   } else if (ast.GetOperator() == "<=") {
     instruction = {{"op", "le"},
                    {"dest", destination},
-                   {"type", ast.GetType()},
+                   {"type", "bool"},
                    {"args", json::array({lhs_name , rhs_name})}};
   }
   retInstruction.push_back(instruction);
@@ -286,51 +301,52 @@ json IRGenerator::Generate([[maybe_unused]]const FunctionDefinitionAST &ast) {
 }
 
 json IRGenerator::Generate(const IfStatementAST &ast) {
-  json instruction = json::array({});
+  json retInstruction = json::array({});
 
   ExpressionAST &if_condition = ast.GetIfCondition();
 
   json condition_val = Generate(if_condition);
 
-  json cond;
-
-  if (!condition_val["val"].is_null()) {
-    cond = {{"op", "const"},
-            {"dest", "cond"},
-            {"type", "bool"},
-            {"value", condition_val["val"]}};
-  } else {
-    cond = {{"op", condition_val["op"]},
-            {"dest", "cond"},
-            {"type", "bool"},
-            {"args", condition_val["args"]}};
+  if (condition_val.is_array()) {
+    for (const auto& elt: condition_val) {
+      retInstruction.push_back(elt);
+    }
   }
 
-  instruction.push_back(cond);
+  auto condition_expr = retInstruction.back();
+  const std::string cond_val = condition_expr["dest"];
+
+  json cond =  {{"op", "const"},
+            {"dest", "cond"},
+            {"type", "bool"},
+            {"value", cond_val}};
+
+  retInstruction.push_back(cond);
 
   std::string success_label = GetLabelName();
   std::string failure_label = GetLabelName();
+
   json break_instruction = {
       {"op", "br"},
       {"labels", {success_label, failure_label}},
       {"args", {"cond"}},
   };
 
-  instruction.push_back(break_instruction);
+  retInstruction.push_back(break_instruction);
 
-  json label_instruction = {{"label", success_label}};
-  instruction.push_back(label_instruction);
+  const json label_instruction = {{"label", success_label}};
+  retInstruction.push_back(label_instruction);
 
   for (const auto &elt : ast.GetIfBody()) {
-    instruction.push_back(Generate(*elt));
+    retInstruction.push_back(Generate(*elt));
   }
 
   if (!ast.hasElse() && !ast.hasElseIf()) {
-    json label_instruction = {{"label", failure_label}};
-    instruction.push_back(label_instruction);
+    const json label_instruction = {{"label", failure_label}};
+    retInstruction.push_back(label_instruction);
   }
 
-  return instruction;
+  return retInstruction;
 }
 
 json IRGenerator::Generate(const LoopAST &ast) {
@@ -354,12 +370,6 @@ json IRGenerator::Generate(const LoopAST &ast) {
     } else {
       if (bodyElementJson.is_array()) {
         for (const auto& element: bodyElementJson) {
-           // FIXME: a quick fix only for certain edge case, maybe flatten the array early.
-           if (element.is_array()) {
-             for (const auto& e : element) {
-               retInstruction.push_back(e);
-             }
-           }
           retInstruction.push_back(element);
         }
       } else {

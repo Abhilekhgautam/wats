@@ -6,6 +6,9 @@
 #include "../AST/VariableAssignmentAST.hpp"
 #include "../AST/BreakStatementAST.hpp"
 #include "../AST/ElseIfStatementAST.hpp"
+
+#include "IRContext.hpp"
+
 class IRGenerator{
     public:
       IRGenerator() = default;
@@ -34,6 +37,12 @@ class IRGenerator{
       nlohmann::json Generate(const VariableDeclarationAST& ast);
       nlohmann::json Generate(const WhileLoopAST& ast);
       nlohmann::json Generate(const ReturnStatementAST& ast);
+
+private:
+    IRContext ctx;
+
+public:
+    IRContext& GetContext() {return ctx;}
 
 };
 

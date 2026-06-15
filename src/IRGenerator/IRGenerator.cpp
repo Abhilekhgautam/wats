@@ -270,9 +270,12 @@ json IRGenerator::Generate(const VariableDeclarationAST &ast) {
 }
 
 json IRGenerator::Generate([[maybe_unused]] const BreakStatementAST &ast) {
+
+  const std::string jmp_label = GetContext().GetBreakPointName();
+
   json instruction = {
     {"op", "jmp"},
-    {"labels", {}},
+    {"labels", {jmp_label}},
   };
 
   return instruction;
@@ -292,6 +295,10 @@ json IRGenerator::Generate([[maybe_unused]] const ElseStatementAST &ast) {
 
 json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   json retInstruction = json::array();
+
+  // update the current break points and skip points
+  const std::string current_break_point = GetContext().GetBreakPointName();
+  const std::string current_skip_point = GetContext().GetSkipPointName();
 
   const std::string loop_header = GetLabelName();
 
@@ -376,6 +383,12 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
       "label", {loop_body}
     }});
 
+  // Set the new skip point to loops header
+  GetContext().SetSkipPointName(loop_header);
+
+  // Set the new break point to loop exit
+  GetContext().SetBreakPointName(loop_exit);
+
   for (const auto& elt : ast.GetLoopBody()) {
     if ([[maybe_unused]]auto breakStmt = dynamic_cast<BreakStatementAST*>(elt.get())) {
       const json break_json = {{"op", "jmp"}, {"labels", {loop_exit}}};
@@ -391,6 +404,12 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
       retInstruction.push_back(loop_stmt_json);
     }
   }
+
+  // Reset the skip point
+  GetContext().SetSkipPointName(current_skip_point);
+
+  // Reset the break point to loop exit
+  GetContext().SetBreakPointName(current_break_point);
 
   // Increment the loop iteration variable
   // FIXME: use the step instead of 1.
@@ -496,15 +515,22 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
 json IRGenerator::Generate(const LoopAST &ast) {
   json retInstruction = json::array({});
 
+  const std::string current_break_point = GetContext().GetBreakPointName();
+  const std::string current_skip_point  = GetContext().GetSkipPointName();
+
   const std::string body_label = GetLabelName();
   const std::string outside_loop_body_label = GetLabelName();
 
   const json label_instruction = {{"label", body_label}};
   retInstruction.push_back(label_instruction);
 
+  // Set new break points and skip points
+  GetContext().SetBreakPointName(outside_loop_body_label);
+  GetContext().SetSkipPointName(body_label);
+
   for (const auto &elt : ast.GetLoopBody()) {
     auto bodyElementJson = Generate(*elt);
-    if (auto breakStatement = dynamic_cast<BreakStatementAST*>(elt.get())) {
+    if ([[maybe_unused]] auto breakStatement = dynamic_cast<BreakStatementAST*>(elt.get())) {
         if (!bodyElementJson.is_array()) {
           if (bodyElementJson["op"] == "jmp" && bodyElementJson["labels"].is_null()) {
             bodyElementJson["labels"].push_back(outside_loop_body_label);
@@ -521,6 +547,10 @@ json IRGenerator::Generate(const LoopAST &ast) {
       }
     }
   }
+
+  GetContext().SetBreakPointName(current_break_point);
+  GetContext().SetSkipPointName(current_skip_point);
+
   const json jump_instruction = {{"op", "jmp"}, {"labels", {body_label}}};
   retInstruction.push_back(jump_instruction);
 

@@ -639,5 +639,23 @@ json IRGenerator::Generate(const ReturnStatementAST& ast) {
     return instruction;
   }
 
+  if (auto binaryStatement = dynamic_cast<BinaryExpressionAST*>(&ast.GetReturnExpression())) {
+    auto binary_statement_json = Generate(*binaryStatement);
+
+    json retInstruction = json::array();
+
+    for (const auto& elt : binary_statement_json) {
+      retInstruction.push_back(elt);
+    }
+
+    const std::string return_value = binary_statement_json.back()["dest"];
+
+    retInstruction.push_back(
+      {{"op", "ret"}, {"args", {return_value}}}
+      );
+
+    return retInstruction;
+  }
+
   return {};
 }

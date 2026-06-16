@@ -32,13 +32,27 @@
 class Parser {
 public:
   Parser(const CompilerContext &context, const std::vector<Token> &token_vec)
-      : context(context), token_vec(token_vec), current_parser_position(-1) {}
+      : context(context), token_vec(token_vec), current_parser_position(0) {
+    operator2Precedence["=="] = 10;
+    operator2Precedence["<"] = 10;
+    operator2Precedence[">"] = 10;
+    operator2Precedence["<="] = 10;
+    operator2Precedence[">="] = 10;
+    operator2Precedence["!="] = 10;
+
+    operator2Precedence["+"] = 20;
+    operator2Precedence["-"] = 20;
+
+    operator2Precedence["*"] = 40;
+    operator2Precedence["/"] = 40;
+    operator2Precedence["%"] = 40;
+  }
 
   std::optional<std::vector<std::unique_ptr<StatementAST>>> Parse();
 
   std::size_t GetExprLength();
 
-  void DidYouMean(const std::string_view to_add, std::size_t line, std::size_t column,
+  void DidYouMean(std::string_view to_add, std::size_t line, std::size_t column,
                   bool space_before = true) const;
   void Error(const std::string &err_msg);
 
@@ -146,7 +160,7 @@ private:
   bool Peek(TokenName) const;
 
   Token GetCurrentToken() const;
-  void ConsumeNext();
+  void Consume();
   void BackTrack();
   void StoreParserPosition();
 
@@ -180,40 +194,11 @@ private:
   ParseVariableInitWithType();
   std::unique_ptr<VariableDeclarationAST> ParseVariableDecl();
 
-  // Utility for Parsing Expression
-  std::unique_ptr<ExpressionAST>
-  ParseExpressionBeginningWithID();
-  std::unique_ptr<ExpressionAST>
-  ParseExpressionBeginningWithNumber();
-  std::unique_ptr<ExpressionAST>
-  ParseExpressionBeginningWithBraces();
-
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParsePlusExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseMinusExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseMulExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseDivExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseModExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseGtExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseLtExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseGteExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseLteExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseEqualsExpression();
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseNotEqualsExpression();
-
-  // Not the subtraction
-  std::optional<std::pair<OperatorNode, std::unique_ptr<ExpressionAST>>>
-  ParseSubExpression();
+  std::unique_ptr<ExpressionAST> ParseIdentifier();
+  std::unique_ptr<ExpressionAST> ParseNumber();
+  std::unique_ptr<ExpressionAST> ParseParenExpr();
+  std::unique_ptr<ExpressionAST> ParsePrimary();
+  std::unique_ptr<ExpressionAST> ParseBinaryOpRHS(int exprPrec, std::unique_ptr<ExpressionAST> LHS);
 
   std::unique_ptr<ExpressionAST> ParseExpression();
 
@@ -242,8 +227,8 @@ private:
   std::unique_ptr<StatementAST> ParseStatement();
   std::vector<std::unique_ptr<StatementAST>> ParseStatements();
 
-  void Expected(const std::string, std::size_t line, std::size_t column);
-  void Unexpected(const std::string, std::size_t line, std::size_t column,
+  void Expected(const std::string&, std::size_t line, std::size_t column);
+  void Unexpected(const std::string&, std::size_t line, std::size_t column,
                   std::size_t times = 0);
 
   inline bool CheckInsideFunction() const;
@@ -252,10 +237,13 @@ private:
 
 private:
   int error_count = 0;
+  std::unordered_map<std::string, int> operator2Precedence;
 
 public:
   bool HasErrors() { return error_count > 0; }
   void IncrementErrorCount() { error_count++; }
+
+  int GetPrecedence(const std::string&);
 };
 
 #endif

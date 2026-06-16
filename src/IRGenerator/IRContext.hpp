@@ -12,6 +12,7 @@ public:
 private:
   std::string break_point_name {}; // this is where the break statement jump to.
   std::string skip_point_name {}; // this is where the skip statement jump to.
+  std::string if_exit_label_name {}; // this is where the if, else if body jump to at the last.
   int tempVarCount;
 
 public:
@@ -20,9 +21,11 @@ public:
   [[nodiscard]] int GetCurrentCount() { return tempVarCount; }
   void SetBreakPointName(const std::string& bp ) {break_point_name = bp;}
   void SetSkipPointName(const std::string& sp) {skip_point_name = sp;}
+  void SetIfExitLabel(const std::string& el) {if_exit_label_name = el;}
 
   std::string GetBreakPointName() {return break_point_name;}
   std::string GetSkipPointName() {return skip_point_name;}
+  std::string GetIfExitLabelName() {return if_exit_label_name;}
 };
 
 #endif

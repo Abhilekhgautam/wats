@@ -15,6 +15,8 @@ public:
   virtual ~ElseStatementAST() = default;
 
   std::vector<std::unique_ptr<StatementAST>> &GetBody() { return else_body; }
+  const std::vector<std::unique_ptr<StatementAST>> &GetBody() const { return else_body; }
+
 
   void Accept(SemanticAnalyzer &analyzer) override;
   nlohmann::json Accept(IRGenerator &generator) override;

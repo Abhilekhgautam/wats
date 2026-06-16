@@ -29,7 +29,11 @@ public:
   void SetValue(long long val) { value = val; }
   void SetValue(double val) { value = val; }
   void SetValue(std::variant<long long, double> v) {value = v;}
+
   std::span<const SourceLocation> GetSourceLocation() override {
+    return {&loc, 1};
+  }
+  std::span<const SourceLocation> GetSourceLocation() const {
     return {&loc, 1};
   }
   int GetLength() override{return num.length();}

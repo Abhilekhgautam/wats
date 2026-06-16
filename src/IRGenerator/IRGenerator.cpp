@@ -280,16 +280,86 @@ json IRGenerator::Generate([[maybe_unused]] const BreakStatementAST &ast) {
   return instruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] const ElseIfStatementAST &ast) {
-  json instruction;
+json IRGenerator::Generate(const ElseIfStatementAST &ast) {
+  json retInstruction;
 
-  return instruction;
+  auto& cond = ast.GetCondition();
+
+  const json cond_json = Generate(cond);
+
+  for (const auto& elt: cond_json) {
+    retInstruction.push_back(elt);
+  }
+
+  auto condition_expr = retInstruction.back();
+  const std::string cond_val = condition_expr["dest"];
+
+  const std::string cond_var_name = GetTemporaryVariableName();
+
+  json cond_var =  {{"op", "id"},
+            {"dest", cond_var_name},
+            {"type", "bool"},
+            {"value", cond_val}};
+
+  retInstruction.push_back(cond_var);
+
+  const std::string else_if_body = GetLabelName();
+  const std::string else_if_exit = GetLabelName();
+
+  json break_instruction = {
+    {"op", "br"},
+    {"labels", {else_if_body, else_if_exit}},
+    {"args", {cond_var_name}},
+};
+
+  retInstruction.push_back(break_instruction);
+  const json body_label = {{"label", else_if_body}};
+
+  retInstruction.push_back(body_label);
+
+  for (const auto& body : ast.GetBody()) {
+      const json body_json = Generate(*body);
+
+      if (body_json.is_array()) {
+        for (const auto& b : body_json) {
+          retInstruction.push_back(b);
+        }
+      }
+      else {
+         retInstruction.push_back(body_json);
+       }
+
+  }
+  // Jump to exit.
+  const json jump_exit = {{"op", "jmp"}, {"labels", {GetContext().GetIfExitLabelName()}}};
+  retInstruction.push_back(jump_exit);
+
+  const json exit_label = {{"label", else_if_exit}};
+  retInstruction.push_back(exit_label);
+
+  return retInstruction;
 }
 
-json IRGenerator::Generate([[maybe_unused]] const ElseStatementAST &ast) {
-  json instruction;
+json IRGenerator::Generate(const ElseStatementAST &ast) {
+  json retInstruction = json::array();
 
-  return instruction;
+  for (const auto &elt : ast.GetBody()) {
+    const json gen_json = Generate(*elt);
+    if (gen_json.is_array()) {
+      for (const auto& val : gen_json) {
+        retInstruction.push_back(val);
+      }
+    }
+    else {
+      retInstruction.push_back(Generate(*elt));
+    }
+  }
+
+  // Jump to exit.
+  const json jump_exit = {{"op", "jmp"}, {"labels", {GetContext().GetIfExitLabelName()}}};
+  retInstruction.push_back(jump_exit);
+
+  return retInstruction;
 }
 
 json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
@@ -467,9 +537,9 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
 
   ExpressionAST &if_condition = ast.GetIfCondition();
 
-  json condition_val = Generate(if_condition);
+  const std::string current_exit_label = GetContext().GetIfExitLabelName();
 
-  if (condition_val.is_array()) {
+  if (const json& condition_val = Generate(if_condition);condition_val.is_array()) {
     for (const auto& elt: condition_val) {
       retInstruction.push_back(elt);
     }
@@ -485,8 +555,13 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
 
   retInstruction.push_back(cond);
 
-  std::string success_label = GetLabelName();
-  std::string failure_label = GetLabelName();
+  const std::string success_label = GetLabelName();
+  const std::string failure_label = GetLabelName();
+
+  // label to jump to, if one of the body gets executed.
+  const std::string exit_label = GetLabelName();
+
+  GetContext().SetIfExitLabel(exit_label);
 
   json break_instruction = {
       {"op", "br"},
@@ -500,13 +575,45 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
   retInstruction.push_back(label_instruction);
 
   for (const auto &elt : ast.GetIfBody()) {
-    retInstruction.push_back(Generate(*elt));
+
+    if (const json& gen_json = Generate(*elt); gen_json.is_array()) {
+      for (const auto& val : gen_json) {
+        retInstruction.push_back(val);
+      }
+    }
+    else {
+      retInstruction.push_back(Generate(*elt));
+    }
   }
 
-  if (!ast.hasElse() && !ast.hasElseIf()) {
-    const json label_instruction = {{"label", failure_label}};
-    retInstruction.push_back(label_instruction);
+  // Jump to exit.
+  const json jump_exit = {{"op", "jmp"}, {"labels", {exit_label}}};
+  retInstruction.push_back(jump_exit);
+
+  const json if_fail = {{"label", failure_label}};
+  retInstruction.push_back(if_fail);
+
+  // Generate Else If
+  for (const auto& elt: ast.GetElseIfStatements()) {
+    if (const json else_if_json = Generate(*elt); else_if_json.is_array()) {
+      for (const auto& else_if : else_if_json) {
+        retInstruction.push_back(else_if);
+      }
+    }
+    else {
+      retInstruction.push_back(else_if_json);
+    }
   }
+
+  // Generate else
+  for (auto else_json = Generate(ast.GetElseStatement()); const auto& elt: else_json) {
+    retInstruction.push_back(elt);
+  }
+
+  const json exit_label_json = {{"label", exit_label}};
+  retInstruction.push_back(exit_label_json);
+
+  GetContext().SetIfExitLabel(current_exit_label);
 
   return retInstruction;
 }

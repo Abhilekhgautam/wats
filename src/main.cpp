@@ -95,11 +95,14 @@ void compile_program(const char *source_code) {
 
 int main(int argc, char **argv) {
 
-  if (!verify_args(argc, argv)) {
+  if (!CommandParser::verify_args(argc, argv)) {
     return 0;
   }
 
-  std::string source_code = read_file(std::filesystem::path{argv[1]});
+  const std::string source_code = read_file(CommandParser::GetInputFilePath());
+
+  //const std::vector<std::string> requested_pass = CommandParser::GetPassVec();
+
 
   CompilerContext context(source_code);
 

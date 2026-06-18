@@ -8,7 +8,7 @@
 
 class CompilerContext {
     public:
-        CompilerContext(std::string& source_code){
+        CompilerContext(const std::string& source_code){
             this->source_code = source_code;
             source_code_by_line = split_str(source_code);
         }

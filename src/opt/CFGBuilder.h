@@ -4,9 +4,22 @@
 
 #ifndef WATS_CFGBUILDER_H
 #define WATS_CFGBUILDER_H
+#include <nlohmann/json.hpp>
+#include <set>
 
+struct Block {
+    std::string block_name;
+    std::vector<nlohmann::json> instrs;
+    std::set<std::string> predecessors;
+    std::set<std::string> successors;
+};
 
 class CFGBuilder {
+public:
+    static std::vector<Block> build(const nlohmann::json&);
+private:
+    static std::vector<Block> CreateBlock(const nlohmann::json&);
+    static std::unordered_map<std::string, Block> ConnectBlocks(std::vector<Block>&);
 };
 
 

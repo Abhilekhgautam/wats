@@ -3,3 +3,14 @@
 //
 
 #include "PassRegistry.h"
+
+#include <unordered_map>
+#include <string>
+
+inline std::unordered_map<std::string, PassKind> passTable = {
+ {"dce", PassKind::DCE}
+};
+
+bool isValidPass(const std::string& name) {
+  return passTable.contains(name);
+}

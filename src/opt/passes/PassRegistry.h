@@ -5,9 +5,13 @@
 #ifndef WATS_PASSREGISTRY_H
 #define WATS_PASSREGISTRY_H
 
+#include <string>
 
-class PassRegistry {
+enum struct PassKind {
+    DCE
 };
+
+bool isValidPass(const std::string&);
 
 
 #endif //WATS_PASSREGISTRY_H

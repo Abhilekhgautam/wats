@@ -8,6 +8,7 @@
 #include <set>
 
 #include "../CFGBuilder.h"
+#include "dce.h"
 
 std::vector<nlohmann::json> dce(std::vector<nlohmann::json>& instrs) {
     std::vector<nlohmann::json> optimized_instrs;
@@ -24,7 +25,7 @@ std::vector<nlohmann::json> dce(std::vector<nlohmann::json>& instrs) {
 
     // Remove instruction that assigns to unused variable.
     for (const auto& instr : instrs) {
-        if (instr.contains("dest") && usedVars.contains(instr["dest"])) {
+        if (instr.contains("dest") && !usedVars.contains(instr["dest"])) {
             continue;
         }
         optimized_instrs.push_back(instr);
@@ -42,9 +43,10 @@ std::vector<nlohmann::json> dce_until_convergence(std::vector<nlohmann::json>& i
         output = dce(output);
         auto new_len = output.size();
 
-        if (len != new_len) {
+        if (len == new_len) {
             len_changed = false;
         }
+        len = new_len;
     }
 
     return output;
@@ -97,4 +99,9 @@ std::vector<nlohmann::json> strong_dce(std::vector<nlohmann::json>& instrs) {
     }
 
     return output;
+}
+
+void DCE::run(std::vector<nlohmann::json>& instrs) {
+    const auto output = dce_until_convergence(instrs);
+    instrs = output;
 }

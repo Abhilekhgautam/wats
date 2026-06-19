@@ -1,3 +1,4 @@
+#include "opt/passes/dce.h"
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -12,7 +13,12 @@
 #include "utils.hpp"
 #include <nlohmann/json.hpp>
 
+#include "opt/PassManager.h"
+
 using nlohmann::json;
+
+using PassFactory = std::function<std::unique_ptr<Pass>()>;
+
 #ifdef __EMSCRIPTEN__
 extern "C" {
 EMSCRIPTEN_KEEPALIVE
@@ -101,8 +107,7 @@ int main(int argc, char **argv) {
 
   const std::string source_code = read_file(CommandParser::GetInputFilePath());
 
-  //const std::vector<std::string> requested_pass = CommandParser::GetPassVec();
-
+  const std::vector<std::string> requested_pass = CommandParser::GetPassVec();
 
   CompilerContext context(source_code);
 
@@ -172,5 +177,24 @@ int main(int argc, char **argv) {
       }
     }
   }
-  std::cout << program.dump(4);
+
+    PassManager pm;
+
+    std::unordered_map<std::string, PassFactory> registry;
+
+    registry["dce"] = [] {
+        return std::make_unique<DCE>();
+    };
+
+    for (const auto& pass_name : requested_pass) {
+        pm.addPass(registry.at(pass_name)());
+    }
+
+    for (auto& fn : program["functions"]) {
+        auto instrs = fn["instrs"].get<std::vector<nlohmann::json>>();
+        pm.run(instrs);
+        fn["instrs"] = std::move(instrs);
+    }
+
+    std::cout << program.dump(4);
 }

@@ -191,7 +191,7 @@ json IRGenerator::Generate(const VariableAssignmentAST &ast) {
       retInstruction .push_back({{"op", "id"},
                    {"dest", ast.GetVarName()},
                    {"type", expr.GetType()},
-                   {"value", retInstruction.back()["dest"]}});
+                   {"args", {retInstruction.back()["dest"]}}});
     }
     else {
       retInstruction.push_back({
@@ -223,7 +223,7 @@ json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
     retInstruction .push_back({{"op", "id"},
                    {"dest", ast.GetVarName()},
                    {"type", type},
-                   {"value", retInstruction.back()["dest"]}});
+                   {"args", {retInstruction.back()["dest"]}}});
   } else {
     retInstruction.push_back({
         {"op", gen_code["op"]},
@@ -299,7 +299,7 @@ json IRGenerator::Generate(const ElseIfStatementAST &ast) {
   json cond_var =  {{"op", "id"},
             {"dest", cond_var_name},
             {"type", "bool"},
-            {"value", cond_val}};
+            {"args", {cond_val}}};
 
   retInstruction.push_back(cond_var);
 
@@ -427,7 +427,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   json cond =  {{"op", "id"},
             {"dest", cond_var},
             {"type", "bool"},
-            {"value", cond_val}};
+            {"args", {cond_val}}};
 
   retInstruction.push_back(cond);
 
@@ -551,7 +551,7 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
   json cond =  {{"op", "id"},
             {"dest", "cond"},
             {"type", "bool"},
-            {"value", cond_val}};
+            {"args", {cond_val}}};
 
   retInstruction.push_back(cond);
 

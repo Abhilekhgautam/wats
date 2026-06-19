@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 
+#include "opt/passes/PassRegistry.h"
+
 std::filesystem::path CommandParser::input_file_path;
 std::vector<std::string> CommandParser::requested_pass;
 
@@ -43,6 +45,12 @@ bool CommandParser::verify_args(const int argc, char** argv) {
   if (!std::filesystem::exists(input_file_path)) {
     std::cerr << "Error: " << input_file_path << " Not Found\n";
     return false;
+  }
+  for (const auto& pass_name : requested_pass) {
+      if (!isValidPass(pass_name)) {
+          std::cerr << "Invalid Pass Option: " << pass_name << '\n';
+          return false;
+      }
   }
   return true;
 }

@@ -12,11 +12,11 @@ static int block_counter{0};
 
 const std::set<std::string> terminators = {"br", "jmp", "ret"};
 
-std::vector<Block> CFGBuilder::CreateBlock(const nlohmann::json& function) {
+std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& instrs) {
     std::vector<Block> blocks;
 
     Block block{};
-    for (const auto& instr : function["instrs"]) {
+    for (const auto& instr : instrs) {
         if (instr.contains("op")) {
             block.instrs.push_back(instr);
 
@@ -90,7 +90,7 @@ std::unordered_map<std::string, Block> CFGBuilder::ConnectBlocks(std::vector<Blo
     return block_map;
 }
 
-std::vector<Block> CFGBuilder::build(const nlohmann::json& json) {
+std::vector<Block> CFGBuilder::build(const std::vector<nlohmann::json>& json) {
     std::vector<Block> CFG;
 
     auto blocks = CreateBlock(json);

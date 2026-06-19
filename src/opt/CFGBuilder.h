@@ -16,9 +16,9 @@ struct Block {
 
 class CFGBuilder {
 public:
-    static std::vector<Block> build(const nlohmann::json&);
+    static std::vector<Block> build(const std::vector<nlohmann::json>&);
 private:
-    static std::vector<Block> CreateBlock(const nlohmann::json&);
+    static std::vector<Block> CreateBlock(const std::vector<nlohmann::json>&);
     static std::unordered_map<std::string, Block> ConnectBlocks(std::vector<Block>&);
 };
 

@@ -399,7 +399,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   // Start for loop header
   retInstruction.push_back({
     {
-      "label", {loop_header}
+      "label", loop_header
     }});
   const auto& end_expr = range_expr.GetEnd();
   std::unique_ptr<ExpressionAST> temp_end_expr;
@@ -448,7 +448,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   // Start for loop header
   retInstruction.push_back({
     {
-      "label", {loop_body}
+      "label", loop_body
     }});
 
   // Set the new skip point to loops header
@@ -517,7 +517,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   // Start of loop exit
   const json loop_exit_label = {
     {
-      "label", {loop_exit}
+      "label", loop_exit
     }};
 
   retInstruction.push_back(loop_exit_label);
@@ -604,10 +604,15 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
     }
   }
 
-  // Generate else
-  for (auto else_json = Generate(ast.GetElseStatement()); const auto& elt: else_json) {
-    retInstruction.push_back(elt);
-  }
+    // Generate else
+    if (ast.hasElse()) {
+        for (auto else_json = Generate(ast.GetElseStatement()); const auto& elt: else_json) {
+            retInstruction.push_back(elt);
+        }
+    }
+
+
+
 
   const json exit_label_json = {{"label", exit_label}};
   retInstruction.push_back(exit_label_json);

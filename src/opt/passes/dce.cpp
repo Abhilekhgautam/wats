@@ -10,6 +10,8 @@
 #include "../CFGBuilder.h"
 #include "dce.h"
 
+#include <algorithm>
+
 std::vector<nlohmann::json> dce(std::vector<nlohmann::json>& instrs) {
     std::vector<nlohmann::json> optimized_instrs;
     std::set<std::string> usedVars;
@@ -59,23 +61,42 @@ std::vector<nlohmann::json> trivial_dce(std::vector<nlohmann::json>& instrs) {
 // Local Optimization. Handles scenario where a variable is redefined without previous use.
 std::vector<nlohmann::json> dce_per_basic_block(std::vector<nlohmann::json>& instrs) {
     std::vector<nlohmann::json> optimized_instrs;
-    std::map<std::string, nlohmann::json> defined_and_unused;
+    std::unordered_map<std::string, nlohmann::json> last_defined;
+
+    bool has_terminators {false};
 
     for (const auto& instr : instrs) {
         if (instr.contains("args") ) {
-            if (defined_and_unused.contains(instr["args"])) {
-                optimized_instrs.push_back(defined_and_unused[instr["args"]]);
-                defined_and_unused.erase(instr["args"]);
+            for (const auto& arg : instr["args"]) {
+                if (last_defined.contains(arg)) {
+                    //std::erase(optimized_instrs, last_defined[arg]);
+                    last_defined.erase(arg);
+                }
             }
 
+            // Handle br
             if (!instr.contains("dest")) {
-                optimized_instrs.push_back(instr);
+                has_terminators = true;
             }
         }
 
-        if (instr.contains("dest") && !defined_and_unused.contains(instr["dest"])) {
-            defined_and_unused[instr["dest"]] =  instr;
+        if (instr.contains("dest") && last_defined.contains(instr["dest"])) {
+            std::erase(optimized_instrs, last_defined[instr["dest"]]);
+            last_defined.erase(instr["dest"]);
         }
+
+        if (instr.contains("dest")) {
+            last_defined[instr["dest"]] = instr;
+            optimized_instrs.push_back(instr);
+        }
+
+        if (instr.contains("op") && instr["op"] == "jmp") {
+            has_terminators = true;
+        }
+    }
+
+    if (has_terminators) {
+        optimized_instrs.push_back(instrs.back());
     }
 
     return optimized_instrs;
@@ -88,20 +109,37 @@ std::vector<nlohmann::json> strong_dce(std::vector<nlohmann::json>& instrs) {
     auto CFG = CFGBuilder::build(dce_output);
 
     for (auto& block : CFG) {
-        const auto optimized_block_instr = dce_per_basic_block(block.instrs);
+        auto optimized_block_instr = dce_per_basic_block(block.instrs);
+        auto len = optimized_block_instr.size();
+
+        auto len_changed = true;
+
+        while (len_changed) {
+         optimized_block_instr = dce_per_basic_block(optimized_block_instr);
+         const auto new_len = optimized_block_instr.size();
+
+         if (new_len == len) {
+             len_changed = false;
+         }
+
+         len = new_len;
+        }
         block.instrs = optimized_block_instr;
     }
 
     std::vector<nlohmann::json> output;
 
-    for (const auto& block : CFG) {
-        output.insert(output.begin(), block.instrs.begin(), block.instrs.end());
+    for (auto& block : CFG) {
+        output.push_back({{
+      "label", {block.block_name}}}
+      );
+        output.insert(output.end(), block.instrs.begin(), block.instrs.end());
     }
 
     return output;
 }
 
 void DCE::run(std::vector<nlohmann::json>& instrs) {
-    const auto output = dce_until_convergence(instrs);
+    const auto output = strong_dce(instrs);
     instrs = output;
 }

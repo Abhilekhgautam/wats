@@ -57,14 +57,14 @@ std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& in
     return blocks;
 }
 
-std::unordered_map<std::string, Block> CFGBuilder::ConnectBlocks(std::vector<Block>& blocks) {
-    std::unordered_map<std::string, Block> block_map;
+std::map<std::string, Block> CFGBuilder::ConnectBlocks(std::vector<Block>& blocks) {
+    std::map<std::string, Block> block_map;
 
     for (auto& block : blocks) {
         if (!block.instrs.empty()) {
 
             if (auto last_instr = block.instrs[block.instrs.size() - 1]; last_instr.contains("op")) {
-                if (last_instr["op"] != "br" || last_instr["op"] == "jmp") {
+                if (last_instr["op"] == "br" || last_instr["op"] == "jmp") {
                     auto labels = last_instr["labels"];
                     for (const auto& label : labels) {
                         block.successors.insert(label);

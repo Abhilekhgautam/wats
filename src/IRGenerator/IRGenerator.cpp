@@ -387,10 +387,9 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
     temp_start_expr = std::make_unique<NumberAST>(num->GetNumber(), num->HasDecimal(), unknown_loc);
   }
 
-  const std::string loop_iter_temp = GetTemporaryVariableName();
   temp_start_expr->SetType("i32");
   // FIXME: set type to actual type later.
-  const auto tempAST = VariableDeclareAndAssignAST(loop_iter_temp, "i32", std::move(temp_start_expr), unknown);
+  const auto tempAST = VariableDeclareAndAssignAST(iter_var_name, "i32", std::move(temp_start_expr), unknown);
   const json iter_arg_json = Generate(tempAST);
 
   for (const auto& elt : iter_arg_json) {
@@ -411,7 +410,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   else if (const auto num = dynamic_cast<const NumberAST*>(&end_expr)) {
     temp_end_expr = std::make_unique<NumberAST>(num->GetNumber(), num->HasDecimal(), unknown_loc);
   }
-  auto temp_iter_var_ast = std::make_unique<IdentifierAST>(loop_iter_temp, unknown_loc);
+  auto temp_iter_var_ast = std::make_unique<IdentifierAST>(iter_var_name, unknown_loc);
 
   const auto condition_check_ast = std::make_unique<BinaryExpressionAST>(std::move(temp_iter_var_ast), std::move(temp_end_expr), OperatorNode("<=", unknown_loc), unknown);
 
@@ -488,7 +487,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
   numAST->SetType("i32");
   std::string const_one = GetTemporaryVariableName();
 
-  auto idAST = std::make_unique<IdentifierAST>(loop_iter_temp, unknown_loc);
+  auto idAST = std::make_unique<IdentifierAST>(iter_var_name, unknown_loc);
   idAST->SetType("i32");
 
   // Add 1 to the iteration variable.

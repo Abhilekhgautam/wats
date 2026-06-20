@@ -20,11 +20,47 @@ using nlohmann::json;
 using PassFactory = std::function<std::unique_ptr<Pass>()>;
 
 #ifdef __EMSCRIPTEN__
+std::optional<std::vector<std::string>> parse_passes(std::string_view args) {
+    auto tokens =
+        args
+        | std::views::split(' ')
+        | std::views::transform([](auto&& r) {
+              return std::string_view(&*r.begin(),
+                                      std::ranges::distance(r));
+          });
+
+    std::vector<std::string> passes;
+
+    auto it = tokens.begin();
+    while (it != tokens.end()) {
+        if (*it != "-p") {
+            std::cerr << "Unknown argument " << *it <<'\n' ;
+            return {};
+        }
+
+        ++it;
+        if (it == tokens.end()) {
+            std::cerr << "-p requires a pass name " << '\n';
+            return {};
+        }
+
+        passes.emplace_back(*it);
+        ++it;
+    }
+
+    return passes;
+}
 extern "C" {
 EMSCRIPTEN_KEEPALIVE
-void compile_program(const char *source_code) {
+void compile_program(const char *source_code, const char* flags) {
   std::string source(source_code);
+  std::string options(flags);
 
+  auto opt_req_passes = parse_passes(options);
+
+  if (!opt_req_passes.has_value()) {
+      return;
+  }
   CompilerContext context(source);
 
   Lexer L(context);
@@ -93,8 +129,30 @@ void compile_program(const char *source_code) {
       }
     }
   }
-  // Also flush the buffer ...
-  std::cout << program.dump(4) << std::endl;
+
+    PassManager pm;
+
+    std::unordered_map<std::string, PassFactory> registry;
+
+    registry["dce"] = [] {
+        return std::make_unique<DCE>();
+    };
+
+    for (const auto& pass_name : opt_req_passes.value()) {
+        if (!registry.contains(pass_name)) {
+            std::cerr << "Unknown Pass option : " << pass_name << '\n';
+            return;
+        }
+        pm.addPass(registry.at(pass_name)());
+    }
+
+    for (auto& fn : program["functions"]) {
+        auto instrs = fn["instrs"].get<std::vector<nlohmann::json>>();
+        pm.run(instrs);
+        fn["instrs"] = std::move(instrs);
+    }
+
+    std::cout << program.dump(4) << std::endl;
 }
 }
 #endif

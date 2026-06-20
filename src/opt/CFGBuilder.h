@@ -19,7 +19,7 @@ public:
     static std::vector<Block> build(const std::vector<nlohmann::json>&);
 private:
     static std::vector<Block> CreateBlock(const std::vector<nlohmann::json>&);
-    static std::unordered_map<std::string, Block> ConnectBlocks(std::vector<Block>&);
+    static std::map<std::string, Block> ConnectBlocks(std::vector<Block>&);
 };
 
 

@@ -131,7 +131,7 @@ std::vector<nlohmann::json> strong_dce(std::vector<nlohmann::json>& instrs) {
 
     for (auto& block : CFG) {
         output.push_back({{
-      "label", {block.block_name}}}
+      "label", block.block_name}}
       );
         output.insert(output.end(), block.instrs.begin(), block.instrs.end());
     }

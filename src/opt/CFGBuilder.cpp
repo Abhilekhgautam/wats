@@ -31,7 +31,7 @@ std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& in
         // We encountered a label.
         else {
             if (!block.instrs.empty()){
-                block.successors.insert(instr["label"][0]);
+                block.successors.insert(instr["label"]);
                 blocks.push_back(block);
             }
 
@@ -44,7 +44,7 @@ std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& in
     for (Block& b : blocks) {
         if (b.instrs.size() >= 1) {
             if (b.instrs[0].contains("label")) {
-                b.block_name = b.instrs[0]["label"][0];
+                b.block_name = b.instrs[0]["label"];
                 b.instrs.erase(b.instrs.begin());
             }
             else {

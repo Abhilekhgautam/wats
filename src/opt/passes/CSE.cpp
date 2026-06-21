@@ -15,14 +15,15 @@ void CSE::run(std::vector<nlohmann::json>& instrs) {
         std::vector<nlohmann::json> optimized_instrs;
         for (auto& instr : block.instrs) {
             if (instr.contains("dest")) {
-                if (lvn_environment.contains(instr["dest"]) && !lvn_table.containsName(instr["dest"])) {
-                    const int index = lvn_environment.at(instr["dest"]);
+                auto dest = instr["dest"];
+                if (lvn_environment.contains(dest) && !lvn_table.containsName(dest)) {
+                    const int index = lvn_environment.at(dest);
                     const std::string canonical_var = lvn_table.index2Name.at(index);
 
                     const nlohmann::json new_instr = {
                         {"op", "id"},
                         {"args", {canonical_var}},
-                            {"dest", instr["dest"]}
+                            {"dest", dest}
                     };
                     optimized_instrs.push_back(new_instr);
                 }
@@ -34,7 +35,6 @@ void CSE::run(std::vector<nlohmann::json>& instrs) {
                 optimized_instrs.push_back(instr);
             }
         }
-
         block.instrs = optimized_instrs;
     }
     std::vector<nlohmann::json> output;

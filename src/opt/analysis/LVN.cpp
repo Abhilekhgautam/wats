@@ -53,8 +53,14 @@ LVNResult LVN::run(const std::vector<nlohmann::json>& instrs) {
                }
            }
            else if (args.size() == 1 && instr["op"] == "id") {
-               LVNTableValue value{{}, lvn_environment[instr["args"][0]], {}, "id"};
+               const std::string arg = instr["args"][0];
 
+               LVNTableValue value;
+               if (lvn_environment.contains(arg)) {
+                   value = {lvn_environment[arg], {}, {}, "id"};
+               } else {
+                   value = {{}, arg, {}, "id"};
+               }
                if (instr.contains("dest")) {
                    if (!table.containsValue(value)) {
                        table.addValue(index, instr["dest"], value);
@@ -66,6 +72,7 @@ LVNResult LVN::run(const std::vector<nlohmann::json>& instrs) {
                    }
 
                }
+
            }
        }
 

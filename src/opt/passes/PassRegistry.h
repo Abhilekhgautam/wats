@@ -8,7 +8,9 @@
 #include <string>
 
 enum struct PassKind {
-    DCE
+    DCE,
+    CSE,
+    CopyProp
 };
 
 bool isValidPass(const std::string&);

@@ -8,7 +8,9 @@
 #include <string>
 
 inline std::unordered_map<std::string, PassKind> passTable = {
- {"dce", PassKind::DCE}
+ {"dce", PassKind::DCE},
+    {"cse", PassKind::CSE},
+    {"copy-propagation", PassKind::CopyProp}
 };
 
 bool isValidPass(const std::string& name) {

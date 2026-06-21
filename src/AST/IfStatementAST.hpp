@@ -47,8 +47,8 @@ public:
   bool hasElse() const { return else_ast ? true : false; }
   bool hasElseIf() const { return else_if_ast.size(); }
 
-  ElseStatementAST &GetElseStatement() { return *else_ast; }
-  ElseStatementAST &GetElseStatement() const { return *else_ast; }
+ ElseStatementAST& GetElseStatement() { return *else_ast; }
+ ElseStatementAST& GetElseStatement() const { return *else_ast; }
 
   std::vector<std::unique_ptr<ElseIfStatementAST>> &GetElseIfStatements() {
     return else_if_ast;

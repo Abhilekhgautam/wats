@@ -31,8 +31,15 @@ LVNResult LVN::run(const std::vector<nlohmann::json>& instrs) {
            auto args = instr["args"].get<std::vector<std::string>>();
            // Check if it is an arithmetic op
            if (args.size() == 2) {
-               int lhs = lvn_environment[args[0]];
-               int rhs = lvn_environment[args[1]];
+               std::variant<int, std::string> lhs = args[0];
+               std::variant<int, std::string> rhs = args[1];
+
+               if (lvn_environment.contains(args[0])) {
+                   lhs = lvn_environment[args[0]];
+               }
+               if (lvn_environment.contains(args[1])) {
+                   rhs = lvn_environment[args[1]];
+               }
                if (instr["op"] == "mul" || instr["op"] == "add") {
                   if (lhs > rhs) {
                       std::swap(lhs, rhs);

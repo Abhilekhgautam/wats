@@ -10,7 +10,8 @@
 inline std::unordered_map<std::string, PassKind> passTable = {
  {"dce", PassKind::DCE},
     {"cse", PassKind::CSE},
-    {"copy-propagation", PassKind::CopyProp}
+    {"copy-propagation", PassKind::CopyProp},
+    {"const-folding", PassKind::ConstFolding}
 };
 
 bool isValidPass(const std::string& name) {

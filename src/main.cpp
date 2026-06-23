@@ -1,5 +1,6 @@
 #include "opt/analysis/LVN.h"
 #include "opt/passes/CSE.h"
+#include "opt/passes/ConstantFolding.h"
 #include "opt/passes/CopyPropagation.h"
 #include "opt/passes/dce.h"
 #ifdef __EMSCRIPTEN__
@@ -149,6 +150,10 @@ void compile_program(const char *source_code, const char* flags) {
         return std::make_unique<CopyPropagation>();
     };
 
+    registry["const-folding"] = [] {
+        return std::make_unique<ConstantFolding>();
+    };
+
     for (const auto& pass_name : opt_req_passes.value()) {
         if (!registry.contains(pass_name)) {
             std::cerr << "Unknown Pass option : " << pass_name << '\n';
@@ -261,6 +266,10 @@ int main(int argc, char **argv) {
 
     registry["copy-propagation"] = []{
         return std::make_unique<CopyPropagation>();
+    };
+
+    registry["const-folding"] = [] {
+        return std::make_unique<ConstantFolding>();
     };
 
     for (const auto& pass_name : requested_pass) {

@@ -10,7 +10,8 @@
 enum struct PassKind {
     DCE,
     CSE,
-    CopyProp
+    CopyProp,
+    ConstFolding
 };
 
 bool isValidPass(const std::string&);

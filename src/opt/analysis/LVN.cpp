@@ -64,7 +64,14 @@ LVNResult LVN::run(const std::vector<nlohmann::json>& instrs) {
 
                LVNTableValue value;
                if (lvn_environment.contains(arg)) {
-                   value = {lvn_environment[arg], {}, {}, "id"};
+                   const auto index = lvn_environment[arg];
+                   const auto value_at_index = table.index2Value.at(index);
+
+                   if (value.hasIndex()) {
+                       const auto new_index = value.getCorrespondingIndex();
+                       value = {new_index, {}, {}, "id"};
+                   }
+                   value = {index, {}, {}, "id"};
                } else {
                    value = {{}, arg, {}, "id"};
                }

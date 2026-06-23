@@ -1,6 +1,6 @@
 # Wats
 
-Wats is a compiler front-end and optimizer targeting Bril IR.
+Wats is a compiler front-end and optimizer targeting Bril IR. It has nothing to do with [Wat](https://www.destroyallsoftware.com/talks/wat)
 # Try Online
 Wats can be built to Web Assembly that allows running wats compiler directly on the web.
 Run your code online on [Wats Playground](https://abhilekhgautam.github.io/wats-playground/src/playground.html)

@@ -825,6 +825,11 @@ std::unique_ptr<ExpressionAST> Parser::ParseIdentifier() {
 }
 
 std::unique_ptr<ExpressionAST> Parser::ParseNumber() {
+    bool isNegative {false};
+    if (Peek(TokenName::MINUS)) {
+        isNegative = true;
+        Consume();
+    }
   if (Peek(TokenName::NUMBER)) {
       Token current_tok = GetCurrentToken();
       Consume();
@@ -838,7 +843,8 @@ std::unique_ptr<ExpressionAST> Parser::ParseNumber() {
 
         return {};
       }
-      return std::make_unique<NumberAST>(num, static_cast<bool>(decimal_count), current_tok.GetSourceLocation());
+
+      return std::make_unique<NumberAST>(isNegative ? "-" + num : num, static_cast<bool>(decimal_count), current_tok.GetSourceLocation());
   }
   return {};
 }
@@ -865,7 +871,7 @@ std::unique_ptr<ExpressionAST> Parser::ParsePrimary() {
   if (Peek(TokenName::ID)) {
     return ParseIdentifier();
   }
-  else if (Peek(TokenName::NUMBER)) {
+  else if (Peek(TokenName::NUMBER) || Peek(TokenName::MINUS)) {
     return ParseNumber();
   }
 

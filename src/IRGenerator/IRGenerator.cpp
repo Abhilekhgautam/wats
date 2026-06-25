@@ -702,7 +702,7 @@ json IRGenerator::Generate([[maybe_unused]] const MatchStatementAST &ast) {
             std::vector<std::unique_ptr<ElseIfStatementAST>> empty_else_if;
 
             for (const auto& arm : ast.getArms()) {
-                auto if_stmt = std::make_unique<IfStatementAST>(arm->getCondition(), std::move(arm->getBody()), empty_else_if, nullptr, arm->GetSourceLocation());
+                auto if_stmt = std::make_unique<IfStatementAST>(arm->takeCondition(), std::move(arm->getBody()), empty_else_if, nullptr, arm->GetSourceLocation());
 
                 for (auto if_stmt_json = Generate(*if_stmt); const auto& if_json : if_stmt_json) {
                     retInstruction.push_back(if_json);
@@ -716,11 +716,11 @@ json IRGenerator::Generate([[maybe_unused]] const MatchStatementAST &ast) {
             std::vector<std::unique_ptr<ElseIfStatementAST>> else_if_stmts;
 
             for (const auto& arm : ast.getArms() | std::views::drop(1)) {
-                auto else_if_stmt = std::make_unique<ElseIfStatementAST>(arm->getCondition(), std::move(arm->getBody()), arm->GetSourceLocation());
+                auto else_if_stmt = std::make_unique<ElseIfStatementAST>(arm->takeCondition(), std::move(arm->getBody()), arm->GetSourceLocation());
                 else_if_stmts.push_back(std::move(else_if_stmt));
             }
 
-            const auto if_stmt = std::make_unique<IfStatementAST>(first_arm->getCondition(), std::move(first_arm->getBody()), else_if_stmts, nullptr, first_arm->GetSourceLocation());
+            const auto if_stmt = std::make_unique<IfStatementAST>(first_arm->takeCondition(), std::move(first_arm->getBody()), else_if_stmts, nullptr, first_arm->GetSourceLocation());
 
             for (const auto if_stmt_json = Generate(*if_stmt); const auto& if_json : if_stmt_json) {
                 retInstruction.push_back(if_json);

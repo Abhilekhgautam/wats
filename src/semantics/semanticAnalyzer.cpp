@@ -2,6 +2,7 @@
 #include "scopeType.hpp"
 #include <memory>
 
+#include "../AST/MatchStatementAST.hpp"
 #include "../AST/ReturnStatementAST.h"
 #ifdef __EMSCRIPTEN__
 #include <cerrno>
@@ -23,6 +24,7 @@
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
 #include "../AST/WhileLoopAST.hpp"
+#include "../AST/MatchArmAST.hpp"
 
 #include <cassert>
 #include <charconv>
@@ -204,8 +206,7 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
               ast.GetOperator() + " { " + right_operand.GetType() +
               " } is not allowed",
           // Fix me: this is just a quick fix
-          ast.GetSourceLocation()[1].GetLine(),
-          ast.GetSourceLocation()[1].GetColumn());
+          1,1);
 
     IncrementErrorCount();
   } else {
@@ -481,8 +482,33 @@ void SemanticAnalyzer::Visit(IfStatementAST &ast) {
 }
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseIfStatementAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseStatementAST &ast) {}
-void SemanticAnalyzer::Visit([[maybe_unused]] MatchStatementAST &ast) {}
-void SemanticAnalyzer::Visit([[maybe_unused]] MatchArmAST &ast) {}
+void SemanticAnalyzer::Visit(MatchStatementAST &ast) {
+    for (const auto& elt : ast.getArms()) {
+        elt->Accept(*this);
+    }
+}
+void SemanticAnalyzer::Visit(MatchArmAST &ast) {
+    if (current_scope->GetType() == ScopeType::GLOBAL) {
+        Error("An 'match statement' must be within a function body",
+              ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetLine());
+        IncrementErrorCount();
+        return;
+    }
+
+    auto& condition = ast.getCondition();
+
+    condition.Accept(*this);
+
+    Scope arm_scope(current_scope, ScopeType::BRANCH);
+
+    current_scope = &arm_scope;
+    for (auto &elt : ast.getBody()) {
+        elt->Accept(*this);
+    }
+
+    current_scope = current_scope->GetParent();
+
+}
 void SemanticAnalyzer::Visit([[maybe_unused]] FunctionCallAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] FunctionCallExprAST &ast) {}
 void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {

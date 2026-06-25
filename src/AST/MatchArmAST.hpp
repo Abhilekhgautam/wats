@@ -15,7 +15,8 @@ public:
     void Accept(SemanticAnalyzer& analyzer) override;
     nlohmann::json Accept(IRGenerator& generator) override;
 
-    std::unique_ptr<ExpressionAST> getCondition()  {return std::move(cond);}
+    ExpressionAST& getCondition() {return *cond;}
+    std::unique_ptr<ExpressionAST> takeCondition()  {return std::move(cond);}
 
     std::vector<std::unique_ptr<StatementAST>>& getBody(){return body;}
     const std::vector<std::unique_ptr<StatementAST>>& getBody() const {return body;}

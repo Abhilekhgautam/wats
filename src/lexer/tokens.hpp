@@ -55,7 +55,9 @@ enum class TokenName {
   IF,
   ELSE,
   BREAK,
-  RETURN
+  RETURN,
+    ALL,
+    ONCE
 };
 
 std::ostream &operator<<(std::ostream &os, TokenName type);

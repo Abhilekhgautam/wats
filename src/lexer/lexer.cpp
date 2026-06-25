@@ -17,7 +17,8 @@ std::map<std::string, TokenName> Lexer::keywords = {
     {"while", TokenName::WHILE},   {"loop", TokenName::LOOP},
     {"match", TokenName::MATCH},   {"if", TokenName::IF},
     {"else", TokenName::ELSE},     {"break", TokenName::BREAK},
-  {"return", TokenName::RETURN}
+  {"return", TokenName::RETURN}, {"all", TokenName::ALL},
+    {"once", TokenName::ONCE}
 };
 
 Lexer::Lexer(CompilerContext &context) : context(context) {

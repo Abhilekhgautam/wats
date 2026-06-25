@@ -1173,8 +1173,8 @@ std::unique_ptr<MatchArmAST> Parser::ParseMatchArm() {
     Consume();
   } else {
     Expected("Expected an '=>' after the expression in 'match' body",
-             GENERATE_POSITION_PAST_ONE_COLUMN);
-    DidYouMean("=>", GENERATE_POSITION_PAST_ONE_COLUMN);
+             GENERATE_CURRENT_POSITION);
+    DidYouMean("=>", GENERATE_CURRENT_POSITION);
     IncrementErrorCount();
 
     return {};
@@ -1206,44 +1206,50 @@ Parser::ParseMatchStatement() {
   } else
     return {};
 
-  auto expr = ParseExpression();
-  if (!expr) {
-    Expected("Expected an expression after the 'match' keyword",
-             GENERATE_POSITION_PAST_ONE_COLUMN);
-    IncrementErrorCount();
 
-    return {};
-  }
+    if (!Peek(TokenName::ALL) && !Peek(TokenName::ONCE)) {
+        Expected("Expected one of 'all' or 'once' after the 'match' keyword",
+             GENERATE_CURRENT_POSITION);
+        IncrementErrorCount();
 
-  if (Peek(TokenName::OPEN_CURLY)) {
-    curly_brace_position = current_parser_position + 1;
+        return {};
+    }
+
+    const std::string match_type = GetCurrentToken().GetValue();
     Consume();
-  } else {
-    Expected("Expected an '{' after the expression in match",
-             GENERATE_POSITION_PAST_ONE_COLUMN);
-    IncrementErrorCount();
 
-    return {};
-  }
+    if (Peek(TokenName::OPEN_CURLY)) {
+        curly_brace_position = current_parser_position + 1;
+        Consume();
+    } else {
+        Expected("Expected an '{' after the expression in match",
+                              GENERATE_POSITION_PAST_ONE_COLUMN);
+        IncrementErrorCount();
+
+        return {};
+    }
 
   auto arms = ParseMatchArms();
 
   if (arms.empty()) {
-    return {};
+      Expected("Expected match arms for the match statement", GENERATE_POSITION_PAST_ONE_COLUMN);
+      return {};
   }
 
-  if (Peek(TokenName::CLOSE_CURLY)) {
+    if (Peek(TokenName::CLOSE_CURLY)) {
     Consume();
-    return std::make_unique<MatchStatementAST>(std::move(expr),
+      MatchType type = match_type == "all" ? MatchType::ALL : MatchType::ONCE;
+    return std::make_unique<MatchStatementAST>(type,
                                                std::move(arms));
-  } else {
+    }
+
     Expected("Expected a closing pair for '{'",
              token_vec[curly_brace_position].GetLine(),
              token_vec[curly_brace_position].GetColumn());
     IncrementErrorCount();
 
     return {};
-  }
+
 }
 
 std::unique_ptr<IfStatementAST> Parser::ParseIfStatement() {

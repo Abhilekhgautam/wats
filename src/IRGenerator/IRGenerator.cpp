@@ -11,6 +11,7 @@
 #include <format>
 
 #include "../AST/ForLoopAST.hpp"
+#include "../AST/MatchStatementAST.hpp"
 
 using nlohmann::json;
 
@@ -562,13 +563,25 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
 
   GetContext().SetIfExitLabel(exit_label);
 
-  json break_instruction = {
-      {"op", "br"},
-      {"labels", {success_label, failure_label}},
-      {"args", {"cond"}},
-  };
+    if (ast.hasElse() || ast.hasElseIf()) {
+        json break_instruction = {
+            {"op", "br"},
+            {"labels", {success_label, failure_label}},
+            {"args", {"cond"}},
+        };
 
-  retInstruction.push_back(break_instruction);
+        retInstruction.push_back(break_instruction);
+    }
+    else {
+        json break_instruction = {
+            {"op", "br"},
+            {"labels", {success_label, exit_label}},
+            {"args", {"cond"}},
+        };
+
+        retInstruction.push_back(break_instruction);
+    }
+
 
   const json label_instruction = {{"label", success_label}};
   retInstruction.push_back(label_instruction);
@@ -589,8 +602,10 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
   const json jump_exit = {{"op", "jmp"}, {"labels", {exit_label}}};
   retInstruction.push_back(jump_exit);
 
-  const json if_fail = {{"label", failure_label}};
-  retInstruction.push_back(if_fail);
+    if (ast.hasElse() || ast.hasElseIf()) {
+        const json if_fail = {{"label", failure_label}};
+        retInstruction.push_back(if_fail);
+    }
 
   // Generate Else If
   for (const auto& elt: ast.GetElseIfStatements()) {
@@ -677,9 +692,45 @@ json IRGenerator::Generate([[maybe_unused]] const MatchArmAST &ast) {
 }
 
 json IRGenerator::Generate([[maybe_unused]] const MatchStatementAST &ast) {
-  json instruction;
+    json retInstruction = json::array();
 
-  return instruction;
+    const auto match_type = ast.getType();
+
+    if (!ast.getArms().empty()) {
+
+        if (match_type == MatchType::ALL) {
+            std::vector<std::unique_ptr<ElseIfStatementAST>> empty_else_if;
+
+            for (const auto& arm : ast.getArms()) {
+                auto if_stmt = std::make_unique<IfStatementAST>(arm->getCondition(), std::move(arm->getBody()), empty_else_if, nullptr, arm->GetSourceLocation());
+
+                for (auto if_stmt_json = Generate(*if_stmt); const auto& if_json : if_stmt_json) {
+                    retInstruction.push_back(if_json);
+                }
+            }
+
+        }
+
+        else {
+            auto& first_arm = ast.getArms()[0];
+            std::vector<std::unique_ptr<ElseIfStatementAST>> else_if_stmts;
+
+            for (const auto& arm : ast.getArms() | std::views::drop(1)) {
+                auto else_if_stmt = std::make_unique<ElseIfStatementAST>(arm->getCondition(), std::move(arm->getBody()), arm->GetSourceLocation());
+                else_if_stmts.push_back(std::move(else_if_stmt));
+            }
+
+            const auto if_stmt = std::make_unique<IfStatementAST>(first_arm->getCondition(), std::move(first_arm->getBody()), else_if_stmts, nullptr, first_arm->GetSourceLocation());
+
+            for (const auto if_stmt_json = Generate(*if_stmt); const auto& if_json : if_stmt_json) {
+                retInstruction.push_back(if_json);
+            }
+
+        }
+
+    }
+
+    return retInstruction;
 }
 
 json IRGenerator::Generate([[maybe_unused]] const RangeAST &ast) {

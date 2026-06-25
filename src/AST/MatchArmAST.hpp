@@ -7,18 +7,24 @@
 #include <vector>
 
 class MatchArmAST : public StatementAST{
-    public:
-       MatchArmAST(std::unique_ptr<ExpressionAST> cond, std::vector<std::unique_ptr<StatementAST>> body)
-       : cond(std::move(cond)), body(std::move(body)){}
+public:
+    MatchArmAST(std::unique_ptr<ExpressionAST> cond, std::vector<std::unique_ptr<StatementAST>> body)
+    : cond(std::move(cond)), body(std::move(body)){}
 
-       virtual ~MatchArmAST() = default;
-       void Accept(SemanticAnalyzer& analyzer) override;
-       nlohmann::json Accept(IRGenerator& generator) override;
+    virtual ~MatchArmAST() = default;
+    void Accept(SemanticAnalyzer& analyzer) override;
+    nlohmann::json Accept(IRGenerator& generator) override;
 
-    private:
+    std::unique_ptr<ExpressionAST> getCondition()  {return std::move(cond);}
+
+    std::vector<std::unique_ptr<StatementAST>>& getBody(){return body;}
+    const std::vector<std::unique_ptr<StatementAST>>& getBody() const {return body;}
+
+
+private:
       std::unique_ptr<ExpressionAST> cond;
       std::vector<std::unique_ptr<StatementAST>> body;
-    public:
+public:
       void Debug() override;
       SourceLocation GetSourceLocation() override {return {};}
 };

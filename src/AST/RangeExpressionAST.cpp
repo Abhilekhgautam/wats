@@ -1,16 +1,12 @@
 #include "RangeExpressionAST.hpp"
-#include "../IRGenerator/IRGenerator.hpp"
 #include <iostream>
+#include "../IRGenerator/IRGenerator.hpp"
 
-void RangeAST::Accept(SemanticAnalyzer& analyzer){
-    analyzer.Visit(*this);
-}
+void RangeAST::Accept(SemanticAnalyzer &analyzer) { analyzer.Visit(*this); }
 
-nlohmann::json RangeAST::Accept(IRGenerator& generator){
-    return generator.Generate(*this);
-}
+nlohmann::json RangeAST::Accept(IRGenerator &generator) { return generator.Generate(*this); }
 
-void RangeAST::Debug(){
+void RangeAST::Debug() {
     std::cout << "Range: \n";
     start->Debug();
     end->Debug();

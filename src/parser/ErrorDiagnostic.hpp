@@ -1,5 +1,3 @@
 
 
-class ErrorDiagnostic{
-
-};
+class ErrorDiagnostic {};

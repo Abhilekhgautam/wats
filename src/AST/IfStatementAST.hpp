@@ -10,52 +10,46 @@
 
 class IfStatementAST : public StatementAST {
 public:
-  IfStatementAST(std::unique_ptr<ExpressionAST> condition,
-                 std::vector<std::unique_ptr<StatementAST>> if_body,
-                 std::vector<std::unique_ptr<ElseIfStatementAST>> &else_if_ast,
-                 std::unique_ptr<ElseStatementAST> else_ast, SourceLocation loc)
-      : condition(std::move(condition)), if_body(std::move(if_body)),
-        else_if_ast(std::move(else_if_ast)), loc(loc) {
-    if (else_ast) {
-      this->else_ast = std::move(else_ast);
-    } else {
-      else_ast = nullptr;
+    IfStatementAST(std::unique_ptr<ExpressionAST> condition, std::vector<std::unique_ptr<StatementAST>> if_body,
+                   std::vector<std::unique_ptr<ElseIfStatementAST>> &else_if_ast,
+                   std::unique_ptr<ElseStatementAST> else_ast, SourceLocation loc) :
+        condition(std::move(condition)), if_body(std::move(if_body)), else_if_ast(std::move(else_if_ast)), loc(loc) {
+        if (else_ast) {
+            this->else_ast = std::move(else_ast);
+        } else {
+            else_ast = nullptr;
+        }
     }
-  }
 
-  virtual ~IfStatementAST() = default;
+    virtual ~IfStatementAST() = default;
 
-  void Accept(SemanticAnalyzer &analyzer) override;
-  nlohmann::json Accept(IRGenerator &generator) override;
+    void Accept(SemanticAnalyzer &analyzer) override;
+    nlohmann::json Accept(IRGenerator &generator) override;
 
 private:
-  std::unique_ptr<ExpressionAST> condition;
-  std::vector<std::unique_ptr<StatementAST>> if_body;
-  std::vector<std::unique_ptr<ElseIfStatementAST>> else_if_ast;
-  std::unique_ptr<ElseStatementAST> else_ast;
-  SourceLocation loc;
+    std::unique_ptr<ExpressionAST> condition;
+    std::vector<std::unique_ptr<StatementAST>> if_body;
+    std::vector<std::unique_ptr<ElseIfStatementAST>> else_if_ast;
+    std::unique_ptr<ElseStatementAST> else_ast;
+    SourceLocation loc;
 
 public:
-  void Debug() override;
-  SourceLocation GetSourceLocation() override { return loc; };
-  const std::vector<std::unique_ptr<StatementAST>>& GetIfBody() const { return if_body; }
-  std::vector<std::unique_ptr<StatementAST>>& GetIfBody(){ return if_body; }
+    void Debug() override;
+    SourceLocation GetSourceLocation() override { return loc; };
+    const std::vector<std::unique_ptr<StatementAST>> &GetIfBody() const { return if_body; }
+    std::vector<std::unique_ptr<StatementAST>> &GetIfBody() { return if_body; }
 
 
-  ExpressionAST &GetIfCondition() const { return *condition; }
+    ExpressionAST &GetIfCondition() const { return *condition; }
 
-  bool hasElse() const { return else_ast ? true : false; }
-  bool hasElseIf() const { return else_if_ast.size(); }
+    bool hasElse() const { return else_ast ? true : false; }
+    bool hasElseIf() const { return else_if_ast.size(); }
 
- ElseStatementAST& GetElseStatement() { return *else_ast; }
- ElseStatementAST& GetElseStatement() const { return *else_ast; }
+    ElseStatementAST &GetElseStatement() { return *else_ast; }
+    ElseStatementAST &GetElseStatement() const { return *else_ast; }
 
-  std::vector<std::unique_ptr<ElseIfStatementAST>> &GetElseIfStatements() {
-    return else_if_ast;
-  }
-  const std::vector<std::unique_ptr<ElseIfStatementAST>> &GetElseIfStatements() const {
-    return else_if_ast;
-  }
+    std::vector<std::unique_ptr<ElseIfStatementAST>> &GetElseIfStatements() { return else_if_ast; }
+    const std::vector<std::unique_ptr<ElseIfStatementAST>> &GetElseIfStatements() const { return else_if_ast; }
 };
 
 #endif

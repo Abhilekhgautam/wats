@@ -7,7 +7,7 @@
 #include "../CFGBuilder.h"
 #include "../analysis/LVN.h"
 
-std::optional<int> getFoldedValue(const std::string& instr_op, int lhs_val, int rhs_val) {
+std::optional<int> getFoldedValue(const std::string &instr_op, int lhs_val, int rhs_val) {
     if (instr_op == "add") {
         return lhs_val + rhs_val;
     }
@@ -42,11 +42,11 @@ std::optional<int> getFoldedValue(const std::string& instr_op, int lhs_val, int 
     return {};
 }
 
-std::optional<int> getConstantFromId(auto& lvn_table, auto& val) {
+std::optional<int> getConstantFromId(auto &lvn_table, auto &val) {
     if (val.hasIndex()) {
         const auto index = val.getCorrespondingIndex();
         const auto index_value = lvn_table.index2Value.at(index);
-        const std::string& op = index_value.op;
+        const std::string &op = index_value.op;
 
         if (op == "const") {
             return index_value.value;
@@ -55,48 +55,40 @@ std::optional<int> getConstantFromId(auto& lvn_table, auto& val) {
     return {};
 }
 
-nlohmann::json createConstOp(const std::string& type, const std::string& dest, const int value) {
+nlohmann::json createConstOp(const std::string &type, const std::string &dest, const int value) {
     nlohmann::json new_instr;
 
     if (type == "bool") {
-        new_instr = {
-            {"op", "const"},
-            {"dest", dest},
-            {"value", nlohmann::json::boolean_t{static_cast<bool>(value)}},
-            {"type", type}
-        };
-    }
-    else {
-        new_instr = {
-            {"op", "const"},
-            {"dest", dest},
-            {"value", value},
-            {"type", type}
-        };
+        new_instr = {{"op", "const"},
+                     {"dest", dest},
+                     {"value", nlohmann::json::boolean_t{static_cast<bool>(value)}},
+                     {"type", type}};
+    } else {
+        new_instr = {{"op", "const"}, {"dest", dest}, {"value", value}, {"type", type}};
     }
 
     return new_instr;
 }
 
-void ConstantFolding::run(std::vector<nlohmann::json>& instrs) {
+void ConstantFolding::run(std::vector<nlohmann::json> &instrs) {
     auto CFG = CFGBuilder::build(instrs);
 
-    for (auto& block : CFG) {
+    for (auto &block: CFG) {
 
         bool code_changed;
         do {
             code_changed = false;
-            const auto& [lvn_environment, lvn_table] = LVN::run(block.instrs);
+            const auto &[lvn_environment, lvn_table] = LVN::run(block.instrs);
             std::vector<nlohmann::json> optimized_instrs;
-            for (auto& instr : block.instrs) {
+            for (auto &instr: block.instrs) {
                 if (instr.contains("op") && instr.contains("dest") && instr.contains("args")) {
-                    const auto& args = instr["args"].get<std::vector<std::string>>();
+                    const auto &args = instr["args"].get<std::vector<std::string>>();
 
                     if (args.size() == 2) {
-                        const auto& lhs = args[0];
-                        const auto& rhs = args[1];
+                        const auto &lhs = args[0];
+                        const auto &rhs = args[1];
 
-                        const auto& instr_op = instr["op"];
+                        const auto &instr_op = instr["op"];
                         const auto type = instr["type"];
                         const auto dest_index = lvn_environment.at(instr["dest"]);
 
@@ -120,8 +112,7 @@ void ConstantFolding::run(std::vector<nlohmann::json>& instrs) {
 
                                     code_changed = true;
                                     optimized_instrs.push_back(createConstOp(type, instr["dest"], folded_value));
-                                }
-                                else if (lhs_op == "id" && rhs_op == "id") {
+                                } else if (lhs_op == "id" && rhs_op == "id") {
                                     const auto lhs_val = getConstantFromId(lvn_table, lhs_index_value).value();
                                     const auto rhs_val = getConstantFromId(lvn_table, rhs_index_value).value();
 
@@ -129,43 +120,36 @@ void ConstantFolding::run(std::vector<nlohmann::json>& instrs) {
 
                                     code_changed = true;
                                     optimized_instrs.push_back(createConstOp(type, instr["dest"], folded_value));
-                                }
-                                else if (lhs_op == "id" && rhs_op == "const") {
-                                    const auto lhs_val = getConstantFromId( lvn_table, lhs_index_value).value();
+                                } else if (lhs_op == "id" && rhs_op == "const") {
+                                    const auto lhs_val = getConstantFromId(lvn_table, lhs_index_value).value();
                                     const auto rhs_val = rhs_index_value.value.value();
 
                                     int folded_value = getFoldedValue(instr_op, lhs_val, rhs_val).value();
 
                                     code_changed = true;
                                     optimized_instrs.push_back(createConstOp(type, instr["dest"], folded_value));
-                                }
-                                else if (lhs_op == "const" && rhs_op == "id") {
+                                } else if (lhs_op == "const" && rhs_op == "id") {
                                     const auto lhs_val = lhs_index_value.value.value();
-                                    const auto rhs_val = getConstantFromId( lvn_table, rhs_index_value).value();
+                                    const auto rhs_val = getConstantFromId(lvn_table, rhs_index_value).value();
 
                                     auto folded_value = getFoldedValue(instr_op, lhs_val, rhs_val).value();
 
                                     code_changed = true;
                                     optimized_instrs.push_back(createConstOp(type, instr["dest"], folded_value));
 
-                                }
-                                else {
+                                } else {
                                     optimized_instrs.push_back(instr);
                                 }
-                            }
-                            else {
+                            } else {
                                 optimized_instrs.push_back(instr);
                             }
-                        }
-                        else {
+                        } else {
                             optimized_instrs.push_back(instr);
                         }
-                    }
-                    else {
+                    } else {
                         optimized_instrs.push_back(instr);
                     }
-                }
-                else {
+                } else {
                     optimized_instrs.push_back(instr);
                 }
             }
@@ -176,10 +160,8 @@ void ConstantFolding::run(std::vector<nlohmann::json>& instrs) {
     }
     std::vector<nlohmann::json> output;
 
-    for (auto& block : CFG) {
-        output.push_back({{
-      "label", block.block_name}}
-      );
+    for (auto &block: CFG) {
+        output.push_back({{"label", block.block_name}});
         output.insert(output.end(), block.instrs.begin(), block.instrs.end());
     }
 

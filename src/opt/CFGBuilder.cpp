@@ -4,19 +4,19 @@
 
 #include "CFGBuilder.h"
 
-#include <set>
 #include <format>
 #include <ranges>
+#include <set>
 
 static int block_counter{0};
 
 const std::set<std::string> terminators = {"br", "jmp", "ret"};
 
-std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& instrs) {
+std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json> &instrs) {
     std::vector<Block> blocks;
 
     Block block{};
-    for (const auto& instr : instrs) {
+    for (const auto &instr: instrs) {
         if (instr.contains("op")) {
             block.instrs.push_back(instr);
 
@@ -30,7 +30,7 @@ std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& in
         }
         // We encountered a label.
         else {
-            if (!block.instrs.empty()){
+            if (!block.instrs.empty()) {
                 block.successors.insert(instr["label"]);
                 blocks.push_back(block);
             }
@@ -38,16 +38,14 @@ std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& in
             block = {};
             block.instrs.push_back(instr);
         }
-
     }
 
-    for (Block& b : blocks) {
+    for (Block &b: blocks) {
         if (b.instrs.size() >= 1) {
             if (b.instrs[0].contains("label")) {
                 b.block_name = b.instrs[0]["label"];
                 b.instrs.erase(b.instrs.begin());
-            }
-            else {
+            } else {
                 b.block_name = std::format("b{}", block_counter);
                 block_counter = block_counter + 1;
             }
@@ -57,30 +55,29 @@ std::vector<Block> CFGBuilder::CreateBlock(const std::vector<nlohmann::json>& in
     return blocks;
 }
 
-std::map<std::string, Block> CFGBuilder::ConnectBlocks(std::vector<Block>& blocks) {
+std::map<std::string, Block> CFGBuilder::ConnectBlocks(std::vector<Block> &blocks) {
     std::map<std::string, Block> block_map;
 
-    for (auto& block : blocks) {
+    for (auto &block: blocks) {
         if (!block.instrs.empty()) {
 
             if (auto last_instr = block.instrs[block.instrs.size() - 1]; last_instr.contains("op")) {
                 if (last_instr["op"] == "br" || last_instr["op"] == "jmp") {
                     auto labels = last_instr["labels"];
-                    for (const auto& label : labels) {
+                    for (const auto &label: labels) {
                         block.successors.insert(label);
                     }
                 }
             }
         }
-
     }
 
-    for (const auto& block : blocks) {
+    for (const auto &block: blocks) {
         block_map.emplace(block.block_name, block);
     }
 
-    for (const auto& block : blocks) {
-        for (auto& successor : block.successors) {
+    for (const auto &block: blocks) {
+        for (auto &successor: block.successors) {
             if (block_map.contains(successor)) {
                 block_map[successor].predecessors.insert(block.block_name);
             }
@@ -90,16 +87,15 @@ std::map<std::string, Block> CFGBuilder::ConnectBlocks(std::vector<Block>& block
     return block_map;
 }
 
-std::vector<Block> CFGBuilder::build(const std::vector<nlohmann::json>& json) {
+std::vector<Block> CFGBuilder::build(const std::vector<nlohmann::json> &json) {
     std::vector<Block> CFG;
 
     auto blocks = CreateBlock(json);
     auto block_map = ConnectBlocks(blocks);
 
-    for (const auto& [name, block] : block_map) {
+    for (const auto &[name, block]: block_map) {
         CFG.push_back(block);
     }
 
     return CFG;
 }
-

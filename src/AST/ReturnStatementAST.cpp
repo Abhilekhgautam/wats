@@ -5,15 +5,11 @@
 #include "ReturnStatementAST.h"
 #include "../IRGenerator/IRGenerator.hpp"
 
-void ReturnStatementAST::Accept(SemanticAnalyzer& analyzer){
-    analyzer.Visit(*this);
-}
+void ReturnStatementAST::Accept(SemanticAnalyzer &analyzer) { analyzer.Visit(*this); }
 
-nlohmann::json ReturnStatementAST::Accept(IRGenerator& generator){
-    return generator.Generate(*this);
-}
+nlohmann::json ReturnStatementAST::Accept(IRGenerator &generator) { return generator.Generate(*this); }
 
-void ReturnStatementAST::Debug(){
+void ReturnStatementAST::Debug() {
     std::cout << "Return\n";
     expr->Debug();
 }

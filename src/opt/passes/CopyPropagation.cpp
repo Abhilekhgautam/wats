@@ -13,18 +13,18 @@
 
 #include <iostream>
 
-void CopyPropagation::run(std::vector<nlohmann::json>& instrs) {
+void CopyPropagation::run(std::vector<nlohmann::json> &instrs) {
     auto CFG = CFGBuilder::build(instrs);
 
-    for (auto& block : CFG) {
-        const auto& [lvn_environment, lvn_table] = LVN::run(block.instrs);
+    for (auto &block: CFG) {
+        const auto &[lvn_environment, lvn_table] = LVN::run(block.instrs);
 
         bool changed;
         do {
             changed = false;
-            const auto& [lvn_environment, lvn_table] = LVN::run(block.instrs);
+            const auto &[lvn_environment, lvn_table] = LVN::run(block.instrs);
             std::vector<nlohmann::json> optimized_instrs;
-            for (auto& instr : block.instrs) {
+            for (auto &instr: block.instrs) {
                 if (instr.contains("args")) {
                     if (instr.contains("op")) {
                         const std::string op = instr["op"];
@@ -40,25 +40,14 @@ void CopyPropagation::run(std::vector<nlohmann::json>& instrs) {
 
                                     if (op == "id") {
                                         const nlohmann::json new_instr = {
-                                            {"op", "id"},
-                                            {"args", {ref_var_name}},
-                                            {"dest", instr["dest"]}
-                                        };
+                                                {"op", "id"}, {"args", {ref_var_name}}, {"dest", instr["dest"]}};
                                         optimized_instrs.push_back(new_instr);
-                                    }
-                                    else if (op == "br") {
+                                    } else if (op == "br") {
                                         const nlohmann::json new_instr = {
-                                            {"op", "br"},
-                                            {"args", {ref_var_name}},
-                                            {"labels", instr["labels"]}
-                                        };
+                                                {"op", "br"}, {"args", {ref_var_name}}, {"labels", instr["labels"]}};
                                         optimized_instrs.push_back(new_instr);
-                                    }
-                                    else {
-                                        const nlohmann::json new_instr = {
-                                            {"op", "ret"},
-                                            {"args", {ref_var_name}}
-                                        };
+                                    } else {
+                                        const nlohmann::json new_instr = {{"op", "ret"}, {"args", {ref_var_name}}};
                                         optimized_instrs.push_back(new_instr);
                                     }
                                     changed = true;
@@ -69,9 +58,13 @@ void CopyPropagation::run(std::vector<nlohmann::json>& instrs) {
                                 optimized_instrs.push_back(instr);
                             }
                         }
+                        else if (instr.contains("op") && instr["op"] == "call") {
+                            // TODO: impl for function call later
+                            optimized_instrs.push_back(instr);
+                        }
                         // Has args, has op but is not id must be some arithmetic operations
                         else {
-                            const auto& args = instr["args"].get<std::vector<std::string>>();
+                            const auto &args = instr["args"].get<std::vector<std::string>>();
                             const std::string dest = instr["dest"];
 
                             auto lhs = args[0];
@@ -89,8 +82,7 @@ void CopyPropagation::run(std::vector<nlohmann::json>& instrs) {
                                             lhs = lvn_table.index2Name.at(new_lhs_index);
                                             changed = true;
                                         }
-                                    }
-                                    else if (lhs_value.op == "id") {
+                                    } else if (lhs_value.op == "id") {
                                         auto possible_lhs = std::get<std::string>(lhs_value.lhs.value());
                                         if (lvn_environment.contains(possible_lhs)) {
                                             auto possible_rhs_index = lvn_environment.at(possible_lhs);
@@ -115,8 +107,7 @@ void CopyPropagation::run(std::vector<nlohmann::json>& instrs) {
                                             rhs = lvn_table.index2Name.at(new_rhs_index);
                                             changed = true;
                                         }
-                                    }
-                                    else if (rhs_value.op == "id") {
+                                    } else if (rhs_value.op == "id") {
                                         auto possible_rhs = std::get<std::string>(rhs_value.lhs.value());
                                         if (lvn_environment.contains(possible_rhs)) {
                                             auto possible_rhs_index = lvn_environment.at(possible_rhs);
@@ -132,25 +123,20 @@ void CopyPropagation::run(std::vector<nlohmann::json>& instrs) {
                             instr["args"] = nlohmann::json::array({lhs, rhs});
                             optimized_instrs.push_back(instr);
                         }
-                    }
-                    else {
+                    } else {
                         optimized_instrs.push_back(instr);
                     }
-                }
-                else {
+                } else {
                     optimized_instrs.push_back(instr);
                 }
             }
             block.instrs = optimized_instrs;
         } while (changed);
-
     }
     std::vector<nlohmann::json> output;
 
-    for (auto& block : CFG) {
-        output.push_back({{
-      "label", block.block_name}}
-      );
+    for (auto &block: CFG) {
+        output.push_back({{"label", block.block_name}});
         output.insert(output.end(), block.instrs.begin(), block.instrs.end());
     }
 

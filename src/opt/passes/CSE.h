@@ -7,11 +7,11 @@
 
 #include "Pass.h"
 
-class CSE : public Pass{
+class CSE : public Pass {
 public:
-    std::string name() override {return "cse";}
-    void run(std::vector<nlohmann::json>&) override;
+    std::string name() override { return "cse"; }
+    void run(std::vector<nlohmann::json> &) override;
 };
 
 
-#endif //WATS_CSE_H
+#endif // WATS_CSE_H

@@ -9,9 +9,9 @@
 
 class ConstantFolding : public Pass {
 public:
-    std::string name() override {return "const-folding";}
-    void run(std::vector<nlohmann::json>&) override;
+    std::string name() override { return "const-folding"; }
+    void run(std::vector<nlohmann::json> &) override;
 };
 
 
-#endif //WATS_CONSTANTFOLDING_H
+#endif // WATS_CONSTANTFOLDING_H

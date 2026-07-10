@@ -3,16 +3,16 @@
 
 #include "utils.hpp"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 class CompilerContext {
-    public:
-        CompilerContext(const std::string& source_code){
-            this->source_code = source_code;
-            source_code_by_line = split_str(source_code);
-        }
-        std::string source_code;
-        std::vector<std::string> source_code_by_line;
+public:
+    CompilerContext(const std::string &source_code) {
+        this->source_code = source_code;
+        source_code_by_line = split_str(source_code);
+    }
+    std::string source_code;
+    std::vector<std::string> source_code_by_line;
 };
 #endif

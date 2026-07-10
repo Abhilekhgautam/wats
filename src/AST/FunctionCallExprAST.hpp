@@ -5,31 +5,33 @@
 
 #include "../SourceLocation.hpp"
 #include "FunctionParameterAST.hpp"
+#include "IdentifierAST.hpp"
 
 class FunctionCallExprAST : public ExpressionAST {
 public:
-  FunctionCallExprAST(std::string fn_name,
-                      std::unique_ptr<FunctionParameterAST> args,
-                      SourceLocation &loc)
-      : fn_name(fn_name), args(std::move(args)), loc(loc) {}
+    FunctionCallExprAST(std::unique_ptr<IdentifierAST> fn_name, std::unique_ptr<FunctionParameterAST> args, SourceLocation &loc) :
+        fn_name(std::move(fn_name)), args(std::move(args)), loc(loc) {}
 
-  virtual ~FunctionCallExprAST() = default;
-  void Accept(SemanticAnalyzer &analyzer) override;
-  nlohmann::json Accept(IRGenerator& generator) override;
+    ~FunctionCallExprAST() = default;
+    void Accept(SemanticAnalyzer &analyzer) override;
+    nlohmann::json Accept(IRGenerator &generator) override;
 
 private:
-  std::string fn_name;
-  std::unique_ptr<FunctionParameterAST> args;
-  SourceLocation loc;
+    std::unique_ptr<IdentifierAST> fn_name;
+    std::unique_ptr<FunctionParameterAST> args;
+    SourceLocation loc;
 
 public:
-  void Debug() override;
-  std::span<const SourceLocation> GetSourceLocation() override {
-    return {&loc, 1};
-  }
-  std::string GetType() const override { return "call"; }
+    void Debug() override;
+    std::span<const SourceLocation> GetSourceLocation() override { return {&loc, 1}; }
 
-  int GetLength() override;
+    IdentifierAST& getIdentifier() {return *fn_name;}
+    FunctionParameterAST& getArguments() {return *args;}
+
+    IdentifierAST& getIdentifier() const {return *fn_name;}
+    FunctionParameterAST& getArguments() const {return *args;}
+
+    int GetLength() override;
 };
 
 #endif

@@ -8,107 +8,105 @@
 #include <vector>
 
 std::string read_file(std::filesystem::path path);
-std::vector<std::string> split_str(const std::string &text,
-                                   const std::string delim = "\n");
+std::vector<std::string> split_str(const std::string &text, const std::string delim = "\n");
 #ifndef HIGHLIGHT_TERM_
 #define HIGHLIGHT_TERM_
 #ifdef _WIN32
 
 #include <windows.h>
 inline void Color(std::string color, std::string line, bool newLine = false) {
-  HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-  int col = 7;
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    int col = 7;
 
-  if (color == "blue")
-    col = 1;
-  else if (color == "green")
-    col = 2;
-  else if (color == "red")
-    col = 4;
+    if (color == "blue")
+        col = 1;
+    else if (color == "green")
+        col = 2;
+    else if (color == "red")
+        col = 4;
 
-  SetConsoleTextAttribute(hConsole, col);
-  std::cout << line;
-  if (newLine) {
-    std::cout << '\n';
-  }
+    SetConsoleTextAttribute(hConsole, col);
+    std::cout << line;
+    if (newLine) {
+        std::cout << '\n';
+    }
 
-  SetConsoleTextAttribute(hConsole, 7);
+    SetConsoleTextAttribute(hConsole, 7);
 }
 
 #else
 
 inline void Color(std::string color, std::string line, bool newLine = false) {
-  std::string col = "\033[0m";
+    std::string col = "\033[0m";
 
-  if (color == "blue")
-    col = "\033[0;34m";
-  else if (color == "green")
-    col = "\033[0;32m";
-  else if (color == "red")
-    col = "\033[0;31m";
+    if (color == "blue")
+        col = "\033[0;34m";
+    else if (color == "green")
+        col = "\033[0;32m";
+    else if (color == "red")
+        col = "\033[0;31m";
 
-  std::cout << col << line << "\033[0m";
-  if (newLine) {
-    std::cout << '\n';
-  }
+    std::cout << col << line << "\033[0m";
+    if (newLine) {
+        std::cout << '\n';
+    }
 }
 
 #endif
 
 inline std::string SetArrow(std::size_t pos, std::size_t times = 1) {
-  std::string arrows;
-  for (size_t i = 0; i < pos - 1; ++i)
-    arrows += ' ';
-  for (size_t i = 0; i < times; ++i)
-    arrows += '^';
-  return arrows;
+    std::string arrows;
+    for (size_t i = 0; i < pos - 1; ++i)
+        arrows += ' ';
+    for (size_t i = 0; i < times; ++i)
+        arrows += '^';
+    return arrows;
 }
 
 // Helper to create arrow string starting at a given position
 inline std::string SetArrowLeft(int pos, int times = 1) {
-  std::string arrows;
-  for (int i = 0; i < pos; ++i)
-    arrows += ' ';
-  for (int i = 0; i < times; ++i)
-    arrows += '^';
-  return arrows;
+    std::string arrows;
+    for (int i = 0; i < pos; ++i)
+        arrows += ' ';
+    for (int i = 0; i < times; ++i)
+        arrows += '^';
+    return arrows;
 }
 
 // Overload for base case (empty arrow)
 inline std::string SetArrowLeft() { return ""; }
 
 // Combine multiple arrow segments
-inline std::string CombineArrows(const std::string &base,
-                                 const std::string &overlay) {
-  std::string result = base;
-  if (result.size() < overlay.size())
-    result.resize(overlay.size(), ' ');
+inline std::string CombineArrows(const std::string &base, const std::string &overlay) {
+    std::string result = base;
+    if (result.size() < overlay.size())
+        result.resize(overlay.size(), ' ');
 
-  for (size_t i = 0; i < overlay.size(); ++i) {
-    if (overlay[i] == '^')
-      result[i] = '^';
-  }
-  return result;
+    for (size_t i = 0; i < overlay.size(); ++i) {
+        if (overlay[i] == '^')
+            result[i] = '^';
+    }
+    return result;
 }
 
 // Recursive variadic template
 inline std::string MultiPartArrow() { return ""; }
 
-template <typename... TArgs>
+template<typename... TArgs>
 inline std::string MultiPartArrow(int start, int len, TArgs... rest) {
-  std::string current = SetArrowLeft(start, len);
-  std::string tail = MultiPartArrow(rest...);
-  return CombineArrows(current, tail);
+    std::string current = SetArrowLeft(start, len);
+    std::string tail = MultiPartArrow(rest...);
+    return CombineArrows(current, tail);
 }
 
 inline std::string SetPlus(std::size_t pos, std::size_t times = 1) {
-  std::string plus;
-  for (size_t i = 0; i < pos - 1; ++i)
-    plus += ' ';
-  for (size_t i = 0; i < times; ++i)
-    plus += '+';
+    std::string plus;
+    for (size_t i = 0; i < pos - 1; ++i)
+        plus += ' ';
+    for (size_t i = 0; i < times; ++i)
+        plus += '+';
 
-  return plus;
+    return plus;
 }
 
 #endif

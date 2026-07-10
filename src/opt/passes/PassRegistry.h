@@ -7,14 +7,9 @@
 
 #include <string>
 
-enum struct PassKind {
-    DCE,
-    CSE,
-    CopyProp,
-    ConstFolding
-};
+enum struct PassKind { DCE, CSE, CopyProp, ConstFolding, SimplifyCFG };
 
-bool isValidPass(const std::string&);
+bool isValidPass(const std::string &);
 
 
-#endif //WATS_PASSREGISTRY_H
+#endif // WATS_PASSREGISTRY_H

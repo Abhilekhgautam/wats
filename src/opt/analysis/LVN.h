@@ -5,10 +5,10 @@
 #ifndef WATS_LVN_H
 #define WATS_LVN_H
 
-#include <string>
-#include <ostream>
-#include <variant>
 #include <nlohmann/json.hpp>
+#include <ostream>
+#include <string>
+#include <variant>
 
 
 struct LVNTableValue {
@@ -21,7 +21,7 @@ struct LVNTableValue {
     // Stores the operations - add , id , const
     std::string op;
 
-    bool operator == (const LVNTableValue& other) const{
+    bool operator==(const LVNTableValue &other) const {
         return (value == other.value && op == other.op && lhs == other.lhs && rhs == other.rhs);
     }
 
@@ -42,55 +42,41 @@ struct LVNTableValue {
     // }
 
     // Does the value field contains an index
-    [[nodiscard]]bool hasIndex() const {
-        return (op == "id" && value.has_value());
-    }
+    [[nodiscard]] bool hasIndex() const { return (op == "id" && value.has_value()); }
 
     // Get the index.
     // Only call if hasIndex() returns true.
-    [[nodiscard]]int getCorrespondingIndex() const{
-        return value.value();
-    }
+    [[nodiscard]] int getCorrespondingIndex() const { return value.value(); }
 };
 
 struct LVNTable {
     std::unordered_map<int, LVNTableValue> index2Value;
     std::unordered_map<int, std::string> index2Name;
 
-    void addValue(const int index, const std::string& name, const LVNTableValue& value) {
+    void addValue(const int index, const std::string &name, const LVNTableValue &value) {
         index2Name[index] = name;
         index2Value[index] = value;
     }
-    bool containsValue(const LVNTableValue& value) {
-        return std::ranges::any_of(index2Value | std::views::values, [value](const auto& v) {
-            return v == value;
-        });
-
+    bool containsValue(const LVNTableValue &value) {
+        return std::ranges::any_of(index2Value | std::views::values, [value](const auto &v) { return v == value; });
     }
 
-    bool containsName(const std::string& name) {
-        return std::ranges::any_of(index2Name | std::views::values, [name](const auto& n) {
-            return n == name;
-        });
-
+    bool containsName(const std::string &name) {
+        return std::ranges::any_of(index2Name | std::views::values, [name](const auto &n) { return n == name; });
     }
 
-    bool containsValue(const LVNTableValue& value) const {
-        return std::ranges::any_of(index2Value | std::views::values, [value](const auto& v) {
-            return v == value;
-        });
+    bool containsValue(const LVNTableValue &value) const {
+        return std::ranges::any_of(index2Value | std::views::values, [value](const auto &v) { return v == value; });
     }
 
-    bool containsName(const std::string& name) const {
-        return std::ranges::any_of(index2Name | std::views::values, [name](const auto& n) {
-            return n == name;
-        });
-
+    bool containsName(const std::string &name) const {
+        return std::ranges::any_of(index2Name | std::views::values, [name](const auto &n) { return n == name; });
     }
 
-    std::optional<int> getIndex(const LVNTableValue& value) {
-        for (const auto& [id, v] : index2Value) {
-            if (v == value) return id;
+    std::optional<int> getIndex(const LVNTableValue &value) {
+        for (const auto &[id, v]: index2Value) {
+            if (v == value)
+                return id;
         }
         // Caller must ensure the value was previously added
         // Unreachable, just to supress warning
@@ -105,8 +91,8 @@ struct LVNResult {
 
 class LVN {
 public:
-    static LVNResult run(const std::vector<nlohmann::json>&);
+    static LVNResult run(const std::vector<nlohmann::json> &);
 };
 
 
-#endif //WATS_LVN_H
+#endif // WATS_LVN_H

@@ -16,11 +16,12 @@ struct Block {
 
 class CFGBuilder {
 public:
-    static std::vector<Block> build(const std::vector<nlohmann::json>&);
+    static std::vector<Block> build(const std::vector<nlohmann::json> &);
+
 private:
-    static std::vector<Block> CreateBlock(const std::vector<nlohmann::json>&);
-    static std::map<std::string, Block> ConnectBlocks(std::vector<Block>&);
+    static std::vector<Block> CreateBlock(const std::vector<nlohmann::json> &);
+    static std::map<std::string, Block> ConnectBlocks(std::vector<Block> &);
 };
 
 
-#endif //WATS_CFGBUILDER_H
+#endif // WATS_CFGBUILDER_H

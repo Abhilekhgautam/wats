@@ -10,48 +10,48 @@
 
 class Lexer {
 public:
-  Lexer(CompilerContext &context);
-  void Tokenize();
-  // Write the given error msg to stdout
-  void Error(const std::string &err_msg);
+    Lexer(CompilerContext &context);
+    void Tokenize();
+    // Write the given error msg to stdout
+    void Error(const std::string &err_msg);
 
-  const std::vector<Token> &GetTokens();
+    const std::vector<Token> &GetTokens();
 
-  static std::map<std::string, TokenName> keywords;
+    static std::map<std::string, TokenName> keywords;
 
-  CompilerContext &context;
+    CompilerContext &context;
 
-  void IncrementErrorCount() { error_count++; }
+    void IncrementErrorCount() { error_count++; }
 
-  // Print the Token Information
-  void Debug();
+    // Print the Token Information
+    void Debug();
 
 private:
-  // Maintain the current column position
-  int column;
-  // Maintain the current line number
-  int line;
-  // Position where the Lexer is currently at
-  std::size_t current_scan_position;
+    // Maintain the current column position
+    int column;
+    // Maintain the current line number
+    int line;
+    // Position where the Lexer is currently at
+    std::size_t current_scan_position;
 
-  std::vector<Token> token_vec;
+    std::vector<Token> token_vec;
 
-  // Check if the Lexer reached the end of string
-  bool IsAtEnd();
-  void ScanToken(const char c);
-  // Push token to the token_vec
-  void AddToken(Token tok);
-  // Return the element next to current_scan_position
-  char Peek();
-  // Return the element next to next of current_scan_position
-  char PeekNext();
-  // Eat the next char
-  void ConsumeNext();
+    // Check if the Lexer reached the end of string
+    bool IsAtEnd();
+    void ScanToken(const char c);
+    // Push token to the token_vec
+    void AddToken(Token tok);
+    // Return the element next to current_scan_position
+    char Peek();
+    // Return the element next to next of current_scan_position
+    char PeekNext();
+    // Eat the next char
+    void ConsumeNext();
 
-  std::string Number();
-  std::string Identifier();
-  std::string String();
+    std::string Number();
+    std::string Identifier();
+    std::string String();
 
-  int error_count = 0;
+    int error_count = 0;
 };
 #endif

@@ -1,16 +1,12 @@
 #include "FunctionDefinitionAST.hpp"
-#include "../IRGenerator/IRGenerator.hpp"
 #include <iostream>
+#include "../IRGenerator/IRGenerator.hpp"
 
-void FunctionDefinitionAST::Accept(SemanticAnalyzer& analyzer){
-    analyzer.Visit(*this);
-}
+void FunctionDefinitionAST::Accept(SemanticAnalyzer &analyzer) { analyzer.Visit(*this); }
 
-nlohmann::json FunctionDefinitionAST::Accept(IRGenerator& generator){
-    return generator.Generate(*this);
-}
+nlohmann::json FunctionDefinitionAST::Accept(IRGenerator &generator) { return generator.Generate(*this); }
 
-void FunctionDefinitionAST::Debug(){
+void FunctionDefinitionAST::Debug() {
     std::cout << "Function: " << fn_name->GetName() << '\n';
     std::cout << "Function Arguments:\n";
     // if (arguments){
@@ -20,7 +16,7 @@ void FunctionDefinitionAST::Debug(){
     // }
     std::cout << '\n';
     std::cout << "Function Body:\n";
-    for(const auto& elt: function_body){
+    for (const auto &elt: function_body) {
         elt->Debug();
     }
 }

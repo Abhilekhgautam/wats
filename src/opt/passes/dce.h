@@ -8,8 +8,8 @@
 
 class DCE : public Pass {
 public:
-    std::string name() override {return "dce";}
-    void run(std::vector<nlohmann::json>&) override;
+    std::string name() override { return "dce"; }
+    void run(std::vector<nlohmann::json> &) override;
 };
 
 #endif // WATS_DCE_H

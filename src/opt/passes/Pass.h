@@ -12,7 +12,7 @@ class Pass {
 public:
     virtual ~Pass() = default;
     virtual std::string name() = 0;
-    virtual void run(std::vector<nlohmann::json>&) = 0;
+    virtual void run(std::vector<nlohmann::json> &) = 0;
 };
 
 #endif // WATS_PASS_H

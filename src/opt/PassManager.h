@@ -10,14 +10,13 @@
 
 class PassManager {
 public:
-    void addPass(std::unique_ptr<Pass> p) {
-        passes.push_back(std::move(p));
-    }
-    void run(std::vector<nlohmann::json>& instrs) const{
-        for (const auto& pass : passes) {
+    void addPass(std::unique_ptr<Pass> p) { passes.push_back(std::move(p)); }
+    void run(std::vector<nlohmann::json> &instrs) const {
+        for (const auto &pass: passes) {
             pass->run(instrs);
         }
     }
+
 private:
     std::vector<std::unique_ptr<Pass>> passes;
 };

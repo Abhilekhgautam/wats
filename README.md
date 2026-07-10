@@ -27,6 +27,22 @@ function factorial (num: i32) -> i32{
   
   return result;
 }
+
+function cube (num : i32) -> i32 {
+    return num * num * num;
+}
+
+function demo_match(num: i32) -> i32 {
+   let result = 1;
+
+   # syntactic sugar for if else
+   match once {
+     result < 30 => {result = 30;}
+     result < 50 => {result = 45;}
+   }
+
+  return result;
+}
 ```
 # Compiling a Wats Program
 

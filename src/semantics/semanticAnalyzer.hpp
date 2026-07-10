@@ -37,62 +37,56 @@ class FunctionCallExprAST;
 
 class SemanticAnalyzer {
 public:
-  SemanticAnalyzer(CompilerContext &context,
-                   std::vector<std::unique_ptr<StatementAST>> &stmt_ast)
-      : context(context), stmt_ast(stmt_ast) {}
-  void analyze();
-  CompilerContext &context;
+    SemanticAnalyzer(CompilerContext &context, std::vector<std::unique_ptr<StatementAST>> &stmt_ast) :
+        context(context), stmt_ast(stmt_ast) {}
+    void analyze();
+    CompilerContext &context;
 
 public:
-  std::vector<std::unique_ptr<StatementAST>> &stmt_ast;
-  void Visit(VariableDeclarationAST &ast);
-  void Visit(VariableAssignmentAST &ast);
-  void Visit(VariableDeclareAndAssignAST &ast);
-  void Visit(WhileLoopAST &ast);
-  void Visit(ForLoopAST &ast);
-  void Visit(LoopAST &ast);
-  void Visit(BreakStatementAST &ast);
-  void Visit(IfStatementAST &ast);
-  void Visit(ElseIfStatementAST &ast);
-  void Visit(ElseStatementAST &ast);
-  void Visit(FunctionArgumentAST &ast);
-  void Visit(FunctionCallAST &ast);
-  void Visit(FunctionDefinitionAST &ast);
-  void Visit(MatchStatementAST &ast);
-  void Visit(MatchArmAST &ast);
+    std::vector<std::unique_ptr<StatementAST>> &stmt_ast;
+    void Visit(VariableDeclarationAST &ast);
+    void Visit(VariableAssignmentAST &ast);
+    void Visit(VariableDeclareAndAssignAST &ast);
+    void Visit(WhileLoopAST &ast);
+    void Visit(ForLoopAST &ast);
+    void Visit(LoopAST &ast);
+    void Visit(BreakStatementAST &ast);
+    void Visit(IfStatementAST &ast);
+    void Visit(ElseIfStatementAST &ast);
+    void Visit(ElseStatementAST &ast);
+    void Visit(FunctionArgumentAST &ast);
+    void Visit(FunctionCallAST &ast);
+    void Visit(FunctionDefinitionAST &ast);
+    void Visit(MatchStatementAST &ast);
+    void Visit(MatchArmAST &ast);
 
-  void Visit(BinaryExpressionAST &ast);
-  void Visit(IdentifierAST &ast);
-  void Visit(NumberAST &ast);
-  void Visit(RangeAST &ast);
-  void Visit(FunctionCallExprAST &ast);
-  void Visit(ReturnStatementAST& ast);
+    void Visit(BinaryExpressionAST &ast);
+    void Visit(IdentifierAST &ast);
+    void Visit(NumberAST &ast);
+    void Visit(RangeAST &ast);
+    void Visit(FunctionCallExprAST &ast);
+    void Visit(ReturnStatementAST &ast);
 
 
 public:
-  void Error(const std::string str, std::size_t line, std::size_t column,
-             int len = 1);
-  template <typename... TArgs>
-  void MultiPartError(const std::string str, std::size_t line,
-                      std::size_t column, int len, TArgs... args);
-  void Expected(const std::string, std::size_t line, std::size_t column);
-  void Unexpected(const std::string, std::size_t line, std::size_t column,
-                  std::size_t times = 0);
-  void AddFunctionToSymbolTable(std::string name, FunctionInfo info) {
-    table.AddToSymbolTable(name, info);
-  }
-  std::optional<FunctionInfo> FindSymbolTable(std::string name) {
-    return table.FindInSymbolTable(name);
-  }
+    void Error(const std::string &str, std::size_t line, std::size_t column, int len = 1);
+    template<typename... TArgs>
+    void MultiPartError(const std::string &str, std::size_t line, std::size_t column, const int len, TArgs... args);
+    void Expected(const std::string &, std::size_t line, std::size_t column);
+    void Unexpected(const std::string &, std::size_t line, std::size_t column, std::size_t times = 0);
+    void AddFunctionToSymbolTable(const std::string &name, const FunctionInfo &info) {
+        table.AddToSymbolTable(name, info);
+    }
+    std::optional<FunctionInfo> FindSymbolTable(const std::string &name) { return table.FindInSymbolTable(name); }
 
-  bool HasErrors() { return error_count > 0; }
-  void IncrementErrorCount() { error_count++; }
+    bool HasErrors() const { return error_count > 0; }
+    void IncrementErrorCount() { error_count++; }
 
 private:
-  Scope *current_scope;
-  FunctionSymbolTable table;
+    Scope *current_scope;
+    FunctionSymbolTable table;
 
-  int error_count = 0;
+    int error_count = 0;
 };
 
 #endif

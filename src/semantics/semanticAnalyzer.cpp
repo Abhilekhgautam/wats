@@ -1,6 +1,6 @@
+#include <memory>
 #include "functionSymbolTable.hpp"
 #include "scopeType.hpp"
-#include <memory>
 
 #include "../AST/MatchStatementAST.hpp"
 #include "../AST/ReturnStatementAST.h"
@@ -18,590 +18,609 @@
 #include "../AST/IdentifierAST.hpp"
 #include "../AST/IfStatementAST.hpp"
 #include "../AST/LoopAST.hpp"
+#include "../AST/MatchArmAST.hpp"
 #include "../AST/NumberAST.hpp"
 #include "../AST/StatementAST.hpp"
 #include "../AST/VariableAssignmentAST.hpp"
 #include "../AST/VariableDeclarationAST.hpp"
 #include "../AST/VariableDeclareAndAssignAST.hpp"
 #include "../AST/WhileLoopAST.hpp"
-#include "../AST/MatchArmAST.hpp"
 
 #include <cassert>
 #include <charconv>
-#include <iostream>
 #include <format>
+#include <iostream>
 
-void SemanticAnalyzer::Error(const std::string str, std::size_t line,
-                             std::size_t column, int len) {
-  std::cout << "[ " << line << ":" << column << " ] ";
-  Color("red", "Error: ");
-  Color("blue", str, true);
+void SemanticAnalyzer::Error(const std::string &str, const std::size_t line, const std::size_t column, const int len) {
+    std::cout << "[ " << line << ":" << column << " ] ";
+    Color("red", "Error: ");
+    Color("blue", str, true);
 
-  std::cout << context.source_code_by_line[line - 1] << '\n';
-  Color("green", SetArrow(column, len), true);
+    std::cout << context.source_code_by_line[line - 1] << '\n';
+    Color("green", SetArrow(column, len), true);
 }
 
-template <typename... Params>
-void SemanticAnalyzer::MultiPartError(const std::string str, std::size_t line,
-                                      std::size_t column, int len,
-                                      Params... rest) {
-  std::cout << "[ " << line << ":" << column << " ] ";
-  Color("red", "Error: ");
-  Color("blue", str, true);
+template<typename... Params>
+void SemanticAnalyzer::MultiPartError(const std::string &str, const std::size_t line, const std::size_t column,
+                                      const int len, Params... rest) {
+    std::cout << "[ " << line << ":" << column << " ] ";
+    Color("red", "Error: ");
+    Color("blue", str, true);
 
-  std::cout << context.source_code_by_line[line - 1] << '\n';
+    std::cout << context.source_code_by_line[line - 1] << '\n';
 
-  Color("green", MultiPartArrow(column, len, std::forward<Params>(rest)...),
-        true);
+    Color("green", MultiPartArrow(column, len, std::forward<Params>(rest)...), true);
 }
 
-void SemanticAnalyzer::Expected(const std::string str, std::size_t line,
-                                std::size_t column) {
+void SemanticAnalyzer::Expected(const std::string &str, const std::size_t line, const std::size_t column) {
 
-  std::cout << "[ " << line << ":" << column << " ] ";
-  Color("red", "Error: ");
-  Color("blue", str, true);
+    std::cout << "[ " << line << ":" << column << " ] ";
+    Color("red", "Error: ");
+    Color("blue", str, true);
 
-  std::cout << context.source_code_by_line[line - 1] << '\n';
-  Color("green", SetArrow(column, 1), true);
+    std::cout << context.source_code_by_line[line - 1] << '\n';
+    Color("green", SetArrow(column, 1), true);
 }
 
-void SemanticAnalyzer::Unexpected(const std::string str, std::size_t line,
-                                  std::size_t column, std::size_t times) {
+void SemanticAnalyzer::Unexpected(const std::string &str, const std::size_t line, const std::size_t column,
+                                  const std::size_t times) {
 
-  std::cout << "[ " << line << ":" << column << " ] ";
-  Color("red", "Error: ");
-  Color("blue", str, true);
+    std::cout << "[ " << line << ":" << column << " ] ";
+    Color("red", "Error: ");
+    Color("blue", str, true);
 
-  std::cout << context.source_code_by_line[line - 1] << '\n';
-  if (!times) {
-    /*Color("red",
-          SetArrow(column - GetCurrentToken().GetValue().length() + 1,
-                   GetCurrentToken().GetValue().length()),
-          true);*/
-  } else {
-    Color("red", SetArrow(column - times + 1, times), true);
-  }
+    std::cout << context.source_code_by_line[line - 1] << '\n';
+    if (!times) {
+        /*Color("red",
+              SetArrow(column - GetCurrentToken().GetValue().length() + 1,
+                       GetCurrentToken().GetValue().length()),
+              true);*/
+    } else {
+        Color("red", SetArrow(column - times + 1, times), true);
+    }
 }
 
 void SemanticAnalyzer::analyze() {
-  // Create a Global Scope
-  Scope temp_scope(nullptr, ScopeType::GLOBAL);
-  current_scope = &temp_scope;
+    // Create a Global Scope
+    Scope temp_scope(nullptr, ScopeType::GLOBAL);
+    current_scope = &temp_scope;
 
-  for (const auto &elt : stmt_ast) {
-    elt->Accept(*this);
-  }
+    for (const auto &elt: stmt_ast) {
+        elt->Accept(*this);
+    }
 }
 
 void SemanticAnalyzer::Visit(VariableDeclarationAST &ast) {
-  auto result = current_scope->FindSymbolInCurrentScope(ast.GetVarName());
-  if (result.has_value()) {
-    Error("Variable " + ast.GetVarName() +
-              " already declared in the current scope",
-          ast.GetVarLocation().GetLine(), ast.GetVarLocation().GetColumn());
-    IncrementErrorCount();
-  } else {
-    current_scope->AddSymbol(ast.GetVarName(), ast.GetType());
-  }
+    auto result = current_scope->FindSymbolInCurrentScope(ast.GetVarName());
+    if (result.has_value()) {
+        Error("Variable " + ast.GetVarName() + " already declared in the current scope", ast.GetVarLocation().GetLine(),
+              ast.GetVarLocation().GetColumn());
+        IncrementErrorCount();
+    } else {
+        current_scope->AddSymbol(ast.GetVarName(), ast.GetType());
+    }
 }
 
 void SemanticAnalyzer::Visit(NumberAST &ast) {
-  const std::string num = ast.GetNumber();
+    const std::string num = ast.GetNumber();
 
-  if (ast.HasDecimal()) {
-    double value;
+    if (ast.HasDecimal()) {
+        double value;
 #ifdef __EMSCRIPTEN__
-    char *ptr{};
-    auto result = strtod(num.data(), &ptr);
-    if (errno == ERANGE) {
-      Error(num + "  is not within the f64 range",
-            ast.GetSourceLocation().front().GetLine(),
-            ast.GetSourceLocation().front().GetColumn(), num.length());
-      IncrementErrorCount();
-      return;
-    }
+        char *ptr{};
+        auto result = strtod(num.data(), &ptr);
+        if (errno == ERANGE) {
+            Error(num + "  is not within the f64 range", ast.GetSourceLocation().front().GetLine(),
+                  ast.GetSourceLocation().front().GetColumn(), num.length());
+            IncrementErrorCount();
+            return;
+        }
 #endif
 
 #ifndef __EMSCRIPTEN__
-    // Convert to double
-    auto result = std::from_chars(num.data(), num.data() + num.size(), value);
+        // Convert to double
+        auto result = std::from_chars(num.data(), num.data() + num.size(), value);
 
-    if (result.ec == std::errc::result_out_of_range) {
-      Error(num + "  is not within the f64 range",
-            ast.GetSourceLocation().front().GetLine(),
-            ast.GetSourceLocation().front().GetColumn(), num.length());
-      IncrementErrorCount();
-      return;
-    }
+        if (result.ec == std::errc::result_out_of_range) {
+            Error(num + "  is not within the f64 range", ast.GetSourceLocation().front().GetLine(),
+                  ast.GetSourceLocation().front().GetColumn(), num.length());
+            IncrementErrorCount();
+            return;
+        }
 #endif
-    // later decide the bitwidth based on the usage.
-    ast.SetType("float");
-    ast.SetValue(value);
-  } else {
-    long long value;
+        // later decide the bitwidth based on the usage.
+        ast.SetType("float");
+        ast.SetValue(value);
+    } else {
+        long long value;
 
-    auto result = std::from_chars(num.data(), num.data() + num.size(), value);
+        auto result = std::from_chars(num.data(), num.data() + num.size(), value);
 
-    if (result.ec == std::errc::result_out_of_range) {
-      // Out of range error
-      IncrementErrorCount();
-      return;
+        if (result.ec == std::errc::result_out_of_range) {
+            // Out of range error
+            IncrementErrorCount();
+            return;
+        }
+        // decide the bit-width later based on the usage.
+        ast.SetType("int");
+        ast.SetValue(value);
     }
-    // decide the bit-width later based on the usage.
-    ast.SetType("int");
-    ast.SetValue(value);
-  }
 }
 
 void SemanticAnalyzer::Visit(IdentifierAST &ast) {
-  auto result = current_scope->FindSymbol(ast.GetName());
+    auto result = current_scope->FindSymbol(ast.GetName());
 
-  if (!result.has_value()) {
-    Error("No such variable " + ast.GetName() + " in the current scope",
-          ast.GetSourceLocation().front().GetLine(),
-          ast.GetSourceLocation().front().GetColumn());
-    IncrementErrorCount();
-  } else {
-    // Annotate the node with type information
-    ast.SetType(result.value().get().GetType());
-  }
+    if (!result.has_value()) {
+        Error("No such variable " + ast.GetName() + " in the current scope", ast.GetSourceLocation().front().GetLine(),
+              ast.GetSourceLocation().front().GetColumn());
+        IncrementErrorCount();
+    } else {
+        // Annotate the node with type information
+        ast.SetType(result.value().get().GetType());
+    }
 }
 
 void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
-  // Check type of the operands
-  ExpressionAST &left_operand = ast.GetLeftOperand();
-  ExpressionAST &right_operand = ast.GetRightOperand();
+    // Check type of the operands
+    ExpressionAST &left_operand = ast.GetLeftOperand();
+    ExpressionAST &right_operand = ast.GetRightOperand();
 
-  // Visit the left operand
-  left_operand.Accept(*this);
+    // Visit the left operand
+    left_operand.Accept(*this);
 
-  // Visit the right operand
-  right_operand.Accept(*this);
+    // Visit the right operand
+    right_operand.Accept(*this);
 
-  if (left_operand.GetType() == "float") {
-    if (right_operand.GetType() == "f32" || right_operand.GetType() == "f64") {
-        left_operand.SetType(right_operand.GetType());
+    if (left_operand.GetType() == "float") {
+        if (right_operand.GetType() == "f32" || right_operand.GetType() == "f64") {
+            left_operand.SetType(right_operand.GetType());
+        }
     }
-  }
-  if (left_operand.GetType() == "int") {
-    if (right_operand.GetType() == "i32" || right_operand.GetType() == "i64") {
-      left_operand.SetType(right_operand.GetType());
+    if (left_operand.GetType() == "int") {
+        if (right_operand.GetType() == "i32" || right_operand.GetType() == "i64") {
+            left_operand.SetType(right_operand.GetType());
+        }
     }
-  }
 
-  if (right_operand.GetType() == "float") {
-    if (left_operand.GetType() == "f32" || left_operand.GetType() == "f64") {
-      right_operand.SetType(left_operand.GetType());
+    if (right_operand.GetType() == "float") {
+        if (left_operand.GetType() == "f32" || left_operand.GetType() == "f64") {
+            right_operand.SetType(left_operand.GetType());
+        }
     }
-  }
-  if (right_operand.GetType() == "int") {
-    if (left_operand.GetType() == "i32" || left_operand.GetType() == "i64") {
-      right_operand.SetType(left_operand.GetType());
+    if (right_operand.GetType() == "int") {
+        if (left_operand.GetType() == "i32" || left_operand.GetType() == "i64") {
+            right_operand.SetType(left_operand.GetType());
+        }
     }
-  }
 
-  if (left_operand.GetType() != right_operand.GetType()) {
-    Error("The operation { " + left_operand.GetType() + " } " +
-              ast.GetOperator() + " { " + right_operand.GetType() +
-              " } is not allowed",
-          // Fix me: this is just a quick fix
-          1,1);
+    if (left_operand.GetType() != right_operand.GetType()) {
+        Error("The operation { " + left_operand.GetType() + " } " + ast.GetOperator() + " { " +
+                      right_operand.GetType() + " } is not allowed",
+              // Fix me: this is just a quick fix
+              1, 1);
 
-    IncrementErrorCount();
-  } else {
-    // We are sure that all the operands are of the same type
-    ast.SetType(left_operand.GetType());
-  }
+        IncrementErrorCount();
+    } else {
+        // We are sure that all the operands are of the same type
+        ast.SetType(left_operand.GetType());
+    }
 }
 
 void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
-  const std::string var_name = ast.GetVarName();
-  if (auto result = current_scope->FindSymbol(var_name); !result.has_value()) {
-    Error("Variable: '" + var_name +
-              "' used without previous declaration in the current scope",
-          ast.GetSourceLocation().GetLine(),
-          ast.GetSourceLocation().GetColumn(), var_name.length());
-    IncrementErrorCount();
-  } else {
-    auto &assigned_expr = ast.GetExpr();
-    // Visit the expression
-    assigned_expr.Accept(*this);
+    const std::string var_name = ast.GetVarName();
+    if (auto result = current_scope->FindSymbol(var_name); !result.has_value()) {
+        Error("Variable: '" + var_name + "' used without previous declaration in the current scope",
+              ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetColumn(), var_name.length());
+        IncrementErrorCount();
+    } else {
+        auto &assigned_expr = ast.GetExpr();
+        // Visit the expression
+        assigned_expr.Accept(*this);
 
-    std::string var_type = result.value().get().GetType();
+        std::string var_type = result.value().get().GetType();
 
-    if (var_type.empty()) {
-      // Update the symbol table
-      current_scope->UpdateSymbolTable(var_name, assigned_expr.GetType());
-      return;
-    }
-
-    if (assigned_expr.GetType() == "int") {
-      if (var_type == "i64" || var_type == "i32") {
-        assigned_expr.SetType(var_type);
-        if (const auto id = dynamic_cast<IdentifierAST*>(&assigned_expr)) {
-          // Update the symbol table.
-          current_scope->UpdateSymbolTable(id->GetName(), var_type);
+        if (var_type.empty()) {
+            // Update the symbol table
+            current_scope->UpdateSymbolTable(var_name, assigned_expr.GetType());
+            return;
         }
-      }
-    }
-    else if (assigned_expr.GetType() == "float") {
-      if (var_type == "f32" || var_type == "f64") {
-        assigned_expr.SetType(var_type);
-        if (const auto id = dynamic_cast<IdentifierAST*>(&assigned_expr)) {
-          // Update the symbol table.
-          current_scope->UpdateSymbolTable(id->GetName(), var_type);
-        }
-      }
-    }
-    else if (var_type == "int" || var_type == "float") {
-      if (assigned_expr.GetType() == "i32" || assigned_expr.GetType() == "i64" || assigned_expr.GetType() == "f32" || assigned_expr.GetType() == "f64") {
-        var_type = assigned_expr.GetType();
-        current_scope->UpdateSymbolTable(var_name, var_type);
 
-      }
+        if (assigned_expr.GetType() == "int") {
+            if (var_type == "i64" || var_type == "i32") {
+                assigned_expr.SetType(var_type);
+                if (const auto id = dynamic_cast<IdentifierAST *>(&assigned_expr)) {
+                    // Update the symbol table.
+                    current_scope->UpdateSymbolTable(id->GetName(), var_type);
+                }
+            }
+        } else if (assigned_expr.GetType() == "float") {
+            if (var_type == "f32" || var_type == "f64") {
+                assigned_expr.SetType(var_type);
+                if (const auto id = dynamic_cast<IdentifierAST *>(&assigned_expr)) {
+                    // Update the symbol table.
+                    current_scope->UpdateSymbolTable(id->GetName(), var_type);
+                }
+            }
+        } else if (var_type == "int" || var_type == "float") {
+            if (assigned_expr.GetType() == "i32" || assigned_expr.GetType() == "i64" ||
+                assigned_expr.GetType() == "f32" || assigned_expr.GetType() == "f64") {
+                var_type = assigned_expr.GetType();
+                current_scope->UpdateSymbolTable(var_name, var_type);
+            }
+        }
+        if (assigned_expr.GetType() != var_type) {
+            // Error: Type mismatch
+            MultiPartError("Type Mismatch: " + assigned_expr.GetType() + " cannot be assigned to variable of type " +
+                                   var_type + ".",
+                           ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetColumn() - var_name.length(),
+                           var_name.length(),
+                           ast.GetExpr().GetSourceLocation()[0].GetColumn() - ast.GetExpr().GetLength(),
+                           ast.GetExpr().GetLength());
+            IncrementErrorCount();
+        }
     }
-    if (assigned_expr.GetType() != var_type) {
-      // Error: Type mismatch
-      MultiPartError("Type Mismatch: " + assigned_expr.GetType() +
-                         " cannot be assigned to variable of type " + var_type +
-                         ".",
-                     ast.GetSourceLocation().GetLine(),
-                     ast.GetSourceLocation().GetColumn() - var_name.length(),
-                     var_name.length(),
-                     ast.GetExpr().GetSourceLocation()[0].GetColumn() -
-                         ast.GetExpr().GetLength(),
-                     ast.GetExpr().GetLength());
-      IncrementErrorCount();
-    }
-  }
 }
 
 void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
-  std::string var_name = ast.GetVarName();
-  auto result = current_scope->FindSymbolInCurrentScope(var_name);
-  if (result.has_value()) {
-    Error("Variable " + var_name + " already declared in the current scope",
-          ast.GetSourceLocation().GetLine(),
-          ast.GetSourceLocation().GetColumn(), var_name.length());
-    IncrementErrorCount();
-  } else {
-    auto &expr = ast.GetExpr();
-    expr.Accept(*this);
-
-    const std::string var_type = ast.GetType();
-    const std::string expr_type = expr.GetType();
-
-    if (var_type.empty()) {
-      ast.SetType(expr_type);
-      current_scope->AddSymbol(var_name, expr_type);
+    const std::string var_name = ast.GetVarName();
+    if (const auto result = current_scope->FindSymbolInCurrentScope(var_name); result.has_value()) {
+        Error("Variable " + var_name + " already declared in the current scope", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetColumn(), var_name.length());
+        IncrementErrorCount();
     } else {
-      if (var_type != expr_type) {
-        if (expr_type == "int" && (var_type == "i32" || var_type == "i64")) {
-          expr.SetType(var_type);
-          ast.SetType(var_type);
-          current_scope->AddSymbol(var_name, var_type);
+        auto &expr = ast.GetExpr();
+        expr.Accept(*this);
 
-          if (const auto id = dynamic_cast<IdentifierAST*>(&expr)) {
-              current_scope->UpdateSymbolTable(id->GetName(), var_type);
-          }
+        const std::string var_type = ast.GetType();
+        const std::string expr_type = expr.GetType();
+
+        if (var_type.empty()) {
+            ast.SetType(expr_type);
+            current_scope->AddSymbol(var_name, expr_type);
+        } else {
+            if (var_type != expr_type) {
+                if (expr_type == "int" && (var_type == "i32" || var_type == "i64")) {
+                    expr.SetType(var_type);
+                    ast.SetType(var_type);
+                    current_scope->AddSymbol(var_name, var_type);
+
+                    if (const auto id = dynamic_cast<IdentifierAST *>(&expr)) {
+                        current_scope->UpdateSymbolTable(id->GetName(), var_type);
+                    }
+                } else if (expr_type == "float" && (var_type == "f32" || var_type == "f64")) {
+                    expr.SetType(var_type);
+                    ast.SetType(var_type);
+                    current_scope->AddSymbol(var_name, var_type);
+
+                    if (const auto id = dynamic_cast<IdentifierAST *>(&expr)) {
+                        current_scope->UpdateSymbolTable(id->GetName(), var_type);
+                    }
+                } else {
+                    MultiPartError("Type Mismatch: " + expr_type + " cannot be assigned to a variable of " + var_type,
+                                   ast.GetSourceLocation().GetLine(),
+                                   ast.GetSourceLocation().GetColumn() - var_name.length(), var_name.length(),
+                                   ast.GetExpr().GetSourceLocation()[0].GetColumn() - ast.GetExpr().GetLength(),
+                                   ast.GetExpr().GetLength());
+
+                    IncrementErrorCount();
+                }
+
+            } else {
+                current_scope->AddSymbol(var_name, expr_type);
+            }
         }
-        else if (expr_type == "float" && (var_type == "f32" || var_type == "f64")) {
-          expr.SetType(var_type);
-          ast.SetType(var_type);
-          current_scope->AddSymbol(var_name, var_type);
-
-          if (const auto id = dynamic_cast<IdentifierAST*>(&expr)) {
-              current_scope->UpdateSymbolTable(id->GetName(), var_type);
-          }
-        }
-        else {
-          MultiPartError("Type Mismatch: " + expr_type +
-                           " cannot be assigned to a variable of " + var_type,
-                       ast.GetSourceLocation().GetLine(),
-                       ast.GetSourceLocation().GetColumn() - var_name.length(),
-                       var_name.length(),
-                       ast.GetExpr().GetSourceLocation()[0].GetColumn() -
-                           ast.GetExpr().GetLength(),
-                       ast.GetExpr().GetLength());
-
-          IncrementErrorCount();
-        }
-
-      }
-      else {
-        current_scope->AddSymbol(var_name, expr_type);
-      }
     }
-  }
 }
 
 void SemanticAnalyzer::Visit(ForLoopAST &ast) {
-  if (current_scope->GetType() != ScopeType::FUNCTION) {
-    Error("A for loop must be inside a function definition",
-          ast.GetSourceLocation().GetLine(),
-          ast.GetSourceLocation().GetColumn(), /* for - 3 characters long*/ 3);
-    return;
-  }
-  // Create a new scope
-  Scope for_scope(current_scope, ScopeType::LOOP);
+    if (current_scope->GetType() != ScopeType::FUNCTION) {
+        Error("A for loop must be inside a function definition", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetColumn(), /* for - 3 characters long*/ 3);
+        return;
+    }
+    // Create a new scope
+    Scope for_scope(current_scope, ScopeType::LOOP);
 
-  current_scope = &for_scope;
-  // Add the iteration variable to the current scope
-  current_scope->AddSymbol(ast.GetIterationVariableName(), "int");
+    current_scope = &for_scope;
+    // Add the iteration variable to the current scope
+    current_scope->AddSymbol(ast.GetIterationVariableName(), "int");
 
-  auto &range = ast.GetRange();
-  // Visit the range node
-  range.Accept(*this);
+    auto &range = ast.GetRange();
+    // Visit the range node
+    range.Accept(*this);
 
-  //TODO: Check for the range type...
-  // Check the type of start and end expr in range
-  // if (range.GetStart().GetType() != range.GetEnd().GetType()) {
-  //   // Todo: Report better error
-  //   std::cout << "Types in range expr doesn't match";
-  //   return;
-  // }
+    // TODO: Check for the range type...
+    //  Check the type of start and end expr in range
+    //  if (range.GetStart().GetType() != range.GetEnd().GetType()) {
+    //    // Todo: Report better error
+    //    std::cout << "Types in range expr doesn't match";
+    //    return;
+    //  }
 
-  // Visit the loop body
-  for (auto &elt : ast.GetLoopBody()) {
-    elt->Accept(*this);
-  }
+    // Visit the loop body
+    for (auto &elt: ast.GetLoopBody()) {
+        elt->Accept(*this);
+    }
 
-  // After the loop body is completed
-  // Switch back to the parent scope
-  current_scope = current_scope->GetParent();
+    // After the loop body is completed
+    // Switch back to the parent scope
+    current_scope = current_scope->GetParent();
 }
 
 void SemanticAnalyzer::Visit(LoopAST &ast) {
-  /*
-    STEP: 1. Check for global scope
-          2. Create a new scope
-          3. Visit the loop body
-  */
-  if (current_scope->GetType() != ScopeType::FUNCTION) {
-    Error("A loop must be inside a function definition",
-          ast.GetSourceLocation().GetLine(),
-          ast.GetSourceLocation().GetColumn(), /* loop - 3 characters long*/ 4);
-    IncrementErrorCount();
-    return;
-  }
-  // Create a new scope
-  Scope for_scope(current_scope, ScopeType::LOOP);
+    /*
+      STEP: 1. Check for global scope
+            2. Create a new scope
+            3. Visit the loop body
+    */
+    if (current_scope->GetType() != ScopeType::FUNCTION) {
+        Error("A loop must be inside a function definition", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetColumn(), /* loop - 3 characters long*/ 4);
+        IncrementErrorCount();
+        return;
+    }
+    // Create a new scope
+    Scope for_scope(current_scope, ScopeType::LOOP);
 
-  current_scope = &for_scope;
+    current_scope = &for_scope;
 
-  // Visit the loop body
-  for (auto &elt : ast.GetLoopBody()) {
-    elt->Accept(*this);
-  }
+    // Visit the loop body
+    for (auto &elt: ast.GetLoopBody()) {
+        elt->Accept(*this);
+    }
 
-  // After the loop body is completed
-  // Switch back to the parent scope
-  current_scope = current_scope->GetParent();
+    // After the loop body is completed
+    // Switch back to the parent scope
+    current_scope = current_scope->GetParent();
 }
 
 void SemanticAnalyzer::Visit([[maybe_unused]] WhileLoopAST &ast) {
-  /*
-    STEP: 1. Check for global scope
-          2. Create a new scope
-          3. Visit the loop condition
-          4. Visit the loop body
-  */
+    /*
+      STEP: 1. Check for global scope
+            2. Create a new scope
+            3. Visit the loop condition
+            4. Visit the loop body
+    */
 
-  if (current_scope->GetType() == ScopeType::GLOBAL) {
-    Error("A 'while loop' must be within a function body.",
-          ast.GetSourceLocation().GetLine(),
-          ast.GetSourceLocation().GetColumn(), /* while - 4 char long */ 4);
-    IncrementErrorCount();
-    return;
-  }
+    if (current_scope->GetType() == ScopeType::GLOBAL) {
+        Error("A 'while loop' must be within a function body.", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetColumn(), /* while - 4 char long */ 4);
+        IncrementErrorCount();
+        return;
+    }
 
-  ExpressionAST &cond = ast.GetCondition();
+    ExpressionAST &cond = ast.GetCondition();
 
-  cond.Accept(*this);
+    cond.Accept(*this);
 
-  Scope while_scope(current_scope, ScopeType::LOOP);
-  current_scope = &while_scope;
+    Scope while_scope(current_scope, ScopeType::LOOP);
+    current_scope = &while_scope;
 
-  for (auto &elt : ast.GetBody()) {
-    elt->Accept(*this);
-  }
+    for (auto &elt: ast.GetBody()) {
+        elt->Accept(*this);
+    }
 
-  current_scope = current_scope->GetParent();
+    current_scope = current_scope->GetParent();
 }
 
 void SemanticAnalyzer::Visit(IfStatementAST &ast) {
-  if (current_scope->GetType() == ScopeType::GLOBAL) {
-    Error("An 'if statement' must be within a function body",
-          ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetLine());
-    IncrementErrorCount();
-    return;
-  }
-
-  ExpressionAST &if_condition = ast.GetIfCondition();
-
-  if_condition.Accept(*this);
-
-  Scope if_scope(current_scope, ScopeType::BRANCH);
-
-  current_scope = &if_scope;
-  for (auto &elt : ast.GetIfBody()) {
-    elt->Accept(*this);
-  }
-
-  current_scope = current_scope->GetParent();
-
-  if (ast.hasElseIf()) {
-    auto &else_if_vec = ast.GetElseIfStatements();
-
-    for (const auto &elt : else_if_vec) {
-      ExpressionAST &else_if_condition = elt->GetCondition();
-
-      else_if_condition.Accept(*this);
-
-      Scope else_if_scope(current_scope, ScopeType::BRANCH);
-      current_scope = &else_if_scope;
-
-      for (auto &stmt : elt->GetBody()) {
-        stmt->Accept(*this);
-      }
-      current_scope = current_scope->GetParent();
+    if (current_scope->GetType() == ScopeType::GLOBAL) {
+        Error("An 'if statement' must be within a function body", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetLine());
+        IncrementErrorCount();
+        return;
     }
-  }
 
-  if (ast.hasElse()) {
-    auto &else_stmt = ast.GetElseStatement();
+    ExpressionAST &if_condition = ast.GetIfCondition();
 
-    Scope else_scope(current_scope, ScopeType::BRANCH);
-    current_scope = &else_scope;
-    for (auto &body : else_stmt.GetBody()) {
-      body->Accept(*this);
+    if_condition.Accept(*this);
+
+    Scope if_scope(current_scope, ScopeType::BRANCH);
+
+    current_scope = &if_scope;
+    for (auto &elt: ast.GetIfBody()) {
+        elt->Accept(*this);
     }
+
     current_scope = current_scope->GetParent();
-  }
+
+    if (ast.hasElseIf()) {
+        auto &else_if_vec = ast.GetElseIfStatements();
+
+        for (const auto &elt: else_if_vec) {
+            ExpressionAST &else_if_condition = elt->GetCondition();
+
+            else_if_condition.Accept(*this);
+
+            Scope else_if_scope(current_scope, ScopeType::BRANCH);
+            current_scope = &else_if_scope;
+
+            for (auto &stmt: elt->GetBody()) {
+                stmt->Accept(*this);
+            }
+            current_scope = current_scope->GetParent();
+        }
+    }
+
+    if (ast.hasElse()) {
+        auto &else_stmt = ast.GetElseStatement();
+
+        Scope else_scope(current_scope, ScopeType::BRANCH);
+        current_scope = &else_scope;
+        for (auto &body: else_stmt.GetBody()) {
+            body->Accept(*this);
+        }
+        current_scope = current_scope->GetParent();
+    }
 }
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseIfStatementAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseStatementAST &ast) {}
 void SemanticAnalyzer::Visit(MatchStatementAST &ast) {
-    for (const auto& elt : ast.getArms()) {
+    for (const auto &elt: ast.getArms()) {
         elt->Accept(*this);
     }
 }
 void SemanticAnalyzer::Visit(MatchArmAST &ast) {
     if (current_scope->GetType() == ScopeType::GLOBAL) {
-        Error("An 'match statement' must be within a function body",
-              ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetLine());
+        Error("An 'match statement' must be within a function body", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetLine());
         IncrementErrorCount();
         return;
     }
 
-    auto& condition = ast.getCondition();
+    auto &condition = ast.getCondition();
 
     condition.Accept(*this);
 
     Scope arm_scope(current_scope, ScopeType::BRANCH);
 
     current_scope = &arm_scope;
-    for (auto &elt : ast.getBody()) {
+    for (auto &elt: ast.getBody()) {
         elt->Accept(*this);
     }
 
     current_scope = current_scope->GetParent();
-
 }
 void SemanticAnalyzer::Visit([[maybe_unused]] FunctionCallAST &ast) {}
-void SemanticAnalyzer::Visit([[maybe_unused]] FunctionCallExprAST &ast) {}
-void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
-
-  if (current_scope->GetType() != ScopeType::GLOBAL) {
-    Error("A function definition must be within a global scope",
-          ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetLine());
-    IncrementErrorCount();
-    return;
-  }
-  // Create a new scope
-  Scope fn_scope(current_scope, ScopeType::FUNCTION);
-
-  // add the fn arguments to the fn scope
-  auto& opt_args = ast.GetFunctionArguments();
-  std::vector<std::string> arg_types;
-
-  for (const auto& arg : opt_args) {
-    fn_scope.AddSymbol(arg->GetIdName(), arg->GetTypeName());
-    arg_types.push_back(arg->GetTypeName());
-  }
-
-  current_scope = &fn_scope;
-
-  //auto args = ast.GetFunctionArguments();
-
-  FunctionInfo fn_info(arg_types, ast.GetFunctionReturnType());
-
-  auto val = FindSymbolTable(ast.GetFunctionName());
-
-  if (val.has_value()) {
-
-    if (val.value() == fn_info) {
-      // TODO: better error message
-      Error(
-          "The function: " + ast.GetFunctionName() + " is already defined.",
-          ast.GetSourceLocation().GetLine(),
-          ast.GetFunctionNameAsIdentifier().GetSourceLocation()[0].GetColumn(),
-          ast.GetFunctionName().length());
-      IncrementErrorCount();
-      return;
+void SemanticAnalyzer::Visit(FunctionCallExprAST &ast) {
+    if (current_scope->GetType() != ScopeType::FUNCTION) {
+        Error("Cannot call a function outside of a function", ast.GetSourceLocation()[0].GetLine(),
+              ast.GetSourceLocation()[0].GetLine());
+        IncrementErrorCount();
+        return;
     }
-  }
-  // Add the function to the function's symbol table
-  AddFunctionToSymbolTable(ast.GetFunctionName(), fn_info);
-  // Visit the function body
-  for (auto &elt : ast.GetFunctionBody()) {
-    elt->Accept(*this);
-    if (const auto returnAST = dynamic_cast<ReturnStatementAST*>(elt.get())) {
-      auto& returnExpr = returnAST->GetReturnExpression();
+    const auto fn_name = ast.getIdentifier().GetName();
 
-      if (returnExpr.GetType() == "int" && (ast.GetFunctionReturnType() == "i32" || ast.GetFunctionReturnType() == "i64")) {
-        returnExpr.SetType(ast.GetFunctionReturnType());
-      }
-      else if (returnExpr.GetType() == "float" && (ast.GetFunctionReturnType() == "f32" || ast.GetFunctionReturnType() == "f64")) {
-        returnExpr.SetType(ast.GetFunctionReturnType());
-      }
-      else {
-        if (returnExpr.GetType() == "int") {
-          // Defaults to i64
-          returnExpr.SetType("i64");
-        }
-        else if (returnExpr.GetType() == "float") {
-          // Defaults to f64;
-          returnExpr.SetType("f64");
-        }
-        if (returnExpr.GetType() == "i32" || returnExpr.GetType() == "i64" || returnExpr.GetType() == "f32" || returnExpr.GetType() == "f64") {
-          if (returnExpr.GetType() != ast.GetFunctionReturnType()) {
-            Unexpected(std::format("Cannot return a {} from function whose return type is {}", returnExpr.GetType(), ast.GetFunctionReturnType()), returnAST->GetSourceLocation().GetLine(), returnAST->GetSourceLocation().GetColumn(), 1);
+    if (const auto fn_info = FindSymbolTable(fn_name); fn_info.has_value()) {
+        const auto& [params_type, ret_type]  = fn_info.value();
+
+        ast.SetType(ret_type);
+
+        auto& args = ast.getArguments();
+
+        const auto param_size = params_type.size();
+        const auto args_size = args.GetFunctionArguments().size();
+
+        if (param_size != args_size) {
+            const std::string msg = std::format("Function {} expects {} arguments but {} were provided", fn_name, param_size, args_size);
+            Error(msg, ast.GetSourceLocation()[0].GetLine(), ast.GetSourceLocation()[0].GetLine());
             IncrementErrorCount();
             return;
-          }
         }
-      }
+        auto count = 0;
+        for (const auto& arg: args.GetFunctionArguments()) {
+            arg->Accept(*this);
+            std::string arg_type = arg->GetType();
+            const std::string param_type = params_type[count++];
+
+            if (arg_type == "int") {
+                arg->SetType("i32");
+                arg_type = param_type;
+            }
+
+            if (arg_type != param_type) {
+                const std::string msg = std::format("Expected argument of type {} but got {} ", param_type, arg_type);
+                Error(msg, arg->GetSourceLocation()[0].GetLine(), arg->GetSourceLocation()[0].GetColumn());
+            }
+        }
     }
-  }
+    else {
+        const std::string msg = std::format("No function {} defined in current scope.", fn_name);
+        Error(msg, ast.GetSourceLocation()[0].GetLine(), ast.GetSourceLocation()[0].GetColumn());
+        IncrementErrorCount();
+    }
+}
+void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
 
-  // After the loop body is completed
-  // Switch back to the parent scope
+    if (current_scope->GetType() != ScopeType::GLOBAL) {
+        Error("A function definition must be within a global scope", ast.GetSourceLocation().GetLine(),
+              ast.GetSourceLocation().GetLine());
+        IncrementErrorCount();
+        return;
+    }
+    // Create a new scope
+    Scope fn_scope(current_scope, ScopeType::FUNCTION);
 
-  current_scope = current_scope->GetParent();
+    // add the fn arguments to the fn scope
+    auto &opt_args = ast.GetFunctionArguments();
+    std::vector<std::string> arg_types;
+
+    for (const auto &arg: opt_args) {
+        fn_scope.AddSymbol(arg->GetIdName(), arg->GetTypeName());
+        arg_types.push_back(arg->GetTypeName());
+    }
+
+    current_scope = &fn_scope;
+
+    // auto args = ast.GetFunctionArguments();
+
+    const FunctionInfo fn_info(arg_types, ast.GetFunctionReturnType());
+
+
+    if (const auto val = FindSymbolTable(ast.GetFunctionName()); val.has_value()) {
+
+        if (val.value() == fn_info) {
+            // TODO: better error message
+            Error("The function: " + ast.GetFunctionName() + " is already defined.", ast.GetSourceLocation().GetLine(),
+                  ast.GetFunctionNameAsIdentifier().GetSourceLocation()[0].GetColumn(),
+                  static_cast<int>(ast.GetFunctionName().length()));
+            IncrementErrorCount();
+            return;
+        }
+    }
+    // Add the function to the function's symbol table
+    AddFunctionToSymbolTable(ast.GetFunctionName(), fn_info);
+    // Visit the function body
+    for (auto &elt: ast.GetFunctionBody()) {
+        elt->Accept(*this);
+        if (const auto returnAST = dynamic_cast<ReturnStatementAST *>(elt.get())) {
+            auto &returnExpr = returnAST->GetReturnExpression();
+
+            if (returnExpr.GetType() == "int" &&
+                (ast.GetFunctionReturnType() == "i32" || ast.GetFunctionReturnType() == "i64")) {
+                returnExpr.SetType(ast.GetFunctionReturnType());
+            } else if (returnExpr.GetType() == "float" &&
+                       (ast.GetFunctionReturnType() == "f32" || ast.GetFunctionReturnType() == "f64")) {
+                returnExpr.SetType(ast.GetFunctionReturnType());
+            } else {
+                if (returnExpr.GetType() == "int") {
+                    // Defaults to i64
+                    returnExpr.SetType("i64");
+                } else if (returnExpr.GetType() == "float") {
+                    // Defaults to f64;
+                    returnExpr.SetType("f64");
+                }
+                if (returnExpr.GetType() == "i32" || returnExpr.GetType() == "i64" || returnExpr.GetType() == "f32" ||
+                    returnExpr.GetType() == "f64") {
+                    if (returnExpr.GetType() != ast.GetFunctionReturnType()) {
+                        Unexpected(std::format("Cannot return a {} from function whose return type is {}",
+                                               returnExpr.GetType(), ast.GetFunctionReturnType()),
+                                   returnAST->GetSourceLocation().GetLine(), returnAST->GetSourceLocation().GetColumn(),
+                                   1);
+                        IncrementErrorCount();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // After the loop body is completed
+    // Switch back to the parent scope
+
+    current_scope = current_scope->GetParent();
 }
 void SemanticAnalyzer::Visit([[maybe_unused]] FunctionArgumentAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] BreakStatementAST &ast) {}
 void SemanticAnalyzer::Visit(RangeAST &ast) {
-  ExpressionAST &start = ast.GetStart();
-  ExpressionAST &end = ast.GetEnd();
+    ExpressionAST &start = ast.GetStart();
+    ExpressionAST &end = ast.GetEnd();
 
-  start.Accept(*this);
-  end.Accept(*this);
+    start.Accept(*this);
+    end.Accept(*this);
 }
 
-void SemanticAnalyzer::Visit(ReturnStatementAST& ast) {
-  auto& expr = ast.GetReturnExpression();
-  expr.Accept(*this);
+void SemanticAnalyzer::Visit(ReturnStatementAST &ast) {
+    auto &expr = ast.GetReturnExpression();
+    expr.Accept(*this);
 }

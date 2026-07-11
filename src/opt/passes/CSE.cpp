@@ -14,7 +14,7 @@ void CSE::run(std::vector<nlohmann::json> &instrs) {
 
         std::vector<nlohmann::json> optimized_instrs;
         for (auto &instr: block.instrs) {
-            if (instr.contains("dest")) {
+            if (instr.contains("dest") && instr.contains("op") && instr["op"] != "call") {
                 auto dest = instr["dest"];
                 if (lvn_environment.contains(dest) && !lvn_table.containsName(dest)) {
                     const int index = lvn_environment.at(dest);

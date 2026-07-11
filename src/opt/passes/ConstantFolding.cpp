@@ -81,15 +81,15 @@ void ConstantFolding::run(std::vector<nlohmann::json> &instrs) {
             const auto &[lvn_environment, lvn_table] = LVN::run(block.instrs);
             std::vector<nlohmann::json> optimized_instrs;
             for (auto &instr: block.instrs) {
-                if (instr.contains("op") && instr.contains("dest") && instr.contains("args")) {
+                if (instr.contains("op") && instr.contains("dest") && instr.contains("args") && instr["op"] != "call") {
                     const auto &args = instr["args"].get<std::vector<std::string>>();
 
                     if (args.size() == 2) {
                         const auto &lhs = args[0];
                         const auto &rhs = args[1];
 
-                        const auto &instr_op = instr["op"];
-                        const auto type = instr["type"];
+                        const std::string instr_op = instr["op"];
+                        const std::string type = instr["type"];
                         const auto dest_index = lvn_environment.at(instr["dest"]);
 
                         if (lvn_environment.contains(lhs) && lvn_environment.contains(rhs)) {

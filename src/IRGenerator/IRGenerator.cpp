@@ -63,7 +63,23 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
             retInstruction.push_back(tempASTJSON);
         }
         lhs_name = tempVarName;
-    } else {
+    }
+    else if (auto callAST = dynamic_cast<const FunctionCallExprAST *>(&LHS)) {
+        auto gen_code = generator.Generate(*callAST);
+
+        const std::string tempVarName = GetTemporaryVariableName();
+        SourceLocation loc{};
+
+        gen_code[gen_code.size() - 1]["dest"] = tempVarName;
+        gen_code[gen_code.size() - 1]["type"] = callAST->GetType();
+
+        lhs_name = tempVarName;
+
+        for (const auto& elt: gen_code) {
+            retInstruction.push_back(elt);
+        }
+    }
+    else {
         json lhs = generator.Generate(LHS);
         if (lhs.is_array()) {
             for (const auto &elt: lhs) {
@@ -96,7 +112,23 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
         }
 
         rhs_name = tempVarName;
-    } else {
+    }
+    else if (auto callAST = dynamic_cast<const FunctionCallExprAST *>(&RHS)) {
+        auto gen_code = generator.Generate(*callAST);
+
+        const std::string tempVarName = GetTemporaryVariableName();
+        SourceLocation loc{};
+
+        gen_code[gen_code.size() - 1]["dest"] = tempVarName;
+        gen_code[gen_code.size() - 1]["type"] = callAST->GetType();
+
+        rhs_name = tempVarName;
+
+        for (const auto& elt: gen_code) {
+            retInstruction.push_back(elt);
+        }
+    }
+    else {
         json rhs = generator.Generate(RHS);
         if (rhs.is_array()) {
             for (const auto &elt: rhs) {
@@ -553,7 +585,7 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
                 retInstruction.push_back(val);
             }
         } else {
-            retInstruction.push_back(Generate(*elt));
+            retInstruction.push_back(gen_json);
         }
     }
 
@@ -741,6 +773,10 @@ json IRGenerator::Generate(const FunctionCallExprAST &ast) {
             }
             arg_names.push_back(tempVarName);
         }
+        else if (auto* idAST = dynamic_cast<IdentifierAST*>(elt.get())) {
+            const std::string id_name = idAST->GetName();
+            arg_names.push_back(id_name);
+        }
         else {
 
             if (auto gen_code = Generate(*elt); !gen_code.is_array() && gen_code.contains("dest")) {
@@ -748,6 +784,9 @@ json IRGenerator::Generate(const FunctionCallExprAST &ast) {
             }
             else {
                 arg_names.push_back(gen_code[gen_code.size() - 1]["dest"]);
+                for (const auto& e : gen_code) {
+                    retInstruction.push_back(e);
+                }
             }
         }
 
@@ -798,7 +837,14 @@ json IRGenerator::Generate(const ReturnStatementAST &ast) {
         tempAST.SetType(type);
 
         const json declAssignJson = Generate(tempAST);
-        instruction.push_back(declAssignJson);
+        if (declAssignJson.is_array()) {
+            for (const auto& elt: declAssignJson) {
+                instruction.push_back(elt);
+            }
+        }
+        else {
+            instruction.push_back(declAssignJson);
+        }
 
         json returnJson;
 

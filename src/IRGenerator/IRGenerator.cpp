@@ -871,5 +871,30 @@ json IRGenerator::Generate(const ReturnStatementAST &ast) {
         return retInstruction;
     }
 
+    if (auto callExpr = dynamic_cast<FunctionCallExprAST* >(&ast.GetReturnExpression())) {
+        auto call_expr_json = Generate(*callExpr);
+
+        json retInstruction = json::array();
+
+        if (call_expr_json.is_array()) {
+            for (const auto& elt : call_expr_json) {
+                retInstruction.push_back(elt);
+            }
+        }
+        else {
+            retInstruction.push_back(call_expr_json);
+        }
+
+        // Create a temp var to store the call result
+        const std::string temp_var_name = GetTemporaryVariableName();
+
+        auto call_op = call_expr_json.back();
+
+        call_op["dest"] = temp_var_name;
+
+        retInstruction.push_back({{"op", "ret"} , {"args", {temp_var_name}}});
+
+    }
+
     return {};
 }

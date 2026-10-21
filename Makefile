@@ -6,9 +6,9 @@ CXXFLAGS = -std=c++20 -Wall -Wextra -I /usr/local/include/
 
 #Directories
 SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
-WASM_DIR = wasm
+OBJ_DIR = build/obj
+BIN_DIR = build
+WASM_DIR = build/wasm
 
 
 EXAMPLES_DIR = examples

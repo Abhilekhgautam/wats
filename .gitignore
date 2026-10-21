@@ -1,8 +1,8 @@
 bin/
 obj/
+build/
 test.wats
 .cache/
 compile_commands.json
 .idea/
 *.wasm
-wasm/

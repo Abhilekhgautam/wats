@@ -204,15 +204,13 @@ void Lexer::ScanToken(const char c) {
             }
             break;
         }
-        /*
         case '"': {
             std::string str = String();
-            // TODO: Add string token
-            std::cout << str << '\n';
-
+            AddToken(Token{TokenName::STRING, {line, column}, str});
+            ConsumeNext();
+            column = column + 1;
             break;
         }
-        */
         default:
             // handle numbers
             if (isdigit(c)) {
@@ -258,29 +256,15 @@ std::string Lexer::Identifier() {
     return id_str;
 }
 
-// Fixme: Doesn't work
 std::string Lexer::String() {
     std::string str;
-    while (!IsAtEnd() && Peek() != '"') {
-        if (Peek() == '\\') {
-            ConsumeNext();
-            column = column + 1;
-            if (!IsAtEnd()) {
-                char escapedChar [[maybe_unused]] = Peek();
-                str.push_back(Peek());
-                ConsumeNext();
-                column = column + 1;
-            } else {
-                Error("Unterminated \"");
-            }
-            continue;
-        }
+    while (Peek() != '"') {
         str.push_back(Peek());
         ConsumeNext();
         column = column + 1;
 
         if (IsAtEnd()) {
-            Error("Unterminated \".");
+            Error("Unterminated \".\n");
         }
     }
     return str;

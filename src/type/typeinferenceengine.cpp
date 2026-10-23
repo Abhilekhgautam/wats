@@ -7,15 +7,13 @@ Type TypeInferenceEngine::freshVar(){
 
     Type newType = Type{TypeKind::Var, id};
 
-    id2Type[id] = newType;
-
     return newType;
 }
 
 Type TypeInferenceEngine::resolve(Type& t){
     Type type = t;
-    while(type.getTypeKind() != TypeKind::Var){
-        if(auto id = id2Type.find(t.getId()); id != id2Type.end()){
+    while(type.kind == TypeKind::Var){
+        if(auto id = id2Type.find(type.id); id != id2Type.end()){
            type = id2Type[id->first];
         }
         else break;
@@ -30,13 +28,13 @@ std::optional<UnifyError> TypeInferenceEngine::unify(Type& first, Type& second){
 
     if (first_resolved == second_resolved) return {};
 
-    if (first_resolved.getTypeKind() == TypeKind::Var){
-        id2Type[first.getId()] = second;
+    if (first_resolved.kind == TypeKind::Var){
+        id2Type[first.id] = second;
         return {};
     }
     
-    if (second_resolved.getTypeKind() == TypeKind::Var){
-        id2Type[second.getId()] = second;
+    if (second_resolved.kind == TypeKind::Var){
+        id2Type[second.id] = second;
         return {};
     }
     

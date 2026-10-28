@@ -201,18 +201,18 @@ int main(int argc, char **argv) {
                 std::vector<nlohmann::json> instrVec;
 
                 const std::string fnName = val->GetFunctionName();
-                const std::string fnRetType = val->GetFunctionReturnType();
+                const std::string fnRetType = val->annotated_ret_type.value();
 
                 std::map<std::string, std::string> name2type;
-                auto &args = val->GetFunctionArguments();
+                auto &args = val->arguments;
 
                 for (const auto &arg: args) {
-                    name2type[arg->GetIdName()] = arg->GetTypeName();
+                    name2type[arg->idName] = arg->annotated_type;
                 }
 
                 // IRContext ctx(fnName);
                 IRGenerator brilGenerator;
-                for (const auto &elt: val->GetFunctionBody()) {
+                for (const auto &elt: val->function_body) {
                     json generated_json = brilGenerator.Generate(*elt);
                     if (!generated_json.is_array())
                         instrVec.push_back(brilGenerator.Generate(*elt));

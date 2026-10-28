@@ -21,7 +21,6 @@ public:
 
     void Debug() override;
 
-private:
     std::unique_ptr<ExpressionAST> expr;
     SourceLocation location;
 };

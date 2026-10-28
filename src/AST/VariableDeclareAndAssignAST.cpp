@@ -8,7 +8,7 @@ nlohmann::json VariableDeclareAndAssignAST::Accept(IRGenerator &generator) { ret
 
 void VariableDeclareAndAssignAST::Debug() {
     std::cout << "Variable Declare and Assignment : " << variable_name << '\n';
-    std::cout << "Type:" << GetType() << '\n';
+    std::cout << "Type:" << type_name.to_string() << '\n';
     std::cout << "Assigned Value: " << '\n';
     expr->Debug();
 }

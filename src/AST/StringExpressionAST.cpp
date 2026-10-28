@@ -2,10 +2,7 @@
 #include "StringExpressionAST.hpp"
 #include "../IRGenerator/IRGenerator.hpp"
 
-StringExpressionAST::StringExpressionAST(std::string val, SourceLocation loc){
-    this->value = val;
-    this->loc = loc;
-}
+StringExpressionAST::StringExpressionAST(std::string val, SourceLocation loc):value(val), loc(loc){}
 
 void StringExpressionAST::Accept(SemanticAnalyzer& analyzer){
     analyzer.Visit(*this);

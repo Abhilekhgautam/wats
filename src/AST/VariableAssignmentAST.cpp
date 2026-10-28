@@ -7,7 +7,7 @@ void VariableAssignmentAST::Accept(SemanticAnalyzer &analyzer) { analyzer.Visit(
 nlohmann::json VariableAssignmentAST::Accept(IRGenerator &generator) { return generator.Generate(*this); }
 
 void VariableAssignmentAST::Debug() {
-    std::cout << "Variable Assignment: " << variable_name.GetName() << '\n';
+    std::cout << "Variable Assignment: " << variable_name.name << '\n';
     std::cout << "Assigned Value: \n";
     expr->Debug();
 }

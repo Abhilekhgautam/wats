@@ -9,24 +9,16 @@ class RangeAST : public ExpressionAST {
 public:
     RangeAST(std::unique_ptr<ExpressionAST> start, std::unique_ptr<ExpressionAST> end,
              std::vector<SourceLocation> &loc) : start(std::move(start)), end(std::move(end)), loc(loc) {}
-    virtual ~RangeAST() = default;
+    virtual ~RangeAST() override = default;
 
-private:
     std::unique_ptr<ExpressionAST> start;
     std::unique_ptr<ExpressionAST> end;
     std::vector<SourceLocation> loc;
 
-public:
     void Debug() override;
     void Accept(SemanticAnalyzer &analyzer) override;
     nlohmann::json Accept(IRGenerator &generator) override;
 
-    std::string GetType() const override { return "range"; }
-    ExpressionAST &GetStart() { return *start; }
-    const ExpressionAST &GetStart() const { return *start; }
-
-    ExpressionAST &GetEnd() { return *end; }
-    const ExpressionAST &GetEnd() const { return *end; }
     std::span<const SourceLocation> GetSourceLocation() override { return loc; }
 
     int GetLength() override {

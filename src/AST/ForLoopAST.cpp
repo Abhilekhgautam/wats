@@ -9,7 +9,7 @@ nlohmann::json ForLoopAST::Accept(IRGenerator &generator) { return generator.Gen
 
 void ForLoopAST::Debug() {
     std::cout << "For loop\n";
-    std::cout << "Iteration Variable: " << iter_var->GetName() << '\n';
+    std::cout << "Iteration Variable: " << iter_var->name << '\n';
     std::cout << "Loop body\n";
     for (const auto &elt: loop_body) {
         elt->Debug();

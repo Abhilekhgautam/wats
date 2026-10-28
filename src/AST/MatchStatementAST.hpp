@@ -14,17 +14,9 @@ public:
     void Accept(SemanticAnalyzer &analyzer) override;
     nlohmann::json Accept(IRGenerator &generator) override;
 
-    MatchType getType() { return type; }
-    MatchType getType() const { return type; }
-
-    std::vector<std::unique_ptr<MatchArmAST>> &getArms() { return arms; }
-    const std::vector<std::unique_ptr<MatchArmAST>> &getArms() const { return arms; }
-
-private:
     MatchType type;
     std::vector<std::unique_ptr<MatchArmAST>> arms;
 
-public:
     void Debug() override;
     SourceLocation GetSourceLocation() override { return {}; }
 };

@@ -16,26 +16,18 @@ public:
                std::vector<std::unique_ptr<StatementAST>> loop_body, [[maybe_unused]] SourceLocation loc) :
         iter_var(std::move(iter_var)), range(std::move(range)), loop_body(std::move(loop_body)) {}
 
-    virtual ~ForLoopAST() = default;
+    virtual ~ForLoopAST() override = default;
 
     void Accept(SemanticAnalyzer &analyzer) override;
     nlohmann::json Accept(IRGenerator &generator) override;
 
-private:
     std::unique_ptr<IdentifierAST> iter_var;
     std::unique_ptr<RangeAST> range;
     std::vector<std::unique_ptr<StatementAST>> loop_body;
     SourceLocation loc;
 
-public:
     void Debug() override;
-    std::string GetIterationVariableName() const { return iter_var->GetName(); }
-    std::unique_ptr<IdentifierAST> &GetIterVar() { return iter_var; }
-    RangeAST &GetRange() { return *range; }
-    const RangeAST &GetRange() const { return *range; }
-
-    std::vector<std::unique_ptr<StatementAST>> &GetLoopBody() { return loop_body; }
-    const std::vector<std::unique_ptr<StatementAST>> &GetLoopBody() const { return loop_body; }
+    std::string GetIterationVariableName() const { return iter_var->name; }
     SourceLocation GetSourceLocation() override { return loc; }
 };
 

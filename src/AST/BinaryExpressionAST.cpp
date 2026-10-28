@@ -13,7 +13,7 @@ int BinaryExpressionAST::GetLength() {
 
 void BinaryExpressionAST::Debug() {
     std::cout << "Binary Expression\n";
-    std::cout << GetType() << '\n';
+    std::cout << type.value().to_string() << '\n';
     std::cout << "LHS: ";
     expr_lhs->Debug();
     std::cout << "RHS: ";

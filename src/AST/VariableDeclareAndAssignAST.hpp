@@ -10,33 +10,24 @@
 /// let x = 45
 class VariableDeclareAndAssignAST : public StatementAST {
 public:
-    VariableDeclareAndAssignAST(std::string variable_name, std::string type_name, std::unique_ptr<ExpressionAST> expr,
+    VariableDeclareAndAssignAST(std::string variable_name, std::optional<std::string> type_name, std::unique_ptr<ExpressionAST> expr,
                                 std::vector<SourceLocation> &loc) :
-        variable_name(variable_name), type_name(type_name), expr(std::move(expr)), locations(loc) {}
+        variable_name(variable_name), annotated_type(type_name), expr(std::move(expr)), locations(loc) {}
 
     virtual ~VariableDeclareAndAssignAST() = default;
 
     void Accept(SemanticAnalyzer &analyzer) override;
+    void Debug() override;
+    SourceLocation GetSourceLocation() override { return locations[0]; }
     nlohmann::json Accept(IRGenerator &generator) override;
 
-private:
     std::string variable_name;
-    std::string type_name;
+    std::optional<std::string> annotated_type;
+
+    Type type_name;
     std::unique_ptr<ExpressionAST> expr;
     std::vector<SourceLocation> locations;
 
-public:
-    void Debug() override;
-    std::string GetVarName() const { return variable_name; }
-    std::string GetType() const { return type_name; }
-    ExpressionAST &GetExpr() const { return *expr; }
-
-    void SetType(std::string type) {
-        type_name = type;
-        // Also populate the tree backward
-        expr->SetType(type);
-    }
-    SourceLocation GetSourceLocation() override { return locations[0]; }
 };
 
 #endif

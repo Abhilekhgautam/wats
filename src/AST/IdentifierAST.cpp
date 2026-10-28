@@ -11,5 +11,5 @@ nlohmann::json IdentifierAST::Accept(IRGenerator &generator) { return generator.
 void IdentifierAST::Debug() {
     std::cout << "Identifier \n";
     std::cout << "Name " << name << '\n';
-    std::cout << GetType() << '\n';
+    std::cout << type.value().to_string() << '\n';
 }

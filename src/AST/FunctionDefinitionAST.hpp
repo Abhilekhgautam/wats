@@ -14,28 +14,25 @@ class FunctionDefinitionAST : public StatementAST {
 public:
     FunctionDefinitionAST(std::unique_ptr<IdentifierAST> fn_name,
                           std::vector<std::unique_ptr<FunctionArgumentAST>> arguments,
-                          std::vector<std::unique_ptr<StatementAST>> function_body, std::string ret_type,
+                          std::vector<std::unique_ptr<StatementAST>> function_body, std::optional<std::string> ret_type,
                           SourceLocation loc) :
         fn_name(std::move(fn_name)), arguments(std::move(arguments)), function_body(std::move(function_body)),
-        ret_type(ret_type), loc(loc) {}
+        annotated_ret_type(ret_type), loc(loc) {}
 
     virtual ~FunctionDefinitionAST() = default;
 
     void Accept(SemanticAnalyzer &analyzer) override;
     nlohmann::json Accept(IRGenerator &generator) override;
 
-private:
     std::unique_ptr<IdentifierAST> fn_name;
     std::vector<std::unique_ptr<FunctionArgumentAST>> arguments;
     std::vector<std::unique_ptr<StatementAST>> function_body;
-    std::string ret_type;
+    std::optional<std::string> annotated_ret_type;
+    Type ret_type;
     SourceLocation loc;
 
-public:
-    [[nodiscard]] std::string GetFunctionName() const { return fn_name->GetName(); }
-    std::vector<std::unique_ptr<StatementAST>> &GetFunctionBody() { return function_body; }
-    std::vector<std::unique_ptr<FunctionArgumentAST>> &GetFunctionArguments() { return arguments; }
-    [[nodiscard]] std::string GetFunctionReturnType() const { return ret_type; }
+    [[nodiscard]] std::string GetFunctionName() const { return fn_name->name; }
+
     void Debug() override;
     SourceLocation GetSourceLocation() override { return loc; }
     IdentifierAST &GetFunctionNameAsIdentifier() { return *fn_name; }

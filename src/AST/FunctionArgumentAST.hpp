@@ -2,20 +2,17 @@
 #define FN_ARGS
 
 #include <string>
-#include "IdentifierAST.hpp"
 #include "StatementAST.hpp"
 
 
 class FunctionArgumentAST : public StatementAST {
 public:
     FunctionArgumentAST(const std::string &id, const std::string &type, const SourceLocation &loc) :
-        idName(id), typeName(type), loc(loc) {}
+        idName(id), annotated_type(type), loc(loc) {}
 
 
     virtual ~FunctionArgumentAST() = default;
     void Debug() override;
-    [[nodiscard]] std::string GetIdName() const;
-    [[nodiscard]] std::string GetTypeName() const;
     [[nodiscard]] std::pair<std::string, std::string> GetArg() const;
 
     // Returns locaton to first arg
@@ -24,9 +21,9 @@ public:
     void Accept(SemanticAnalyzer &analyzer) override;
     nlohmann::json Accept(IRGenerator &generator) override;
 
-private:
     std::string idName;
-    std::string typeName;
+    std::string annotated_type;
+    Type typeName;
     SourceLocation loc;
 };
 #endif

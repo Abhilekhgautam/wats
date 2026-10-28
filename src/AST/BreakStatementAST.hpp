@@ -14,7 +14,6 @@ public:
     void Debug() override;
     SourceLocation GetSourceLocation() override { return loc; };
 
-private:
     SourceLocation loc;
 };
 

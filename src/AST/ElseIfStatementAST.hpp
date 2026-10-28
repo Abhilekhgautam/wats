@@ -15,22 +15,13 @@ public:
 
     virtual ~ElseIfStatementAST() = default;
 
-    ExpressionAST &GetCondition() { return *condition; }
-    ExpressionAST &GetCondition() const { return *condition; }
-
-    std::vector<std::unique_ptr<StatementAST>> &GetBody() { return else_if_body; }
-    const std::vector<std::unique_ptr<StatementAST>> &GetBody() const { return else_if_body; }
-
-
     void Accept(SemanticAnalyzer &analyzer) override;
     nlohmann::json Accept(IRGenerator &generator) override;
 
-private:
     std::unique_ptr<ExpressionAST> condition;
     std::vector<std::unique_ptr<StatementAST>> else_if_body;
     SourceLocation loc;
 
-public:
     void Debug() override;
     SourceLocation GetSourceLocation() override { return loc; }
 };

@@ -8,11 +8,9 @@ nlohmann::json FunctionArgumentAST::Accept(IRGenerator &generator) { return gene
 
 void FunctionArgumentAST::Debug() {
     std::cout << "Function Argument:\n";
-    std::cout << GetIdName() << " : " << GetTypeName() << "\n";
+    std::cout << idName << " : " << typeName.to_string() << "\n";
 }
 
-std::string FunctionArgumentAST::GetIdName() const { return idName; };
-std::string FunctionArgumentAST::GetTypeName() const { return typeName; };
 std::pair<std::string, std::string> FunctionArgumentAST::GetArg() const {
-    return std::make_pair(GetIdName(), GetTypeName());
+    return std::make_pair(idName, typeName.to_string());
 }

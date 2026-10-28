@@ -7,6 +7,6 @@ void FunctionCallAST::Accept(SemanticAnalyzer &analyzer) { analyzer.Visit(*this)
 
 nlohmann::json FunctionCallAST::Accept(IRGenerator &generator) { return generator.Generate(*this); }
 
-void FunctionCallAST::Debug() { std::cout << "Function Called: " << fn_name->GetName() << '\n'; }
+void FunctionCallAST::Debug() { std::cout << "Function Called: " << fn_name->name << '\n'; }
 
 SourceLocation FunctionCallAST::GetSourceLocation() { return fn_name->GetSourceLocation()[0]; }

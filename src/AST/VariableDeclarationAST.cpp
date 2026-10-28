@@ -8,5 +8,5 @@ nlohmann::json VariableDeclarationAST::Accept(IRGenerator &generator) { return g
 
 void VariableDeclarationAST::Debug() {
     std::cout << "Variable Declaration: " << variable_name << '\n';
-    std::cout << "Type: " << GetType() << '\n';
+    std::cout << "Type: " << type_name.to_string() << '\n';
 }

@@ -185,6 +185,7 @@ private:
     std::unique_ptr<VariableDeclareAndAssignAST> ParseVariableInitWithType();
     std::unique_ptr<VariableDeclarationAST> ParseVariableDecl();
 
+    std::unique_ptr<ExpressionAST> ParseString();
     std::unique_ptr<ExpressionAST> ParseIdentifier();
     std::unique_ptr<ExpressionAST> ParseNumber();
     std::unique_ptr<ExpressionAST> ParseParenExpr();

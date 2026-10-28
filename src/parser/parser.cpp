@@ -4,6 +4,7 @@
 #include "../lexer/tokens.hpp"
 #include "../utils.hpp"
 
+#include "../AST/StringExpressionAST.hpp"
 #include "../AST/BinaryExpressionAST.hpp"
 #include "../AST/FunctionCallExprAST.hpp"
 #include "../AST/FunctionParameterAST.hpp"
@@ -203,7 +204,7 @@ std::unique_ptr<FunctionDefinitionAST> Parser::ParseFunctionWithRetType() {
     std::string returnType{};
     if (Peek(TokenName::RET_ARROW)) {
         Consume();
-        if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64)) {
+        if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64) || Peek(TokenName::STRING_T)) {
             returnType = GetCurrentToken().GetValue();
             Consume();
         } else {
@@ -304,10 +305,10 @@ std::unique_ptr<FunctionDefinitionAST> Parser::ParseFunctionWithoutRetType() {
     auto result = ParseCurlyBraceAndBody();
     if (!result.empty()) {
         auto val = !fn_args.empty() ? std::make_unique<FunctionDefinitionAST>(std::move(fn_name), std::move(fn_args),
-                                                                              std::move(result), "", loc)
+                                                                              std::move(result), std::nullopt, loc)
                                     : std::make_unique<FunctionDefinitionAST>(
                                               std::move(fn_name), std::vector<std::unique_ptr<FunctionArgumentAST>>{},
-                                              std::move(result), "", loc);
+                                              std::move(result), std::nullopt, loc);
 
         status_list.clear();
 
@@ -327,12 +328,15 @@ std::unique_ptr<FunctionArgumentAST> Parser::ParseFunctionArgument() {
         if (Peek(TokenName::COLON)) {
             Consume();
             // type is a id
-            if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64)) {
-                const auto type = std::make_unique<IdentifierAST>(GetCurrentToken().GetValue(),
-                                                                  GetCurrentToken().GetSourceLocation());
+            if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64) || Peek(TokenName::STRING_T)) {
+                // const auto type = std::make_unique<IdentifierAST>(GetCurrentToken().GetValue(),
+                //                                                   GetCurrentToken().GetSourceLocation());
+                // Consume();
+
+                auto curr_token = GetCurrentToken();
                 Consume();
-                return std::make_unique<FunctionArgumentAST>(id->GetName(), type->GetName(),
-                                                             type->GetSourceLocation().front());
+                return std::make_unique<FunctionArgumentAST>(id->name, curr_token.GetValue(),
+                                                             curr_token.GetSourceLocation());
             } else {
                 // Expected a `type-name` after the colon.
                 Expected("Expected a type name after the ':'.", GENERATE_CURRENT_POSITION);
@@ -442,7 +446,7 @@ std::unique_ptr<VariableDeclarationAST> Parser::ParseVariableDeclWithLet() {
         return nullptr;
     }
 
-    return std::make_unique<VariableDeclarationAST>("", var_name, locations);
+    return std::make_unique<VariableDeclarationAST>(std::nullopt, var_name, locations);
 }
 
 std::unique_ptr<VariableDeclarationAST> Parser::ParseVariableDeclWithType() {
@@ -641,7 +645,7 @@ std::unique_ptr<VariableDeclareAndAssignAST> Parser::ParseVariableInitWithLet() 
         return {};
     }
 
-    return std::make_unique<VariableDeclareAndAssignAST>(var_name, "", std::move(expr), locations);
+    return std::make_unique<VariableDeclareAndAssignAST>(var_name, std::nullopt, std::move(expr), locations);
 }
 
 std::unique_ptr<VariableDeclareAndAssignAST> Parser::ParseVariableInitWithType() {
@@ -685,7 +689,7 @@ std::unique_ptr<VariableDeclareAndAssignAST> Parser::ParseVariableInitWithType()
     std::string type;
     // FixME: Add support for user defined types
     // later when support for classes are added
-    if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64)) {
+    if (Peek(TokenName::I32) || Peek(TokenName::I64) || Peek(TokenName::F32) || Peek(TokenName::F64) || Peek(TokenName::STRING_T)) {
         Token current_tok = GetCurrentToken();
         Consume();
         type = current_tok.GetValue();
@@ -769,6 +773,17 @@ std::unique_ptr<FunctionParameterAST> Parser::ParseFunctionParameters() {
 }
 // Parsing Variable Declaration Ends here
 
+std::unique_ptr<ExpressionAST> Parser::ParseString(){
+    if(Peek(TokenName::STRING)){
+        auto current_token = GetCurrentToken();
+        Consume();
+        // Todo: Return StringAST
+        return std::make_unique<StringExpressionAST>(current_token.GetValue(), current_token.GetSourceLocation());
+    }
+
+    return {};
+}
+
 std::unique_ptr<ExpressionAST> Parser::ParseIdentifier() {
     if (Peek(TokenName::ID)) {
         auto current_token = GetCurrentToken();
@@ -831,6 +846,10 @@ std::unique_ptr<ExpressionAST> Parser::ParsePrimary() {
         }
         BackTrack();
         return ParseIdentifier();
+    }
+
+    if(Peek(TokenName::STRING)){
+        return ParseString();
     }
 
     if (Peek(TokenName::NUMBER) || Peek(TokenName::MINUS)) {

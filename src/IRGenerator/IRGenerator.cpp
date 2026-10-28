@@ -1,4 +1,5 @@
 #include "IRGenerator.hpp"
+#include "../AST/StringExpressionAST.hpp"
 #include "../AST/BinaryExpressionAST.hpp"
 #include "../AST/ExpressionAST.hpp"
 #include "../AST/IfStatementAST.hpp"
@@ -35,24 +36,27 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
     json retInstruction = json::array();
 
     // auto& lhs_expr = ast.GetLeftOperand();
-    const std::string lhs_type = LHS.GetType();
+    const Type lhs_type = LHS.type.value();
 
     // auto& rhs_expr = ast.GetRightOperand();
-    const std::string rhs_type = RHS.GetType();
+    const Type rhs_type = RHS.type.value();
 
     std::vector<SourceLocation> unknown;
 
     std::string lhs_name;
     std::string rhs_name;
     if (auto numAST = dynamic_cast<const NumberAST *>(&LHS)) {
-        auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(),
+        auto tempNumAST = std::make_unique<NumberAST>(numAST->num, numAST->has_decimal,
                                                       numAST->GetSourceLocation().front());
-        std::string num = numAST->GetNumber();
+        std::string num = numAST->num;
 
-        tempNumAST->SetValue(numAST->GetValue());
+        tempNumAST->value = numAST->value;
+        tempNumAST->type = numAST->type;
+
+        //tempNumAST->SetValue(numAST->GetValue());
         const std::string tempVarName = GetTemporaryVariableName();
-        VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type, std::move(tempNumAST), unknown);
-        tempAST.SetType(lhs_type);
+        VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type.to_string(), std::move(tempNumAST), unknown);
+        tempAST.type_name = lhs_type;
 
         const json tempASTJSON = generator.Generate(tempAST);
         if (tempASTJSON.is_array()) {
@@ -71,7 +75,7 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
         SourceLocation loc{};
 
         gen_code[gen_code.size() - 1]["dest"] = tempVarName;
-        gen_code[gen_code.size() - 1]["type"] = callAST->GetType();
+        gen_code[gen_code.size() - 1]["type"] = callAST->type.value().to_string();
 
         lhs_name = tempVarName;
 
@@ -93,14 +97,17 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
 
 
     if (auto numAST = dynamic_cast<NumberAST *>(&RHS)) {
-        auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(),
+        auto tempNumAST = std::make_unique<NumberAST>(numAST->num, numAST->has_decimal,
                                                       numAST->GetSourceLocation().front());
-        std::string num = numAST->GetNumber();
+        std::string num = numAST->num;
 
-        tempNumAST->SetValue(numAST->GetValue());
+        tempNumAST->value = numAST->value;
+        tempNumAST->type = numAST->type;
+
         const std::string tempVarName = GetTemporaryVariableName();
-        VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type, std::move(tempNumAST), unknown);
-        tempAST.SetType(lhs_type);
+        VariableDeclareAndAssignAST tempAST(tempVarName, lhs_type.to_string(), std::move(tempNumAST), unknown);
+        tempAST.type_name = lhs_type;
+        tempAST.annotated_type = lhs_type.to_string();
 
         const json tempASTJSON = generator.Generate(tempAST);
         if (tempASTJSON.is_array()) {
@@ -120,7 +127,7 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
         SourceLocation loc{};
 
         gen_code[gen_code.size() - 1]["dest"] = tempVarName;
-        gen_code[gen_code.size() - 1]["type"] = callAST->GetType();
+        gen_code[gen_code.size() - 1]["type"] = callAST->type.value().to_string();
 
         rhs_name = tempVarName;
 
@@ -145,19 +152,19 @@ json GenerateArithmeticOperations(IRGenerator &generator, ExpressionAST &LHS, Ex
     const std::string destination = GetTemporaryVariableName();
     if (op == "+") {
         instruction = {
-                {"op", "add"}, {"dest", destination}, {"type", lhs_type}, {"args", json::array({lhs_name, rhs_name})}};
+                {"op", "add"}, {"dest", destination}, {"type", lhs_type.to_string()}, {"args", json::array({lhs_name, rhs_name})}};
     } else if (op == "-") {
         instruction = {
-                {"op", "sub"}, {"dest", destination}, {"type", lhs_type}, {"args", json::array({lhs_name, rhs_name})}};
+                {"op", "sub"}, {"dest", destination}, {"type", lhs_type.to_string()}, {"args", json::array({lhs_name, rhs_name})}};
     } else if (op == "*") {
         instruction = {
-                {"op", "mul"}, {"dest", destination}, {"type", lhs_type}, {"args", json::array({lhs_name, rhs_name})}};
+                {"op", "mul"}, {"dest", destination}, {"type", lhs_type.to_string()}, {"args", json::array({lhs_name, rhs_name})}};
     } else if (op == "/") {
         instruction = {
-                {"op", "div"}, {"dest", destination}, {"type", lhs_type}, {"args", json::array({lhs_name, rhs_name})}};
+                {"op", "div"}, {"dest", destination}, {"type", lhs_type.to_string()}, {"args", json::array({lhs_name, rhs_name})}};
     } else if (op == ">") {
         instruction = {
-                {"op", "gt"}, {"dest", destination}, {"type", lhs_type}, {"args", json::array({lhs_name, rhs_name})}};
+                {"op", "gt"}, {"dest", destination}, {"type", lhs_type.to_string()}, {"args", json::array({lhs_name, rhs_name})}};
     } else if (op == "<") {
         instruction = {
                 {"op", "lt"}, {"dest", destination}, {"type", "bool"}, {"args", json::array({lhs_name, rhs_name})}};
@@ -185,18 +192,18 @@ json IRGenerator::Generate(ExpressionAST &ast) { return ast.Accept(*this); }
 json IRGenerator::Generate(StatementAST &ast) { return ast.Accept(*this); }
 
 json IRGenerator::Generate(const VariableAssignmentAST &ast) {
-    ExpressionAST &expr = ast.GetExpr();
+    ExpressionAST &expr = *ast.expr;
     json gen_code = Generate(expr);
     json retInstruction = json::array();
     if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val")) {
             retInstruction.push_back(
-                     {{"op", "const"}, {"dest", ast.GetVarName()}, {"type", gen_code["type"]}, {"value", gen_code["val"]}});
+                     {{"op", "const"}, {"dest", ast.variable_name.name}, {"type", gen_code["type"]}, {"value", gen_code["val"]}});
     }
     else if (gen_code.is_array() && gen_code[gen_code.size() - 1]["op"] == "call") {
         for (int i = 0 ; i < static_cast<int>(gen_code.size()) - 1 ; ++i) {
             retInstruction.push_back(gen_code[i]);
         }
-        gen_code[gen_code.size() - 1]["dest"] = ast.GetVarName();
+        gen_code[gen_code.size() - 1]["dest"] = ast.variable_name.name;
         retInstruction.push_back(gen_code[gen_code.size() - 1]);
     }
     else {
@@ -205,13 +212,13 @@ json IRGenerator::Generate(const VariableAssignmentAST &ast) {
                 retInstruction.push_back(elt);
             }
             retInstruction.push_back({{"op", "id"},
-                                      {"dest", ast.GetVarName()},
-                                      {"type", expr.GetType()},
+                                      {"dest", ast.variable_name.name},
+                                      {"type", expr.type.value().to_string()},
                                       {"args", {retInstruction.back()["dest"]}}});
         } else {
             retInstruction.push_back({
                     {"op", gen_code["op"]},
-                    {"dest", ast.GetVarName()},
+                    {"dest", ast.variable_name.name},
                     {"type", gen_code["type"]},
                     {"args", gen_code["args"]},
             });
@@ -221,19 +228,19 @@ json IRGenerator::Generate(const VariableAssignmentAST &ast) {
 }
 
 json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
-    ExpressionAST &expr = ast.GetExpr();
-    std::string type = expr.GetType();
+    ExpressionAST &expr = *ast.expr;
+    std::string type = expr.type->to_string();
     json gen_code = Generate(expr);
     json retInstruction;
     if (!gen_code.is_array() && gen_code["op"] == "const" && gen_code.contains("val")) {
         retInstruction.push_back(
-                {{"op", "const"}, {"dest", ast.GetVarName()}, {"type", type}, {"value", gen_code["val"]}});
+                {{"op", "const"}, {"dest", ast.variable_name}, {"type", type}, {"value", gen_code["val"]}});
     }
     else if (gen_code.is_array() && gen_code[gen_code.size() - 1]["op"] == "call") {
         for (int i = 0 ; i < static_cast<int>(gen_code.size()) - 1 ; ++i) {
             retInstruction.push_back(gen_code[i]);
         }
-        gen_code[gen_code.size() - 1]["dest"] = ast.GetVarName();
+        gen_code[gen_code.size() - 1]["dest"] = ast.variable_name;
         retInstruction.push_back(gen_code[gen_code.size() - 1]);
     }
     else if (gen_code.is_array()) {
@@ -241,11 +248,11 @@ json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
             retInstruction.push_back(elt);
         }
         retInstruction.push_back(
-                {{"op", "id"}, {"dest", ast.GetVarName()}, {"type", type}, {"args", {retInstruction.back()["dest"]}}});
+                {{"op", "id"}, {"dest", ast.variable_name}, {"type", type}, {"args", {retInstruction.back()["dest"]}}});
     } else {
         retInstruction.push_back({
                 {"op", gen_code["op"]},
-                {"dest", ast.GetVarName()},
+                {"dest", ast.variable_name},
                 {"type", type},
                 {"args", gen_code["args"]},
         });
@@ -254,16 +261,25 @@ json IRGenerator::Generate(const VariableDeclareAndAssignAST &ast) {
 }
 
 json IRGenerator::Generate(const BinaryExpressionAST &ast) {
-    auto &LHS = ast.GetLeftOperand();
-    auto &RHS = ast.GetRightOperand();
-    return GenerateArithmeticOperations(*this, LHS, RHS, ast.GetOperator());
+    auto &LHS = *ast.expr_lhs;
+    auto &RHS = *ast.expr_rhs;
+    return GenerateArithmeticOperations(*this, LHS, RHS, ast.op.GetOperatorSymbol());
+}
+
+json IRGenerator::Generate(const StringExpressionAST& ast){
+    json instruction;
+    instruction["op"] = "const";
+    instruction["type"] = ast.type.value().to_string();
+    instruction["val"] = ast.value;
+
+    return instruction;
 }
 
 json IRGenerator::Generate(const NumberAST &ast) {
     json instruction;
     instruction["op"] = "const";
-    instruction["type"] = ast.GetType();
-    instruction["val"] = std::stol(ast.GetNumber());
+    instruction["type"] = ast.type.value().to_string();
+    instruction["val"] = std::stol(ast.num);
 
     return instruction;
 }
@@ -271,14 +287,14 @@ json IRGenerator::Generate(const NumberAST &ast) {
 json IRGenerator::Generate(const IdentifierAST &ast) {
     json instruction;
     instruction["op"] = "id";
-    instruction["type"] = ast.GetType();
-    instruction["args"] = json::array({ast.GetName()});
+    instruction["type"] = ast.type.value().to_string();
+    instruction["args"] = json::array({ast.name});
 
     return instruction;
 }
 
 json IRGenerator::Generate(const VariableDeclarationAST &ast) {
-    json instruction = {{"op", "const"}, {"dest", ast.GetVarName()}, {"type", ""}, {"value", "undef"}};
+    json instruction = {{"op", "const"}, {"dest", ast.variable_name}, {"type", ""}, {"value", "undef"}};
 
     return instruction;
 }
@@ -298,7 +314,7 @@ json IRGenerator::Generate([[maybe_unused]] const BreakStatementAST &ast) {
 json IRGenerator::Generate(const ElseIfStatementAST &ast) {
     json retInstruction;
 
-    auto &cond = ast.GetCondition();
+    auto &cond = *ast.condition;
 
     const json cond_json = Generate(cond);
 
@@ -329,7 +345,7 @@ json IRGenerator::Generate(const ElseIfStatementAST &ast) {
 
     retInstruction.push_back(body_label);
 
-    for (const auto &body: ast.GetBody()) {
+    for (const auto &body: ast.else_if_body) {
         const json body_json = Generate(*body);
 
         if (body_json.is_array()) {
@@ -381,23 +397,27 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
     const std::string loop_header = GetLabelName();
 
     const std::string iter_var_name = ast.GetIterationVariableName();
-    const auto &range_expr = ast.GetRange();
+    const auto &range_expr = *ast.range;
 
-    const auto &start_expr = range_expr.GetStart();
+    const auto &start_expr = range_expr.start;
 
     std::vector<SourceLocation> unknown;
     SourceLocation unknown_loc;
     std::unique_ptr<ExpressionAST> temp_start_expr;
 
-    if (const auto id = dynamic_cast<const IdentifierAST *>(&start_expr)) {
-        temp_start_expr = std::make_unique<IdentifierAST>(id->GetName(), unknown_loc);
-    } else if (const auto num = dynamic_cast<const NumberAST *>(&start_expr)) {
-        temp_start_expr = std::make_unique<NumberAST>(num->GetNumber(), num->HasDecimal(), unknown_loc);
+    if (const auto id = dynamic_cast<const IdentifierAST *>(start_expr.get())) {
+        temp_start_expr = std::make_unique<IdentifierAST>(id->name, unknown_loc);
+        temp_start_expr->type = start_expr->type;
+    } else if (const auto num = dynamic_cast<const NumberAST *>(start_expr.get())) {
+        temp_start_expr = std::make_unique<NumberAST>(num->num, num->has_decimal, unknown_loc);
+        temp_start_expr->type = start_expr->type; 
     }
 
-    temp_start_expr->SetType("i32");
+    temp_start_expr->type = TypeKind::I64;
     // FIXME: set type to actual type later.
-    const auto tempAST = VariableDeclareAndAssignAST(iter_var_name, "i32", std::move(temp_start_expr), unknown);
+    auto tempAST = VariableDeclareAndAssignAST(iter_var_name, "i64", std::move(temp_start_expr), unknown);
+    tempAST.type_name = TypeKind::I64;
+
     const json iter_arg_json = Generate(tempAST);
 
     for (const auto &elt: iter_arg_json) {
@@ -406,19 +426,23 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
 
     // Start for loop header
     retInstruction.push_back({{"label", loop_header}});
-    const auto &end_expr = range_expr.GetEnd();
+    const auto &end_expr = range_expr.end;
     std::unique_ptr<ExpressionAST> temp_end_expr;
 
-    if (const auto id = dynamic_cast<const IdentifierAST *>(&end_expr)) {
-        temp_end_expr = std::make_unique<IdentifierAST>(id->GetName(), unknown_loc);
-    } else if (const auto num = dynamic_cast<const NumberAST *>(&end_expr)) {
-        temp_end_expr = std::make_unique<NumberAST>(num->GetNumber(), num->HasDecimal(), unknown_loc);
+    if (const auto id = dynamic_cast<const IdentifierAST *>(end_expr.get())) {
+        temp_end_expr = std::make_unique<IdentifierAST>(id->name, unknown_loc);
+        temp_end_expr->type = end_expr->type;
+    } else if (const auto num = dynamic_cast<const NumberAST *>(end_expr.get())) {
+        temp_end_expr = std::make_unique<NumberAST>(num->num, num->has_decimal, unknown_loc);
+        temp_end_expr->type = end_expr->type;
     }
     auto temp_iter_var_ast = std::make_unique<IdentifierAST>(iter_var_name, unknown_loc);
+    temp_iter_var_ast->type = TypeKind::I64;
 
     const auto condition_check_ast = std::make_unique<BinaryExpressionAST>(
             std::move(temp_iter_var_ast), std::move(temp_end_expr), OperatorNode("<=", unknown_loc), unknown);
 
+    condition_check_ast->type = end_expr->type;
     const json condition_expr = Generate(*condition_check_ast);
 
     for (const auto &elt: condition_expr) {
@@ -456,7 +480,7 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
     // Set the new break point to loop exit
     GetContext().SetBreakPointName(loop_exit);
 
-    for (const auto &elt: ast.GetLoopBody()) {
+    for (const auto &elt: ast.loop_body) {
         if ([[maybe_unused]] auto breakStmt = dynamic_cast<BreakStatementAST *>(elt.get())) {
             const json break_json = {{"op", "jmp"}, {"labels", {loop_exit}}};
             retInstruction.push_back(break_json);
@@ -483,19 +507,19 @@ json IRGenerator::Generate([[maybe_unused]] const ForLoopAST &ast) {
 
     // Create a constant 1
     std::unique_ptr<ExpressionAST> numAST = std::make_unique<NumberAST>("1", false, unknown_loc);
-    numAST->SetType("i32");
+    numAST->type = TypeKind::I64;
     std::string const_one = GetTemporaryVariableName();
 
     auto idAST = std::make_unique<IdentifierAST>(iter_var_name, unknown_loc);
-    idAST->SetType("i32");
+    idAST->type = TypeKind::I64;
 
     // Add 1 to the iteration variable.
     std::unique_ptr<ExpressionAST> addAST = std::make_unique<BinaryExpressionAST>(
             std::move(idAST), std::move(numAST), OperatorNode("+", unknown_loc), unknown);
-    addAST->SetType("i32");
+    addAST->type = TypeKind::I64;
 
     auto newIdAST = IdentifierAST(iter_var_name, unknown_loc);
-    newIdAST.SetType("i32");
+    newIdAST.type = TypeKind::I64;
 
     std::vector<SourceLocation> loc = {unknown_loc};
     const auto assignAddResultAST = std::make_unique<VariableAssignmentAST>(newIdAST, std::move(addAST), loc);
@@ -531,7 +555,7 @@ json IRGenerator::Generate([[maybe_unused]] const FunctionDefinitionAST &ast) {
 json IRGenerator::Generate(const IfStatementAST &ast) {
     json retInstruction = json::array({});
 
-    ExpressionAST &if_condition = ast.GetIfCondition();
+    ExpressionAST &if_condition = *ast.condition;
 
     const std::string current_exit_label = GetContext().GetIfExitLabelName();
 
@@ -578,7 +602,7 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
     const json label_instruction = {{"label", success_label}};
     retInstruction.push_back(label_instruction);
 
-    for (const auto &elt: ast.GetIfBody()) {
+    for (const auto &elt: ast.if_body) {
 
         if (const json &gen_json = Generate(*elt); gen_json.is_array()) {
             for (const auto &val: gen_json) {
@@ -599,7 +623,7 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
     }
 
     // Generate Else If
-    for (const auto &elt: ast.GetElseIfStatements()) {
+    for (const auto &elt: ast.else_if_ast) {
         if (const json else_if_json = Generate(*elt); else_if_json.is_array()) {
             for (const auto &else_if: else_if_json) {
                 retInstruction.push_back(else_if);
@@ -611,7 +635,7 @@ json IRGenerator::Generate(const IfStatementAST &ast) {
 
     // Generate else
     if (ast.hasElse()) {
-        for (auto else_json = Generate(ast.GetElseStatement()); const auto &elt: else_json) {
+        for (auto else_json = Generate(*ast.else_ast); const auto &elt: else_json) {
             retInstruction.push_back(elt);
         }
     }
@@ -641,7 +665,7 @@ json IRGenerator::Generate(const LoopAST &ast) {
     GetContext().SetBreakPointName(outside_loop_body_label);
     GetContext().SetSkipPointName(body_label);
 
-    for (const auto &elt: ast.GetLoopBody()) {
+    for (const auto &elt: ast.loop_body) {
         auto bodyElementJson = Generate(*elt);
         if ([[maybe_unused]] auto breakStatement = dynamic_cast<BreakStatementAST *>(elt.get())) {
             if (!bodyElementJson.is_array()) {
@@ -682,15 +706,15 @@ json IRGenerator::Generate([[maybe_unused]] const MatchArmAST &ast) {
 json IRGenerator::Generate([[maybe_unused]] const MatchStatementAST &ast) {
     json retInstruction = json::array();
 
-    const auto match_type = ast.getType();
+    const auto match_type = ast.type;
 
-    if (!ast.getArms().empty()) {
+    if (!ast.arms.empty()) {
 
         if (match_type == MatchType::ALL) {
             std::vector<std::unique_ptr<ElseIfStatementAST>> empty_else_if;
 
-            for (const auto &arm: ast.getArms()) {
-                auto if_stmt = std::make_unique<IfStatementAST>(arm->takeCondition(), std::move(arm->getBody()),
+            for (const auto &arm: ast.arms) {
+                auto if_stmt = std::make_unique<IfStatementAST>(std::move(arm->cond), std::move(arm->body),
                                                                 empty_else_if, nullptr, arm->GetSourceLocation());
 
                 for (auto if_stmt_json = Generate(*if_stmt); const auto &if_json: if_stmt_json) {
@@ -701,17 +725,17 @@ json IRGenerator::Generate([[maybe_unused]] const MatchStatementAST &ast) {
         }
 
         else {
-            auto &first_arm = ast.getArms()[0];
+            auto &first_arm = ast.arms[0];
             std::vector<std::unique_ptr<ElseIfStatementAST>> else_if_stmts;
 
-            for (const auto &arm: ast.getArms() | std::views::drop(1)) {
+            for (const auto &arm: ast.arms | std::views::drop(1)) {
                 auto else_if_stmt = std::make_unique<ElseIfStatementAST>(
-                        arm->takeCondition(), std::move(arm->getBody()), arm->GetSourceLocation());
+                        std::move(arm->cond), std::move(arm->body), arm->GetSourceLocation());
                 else_if_stmts.push_back(std::move(else_if_stmt));
             }
 
             const auto if_stmt =
-                    std::make_unique<IfStatementAST>(first_arm->takeCondition(), std::move(first_arm->getBody()),
+                    std::make_unique<IfStatementAST>(std::move(first_arm->cond), std::move(first_arm->body),
                                                      else_if_stmts, nullptr, first_arm->GetSourceLocation());
 
             for (const auto if_stmt_json = Generate(*if_stmt); const auto &if_json: if_stmt_json) {
@@ -743,23 +767,26 @@ json IRGenerator::Generate([[maybe_unused]] const FunctionCallAST &ast) {
 
 json IRGenerator::Generate(const FunctionCallExprAST &ast) {
     json retInstruction = json::array({});
-    const std::string fn_name = ast.getIdentifier().GetName();
+    const std::string fn_name = ast.fn_name->name;
 
-    auto& args = ast.getArguments();
+    auto& args = *ast.args;
 
     std::vector<std::string> arg_names;
 
     for (auto& elt: args.GetFunctionArguments()) {
         if (auto* numAST = dynamic_cast<NumberAST*>(elt.get())) {
-            auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(),
+            auto tempNumAST = std::make_unique<NumberAST>(numAST->num, numAST->has_decimal,
                                                       numAST->GetSourceLocation().front());
-            std::string num = numAST->GetNumber();
+            std::string num = numAST->num;
 
-            tempNumAST->SetValue(numAST->GetValue());
+            tempNumAST->value = numAST->value;
+            tempNumAST->type = numAST->type;
+
             const std::string tempVarName = GetTemporaryVariableName();
             std::vector<SourceLocation> unknown{};
-            VariableDeclareAndAssignAST tempAST(tempVarName, elt->GetType(), std::move(tempNumAST), unknown);
-            tempAST.SetType(elt->GetType());
+
+            VariableDeclareAndAssignAST tempAST(tempVarName, elt->type.value().to_string(), std::move(tempNumAST), unknown);
+            tempAST.type_name = elt->type.value();
 
             auto new_gen_code = Generate(tempAST);
             if (new_gen_code.is_array()) {
@@ -774,7 +801,7 @@ json IRGenerator::Generate(const FunctionCallExprAST &ast) {
             arg_names.push_back(tempVarName);
         }
         else if (auto* idAST = dynamic_cast<IdentifierAST*>(elt.get())) {
-            const std::string id_name = idAST->GetName();
+            const std::string id_name = idAST->name;
             arg_names.push_back(id_name);
         }
         else {
@@ -796,7 +823,7 @@ json IRGenerator::Generate(const FunctionCallExprAST &ast) {
         {"op", "call"},
         {"funcs", {fn_name}},
         {"args", arg_names},
-        {"type", ast.GetType()}
+        {"type", ast.type.value().to_string()}
     };
 
     retInstruction.push_back(instruction);
@@ -812,13 +839,13 @@ json IRGenerator::Generate([[maybe_unused]] const FunctionArgumentAST &ast) {
 
 json IRGenerator::Generate(const ReturnStatementAST &ast) {
 
-    const std::string type = ast.GetReturnExpression().GetType();
+    const std::string type = ast.GetReturnExpression().type.value().to_string();
 
     if (const auto idAST = dynamic_cast<IdentifierAST *>(&ast.GetReturnExpression())) {
         json instruction;
 
         instruction["op"] = "ret";
-        instruction["args"] = json::array({idAST->GetName()});
+        instruction["args"] = json::array({idAST->name});
 
         return instruction;
     }
@@ -827,14 +854,16 @@ json IRGenerator::Generate(const ReturnStatementAST &ast) {
         json instruction = json::array();
         std::vector<SourceLocation> unknown;
         // Create a temporary variable
-        auto tempNumAST = std::make_unique<NumberAST>(numAST->GetNumber(), numAST->HasDecimal(),
+        auto tempNumAST = std::make_unique<NumberAST>(numAST->num, numAST->has_decimal,
                                                       numAST->GetSourceLocation().front());
-        std::string num = numAST->GetNumber();
+        std::string num = numAST->num;
 
-        tempNumAST->SetValue(numAST->GetValue());
+        tempNumAST->value = numAST->value;
+        tempNumAST->type  = numAST->type.value();
 
         VariableDeclareAndAssignAST tempAST(GetTemporaryVariableName(), type, std::move(tempNumAST), unknown);
-        tempAST.SetType(type);
+
+        tempAST.type_name = ast.GetReturnExpression().type.value();
 
         const json declAssignJson = Generate(tempAST);
         if (declAssignJson.is_array()) {
@@ -849,7 +878,7 @@ json IRGenerator::Generate(const ReturnStatementAST &ast) {
         json returnJson;
 
         returnJson["op"] = "ret";
-        returnJson["args"] = json::array({tempAST.GetVarName()});
+        returnJson["args"] = json::array({tempAST.variable_name});
 
         instruction.push_back(returnJson);
         return instruction;

@@ -32,6 +32,7 @@ public:
     nlohmann::json Generate(const LoopAST &ast);
     nlohmann::json Generate(const MatchArmAST &ast);
     nlohmann::json Generate(const MatchStatementAST &ast);
+    nlohmann::json Generate(const StringExpressionAST& ast);
     nlohmann::json Generate(const NumberAST &ast);
     nlohmann::json Generate(const RangeAST &ast);
     nlohmann::json Generate(const VariableDeclarationAST &ast);

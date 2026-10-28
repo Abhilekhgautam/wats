@@ -4,12 +4,13 @@
 #include <optional>
 #include <string>
 #include <vector>
-
 #include <unordered_map>
 
+#include "../type/type.hpp"
+
 struct FunctionInfo {
-    std::vector<std::string> fn_params_type;
-    std::string fn_ret_type;
+    std::vector<Type> fn_params_type;
+    Type fn_ret_type;
 
     bool operator==(const FunctionInfo &fn_info) const {
         if (fn_params_type == fn_info.fn_params_type && fn_ret_type == fn_info.fn_ret_type) {

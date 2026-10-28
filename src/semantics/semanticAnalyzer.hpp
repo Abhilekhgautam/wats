@@ -1,8 +1,10 @@
 #ifndef SEM_ANALYZER_HPP
 #define SEM_ANALYZER_HPP
 
+#include "../type/typeinferenceengine.hpp"
 #include "./functionSymbolTable.hpp"
 #include "./scope.hpp"
+#include "../type/typetable.hpp"
 
 class StatementAST;
 class VariableDeclarationAST;
@@ -24,6 +26,7 @@ class ReturnStatementAST;
 
 class ExpressionAST;
 class BinaryExpressionAST;
+class StringExpressionAST;
 class IdentifierAST;
 class NumberAST;
 class RangeAST;
@@ -61,6 +64,7 @@ public:
     void Visit(MatchArmAST &ast);
 
     void Visit(BinaryExpressionAST &ast);
+    void Visit(StringExpressionAST& ast);
     void Visit(IdentifierAST &ast);
     void Visit(NumberAST &ast);
     void Visit(RangeAST &ast);
@@ -82,9 +86,14 @@ public:
     bool HasErrors() const { return error_count > 0; }
     void IncrementErrorCount() { error_count++; }
 
+public:
+    Type infer(ExpressionAST&);
 private:
     Scope *current_scope;
     FunctionSymbolTable table;
+    TypeTable typeTable;
+
+    TypeInferenceEngine inferEngine;
 
     int error_count = 0;
 };

@@ -11,6 +11,7 @@
 #include "scope.hpp"
 #include "semanticAnalyzer.hpp"
 
+#include "../AST/StringExpressionAST.hpp"
 #include "../AST/BinaryExpressionAST.hpp"
 #include "../AST/ForLoopAST.hpp"
 #include "../AST/FunctionCallExprAST.hpp"
@@ -90,21 +91,35 @@ void SemanticAnalyzer::analyze() {
     }
 }
 
+Type SemanticAnalyzer::infer(ExpressionAST& ast){
+    ast.Accept(*this);
+
+    // TODO: check for values existence.
+    return inferEngine.resolve(ast.type.value());
+}
+
 void SemanticAnalyzer::Visit(VariableDeclarationAST &ast) {
-    auto result = current_scope->FindSymbolInCurrentScope(ast.GetVarName());
+    auto result = current_scope->FindSymbolInCurrentScope(ast.variable_name);
     if (result.has_value()) {
-        Error("Variable " + ast.GetVarName() + " already declared in the current scope", ast.GetVarLocation().GetLine(),
+        Error("Variable " + ast.variable_name + " already declared in the current scope", ast.GetVarLocation().GetLine(),
               ast.GetVarLocation().GetColumn());
         IncrementErrorCount();
     } else {
-        current_scope->AddSymbol(ast.GetVarName(), ast.GetType());
+        auto inferred_type = inferEngine.freshVar();
+        current_scope->AddSymbol(ast.variable_name, inferred_type);
     }
 }
 
-void SemanticAnalyzer::Visit(NumberAST &ast) {
-    const std::string num = ast.GetNumber();
+void SemanticAnalyzer::Visit(StringExpressionAST& ast){
+   const std::string str = ast.value;
 
-    if (ast.HasDecimal()) {
+   ast.type = TypeKind::String;
+}
+
+void SemanticAnalyzer::Visit(NumberAST &ast) {
+    const std::string num = ast.num;
+
+    if (ast.has_decimal) {
         double value;
 #ifdef __EMSCRIPTEN__
         char *ptr{};
@@ -129,8 +144,8 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
         }
 #endif
         // later decide the bitwidth based on the usage.
-        ast.SetType("float");
-        ast.SetValue(value);
+        ast.type = TypeKind::F64;
+        ast.value = value;
     } else {
         long long value;
 
@@ -142,28 +157,31 @@ void SemanticAnalyzer::Visit(NumberAST &ast) {
             return;
         }
         // decide the bit-width later based on the usage.
-        ast.SetType("int");
-        ast.SetValue(value);
+        ast.type = TypeKind::I64;
+        ast.value = value;
     }
 }
 
+
 void SemanticAnalyzer::Visit(IdentifierAST &ast) {
-    auto result = current_scope->FindSymbol(ast.GetName());
+    auto result = current_scope->FindSymbol(ast.name);
 
     if (!result.has_value()) {
-        Error("No such variable " + ast.GetName() + " in the current scope", ast.GetSourceLocation().front().GetLine(),
+        Error("No such variable " + ast.name + " in the current scope", ast.GetSourceLocation().front().GetLine(),
               ast.GetSourceLocation().front().GetColumn());
         IncrementErrorCount();
     } else {
         // Annotate the node with type information
-        ast.SetType(result.value().get().GetType());
+        ast.type = inferEngine.resolve(result.value());
     }
 }
 
 void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
+    // TODO: Check for null on lhs and rhs expr
+
     // Check type of the operands
-    ExpressionAST &left_operand = ast.GetLeftOperand();
-    ExpressionAST &right_operand = ast.GetRightOperand();
+    ExpressionAST &left_operand = *ast.expr_lhs;
+    ExpressionAST &right_operand = *ast.expr_rhs;
 
     // Visit the left operand
     left_operand.Accept(*this);
@@ -171,145 +189,101 @@ void SemanticAnalyzer::Visit(BinaryExpressionAST &ast) {
     // Visit the right operand
     right_operand.Accept(*this);
 
-    if (left_operand.GetType() == "float") {
-        if (right_operand.GetType() == "f32" || right_operand.GetType() == "f64") {
-            left_operand.SetType(right_operand.GetType());
-        }
-    }
-    if (left_operand.GetType() == "int") {
-        if (right_operand.GetType() == "i32" || right_operand.GetType() == "i64") {
-            left_operand.SetType(right_operand.GetType());
-        }
-    }
+    auto errorVal = inferEngine.unify(left_operand.type.value(), right_operand.type.value());
 
-    if (right_operand.GetType() == "float") {
-        if (left_operand.GetType() == "f32" || left_operand.GetType() == "f64") {
-            right_operand.SetType(left_operand.GetType());
-        }
-    }
-    if (right_operand.GetType() == "int") {
-        if (left_operand.GetType() == "i32" || left_operand.GetType() == "i64") {
-            right_operand.SetType(left_operand.GetType());
-        }
-    }
-
-    if (left_operand.GetType() != right_operand.GetType()) {
-        Error("The operation { " + left_operand.GetType() + " } " + ast.GetOperator() + " { " +
-                      right_operand.GetType() + " } is not allowed",
+    if (errorVal == UnifyError::Mismatch){
+        Error("The operation { " + left_operand.type.value().to_string() + " } " + ast.op.GetOperatorSymbol() + " { " +
+                      right_operand.type.value().to_string() + " } is not allowed",
               // Fix me: this is just a quick fix
               1, 1);
 
         IncrementErrorCount();
-    } else {
-        // We are sure that all the operands are of the same type
-        ast.SetType(left_operand.GetType());
+
     }
-}
+
+    ast.type = inferEngine.resolve(left_operand.type.value());
+
+    // Check for invald op in type.
+    if (left_operand.type.value() == TypeKind::String && ast.op.GetOperatorSymbol() != "+"){
+        auto err_msg = std::format("The operator {} is not supported for strings", ast.op.GetOperatorSymbol());
+        Error(err_msg,
+              // Fix me: this is just a quick fix
+              1, 1);
+
+        IncrementErrorCount();
+
+    }
+ }
 
 void SemanticAnalyzer::Visit(VariableAssignmentAST &ast) {
-    const std::string var_name = ast.GetVarName();
+    const std::string var_name = ast.variable_name.name;
     if (auto result = current_scope->FindSymbol(var_name); !result.has_value()) {
         Error("Variable: '" + var_name + "' used without previous declaration in the current scope",
               ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetColumn(), var_name.length());
         IncrementErrorCount();
     } else {
-        auto &assigned_expr = ast.GetExpr();
+        auto &assigned_expr = *ast.expr;
         // Visit the expression
         assigned_expr.Accept(*this);
 
-        std::string var_type = result.value().get().GetType();
+        Type var_type = result.value();
 
-        if (var_type.empty()) {
+        if (!result.has_value()) {
             // Update the symbol table
-            current_scope->UpdateSymbolTable(var_name, assigned_expr.GetType());
+            current_scope->UpdateSymbolTable(var_name, inferEngine.resolve(assigned_expr.type.value()));
             return;
         }
+        else {
+            auto inferred_type = inferEngine.resolve(assigned_expr.type.value());
+            // Type mismatch.
+            auto errorVal = inferEngine.unify(result.value(), inferred_type);
 
-        if (assigned_expr.GetType() == "int") {
-            if (var_type == "i64" || var_type == "i32") {
-                assigned_expr.SetType(var_type);
-                if (const auto id = dynamic_cast<IdentifierAST *>(&assigned_expr)) {
-                    // Update the symbol table.
-                    current_scope->UpdateSymbolTable(id->GetName(), var_type);
-                }
-            }
-        } else if (assigned_expr.GetType() == "float") {
-            if (var_type == "f32" || var_type == "f64") {
-                assigned_expr.SetType(var_type);
-                if (const auto id = dynamic_cast<IdentifierAST *>(&assigned_expr)) {
-                    // Update the symbol table.
-                    current_scope->UpdateSymbolTable(id->GetName(), var_type);
-                }
-            }
-        } else if (var_type == "int" || var_type == "float") {
-            if (assigned_expr.GetType() == "i32" || assigned_expr.GetType() == "i64" ||
-                assigned_expr.GetType() == "f32" || assigned_expr.GetType() == "f64") {
-                var_type = assigned_expr.GetType();
-                current_scope->UpdateSymbolTable(var_name, var_type);
-            }
-        }
-        if (assigned_expr.GetType() != var_type) {
-            // Error: Type mismatch
-            MultiPartError("Type Mismatch: " + assigned_expr.GetType() + " cannot be assigned to variable of type " +
-                                   var_type + ".",
+            if (errorVal == UnifyError::Mismatch){
+                MultiPartError("Type Mismatch: " + assigned_expr.type.value().to_string() + " cannot be assigned to variable of type " +
+                                   var_type.to_string() + ".",
                            ast.GetSourceLocation().GetLine(), ast.GetSourceLocation().GetColumn() - var_name.length(),
                            var_name.length(),
-                           ast.GetExpr().GetSourceLocation()[0].GetColumn() - ast.GetExpr().GetLength(),
-                           ast.GetExpr().GetLength());
+                           ast.expr->GetSourceLocation()[0].GetColumn() - ast.expr->GetLength(),
+                           ast.expr->GetLength());
             IncrementErrorCount();
+
+                return;
+            }
+            
+            current_scope->UpdateSymbolTable(var_name, inferred_type);
+            return;
+
         }
-    }
+      }
 }
 
 void SemanticAnalyzer::Visit(VariableDeclareAndAssignAST &ast) {
-    const std::string var_name = ast.GetVarName();
+    const std::string var_name = ast.variable_name;
     if (const auto result = current_scope->FindSymbolInCurrentScope(var_name); result.has_value()) {
         Error("Variable " + var_name + " already declared in the current scope", ast.GetSourceLocation().GetLine(),
               ast.GetSourceLocation().GetColumn(), var_name.length());
         IncrementErrorCount();
     } else {
-        auto &expr = ast.GetExpr();
+        auto &expr = *ast.expr;
         expr.Accept(*this);
 
-        const std::string var_type = ast.GetType();
-        const std::string expr_type = expr.GetType();
+        Type var_type = inferEngine.freshVar(); 
+        Type expr_type = infer(expr);
 
-        if (var_type.empty()) {
-            ast.SetType(expr_type);
-            current_scope->AddSymbol(var_name, expr_type);
-        } else {
-            if (var_type != expr_type) {
-                if (expr_type == "int" && (var_type == "i32" || var_type == "i64")) {
-                    expr.SetType(var_type);
-                    ast.SetType(var_type);
-                    current_scope->AddSymbol(var_name, var_type);
+        auto errorVal = inferEngine.unify(var_type, expr_type);
 
-                    if (const auto id = dynamic_cast<IdentifierAST *>(&expr)) {
-                        current_scope->UpdateSymbolTable(id->GetName(), var_type);
-                    }
-                } else if (expr_type == "float" && (var_type == "f32" || var_type == "f64")) {
-                    expr.SetType(var_type);
-                    ast.SetType(var_type);
-                    current_scope->AddSymbol(var_name, var_type);
-
-                    if (const auto id = dynamic_cast<IdentifierAST *>(&expr)) {
-                        current_scope->UpdateSymbolTable(id->GetName(), var_type);
-                    }
-                } else {
-                    MultiPartError("Type Mismatch: " + expr_type + " cannot be assigned to a variable of " + var_type,
+        if (errorVal == UnifyError::Mismatch){
+            MultiPartError("Type Mismatch: " + expr_type.to_string() + " cannot be assigned to a variable of " + var_type.to_string(),
                                    ast.GetSourceLocation().GetLine(),
                                    ast.GetSourceLocation().GetColumn() - var_name.length(), var_name.length(),
-                                   ast.GetExpr().GetSourceLocation()[0].GetColumn() - ast.GetExpr().GetLength(),
-                                   ast.GetExpr().GetLength());
+                                   ast.expr->GetSourceLocation()[0].GetColumn() - ast.expr->GetLength(),
+                                   ast.expr->GetLength());
 
-                    IncrementErrorCount();
-                }
-
-            } else {
-                current_scope->AddSymbol(var_name, expr_type);
-            }
+            IncrementErrorCount();
         }
-    }
+
+        current_scope->AddSymbol(var_name, inferEngine.resolve(var_type));
+     }
 }
 
 void SemanticAnalyzer::Visit(ForLoopAST &ast) {
@@ -323,9 +297,9 @@ void SemanticAnalyzer::Visit(ForLoopAST &ast) {
 
     current_scope = &for_scope;
     // Add the iteration variable to the current scope
-    current_scope->AddSymbol(ast.GetIterationVariableName(), "int");
+    current_scope->AddSymbol(ast.GetIterationVariableName(), TypeKind::I64);
 
-    auto &range = ast.GetRange();
+    auto &range = *ast.range;
     // Visit the range node
     range.Accept(*this);
 
@@ -338,7 +312,7 @@ void SemanticAnalyzer::Visit(ForLoopAST &ast) {
     //  }
 
     // Visit the loop body
-    for (auto &elt: ast.GetLoopBody()) {
+    for (auto &elt: ast.loop_body) {
         elt->Accept(*this);
     }
 
@@ -365,7 +339,7 @@ void SemanticAnalyzer::Visit(LoopAST &ast) {
     current_scope = &for_scope;
 
     // Visit the loop body
-    for (auto &elt: ast.GetLoopBody()) {
+    for (auto &elt: ast.loop_body) {
         elt->Accept(*this);
     }
 
@@ -389,7 +363,7 @@ void SemanticAnalyzer::Visit([[maybe_unused]] WhileLoopAST &ast) {
         return;
     }
 
-    ExpressionAST &cond = ast.GetCondition();
+    auto &cond = *ast.condition;
 
     cond.Accept(*this);
 
@@ -411,31 +385,31 @@ void SemanticAnalyzer::Visit(IfStatementAST &ast) {
         return;
     }
 
-    ExpressionAST &if_condition = ast.GetIfCondition();
+    auto &if_condition = *ast.condition;
 
     if_condition.Accept(*this);
 
     Scope if_scope(current_scope, ScopeType::BRANCH);
 
     current_scope = &if_scope;
-    for (auto &elt: ast.GetIfBody()) {
+    for (auto &elt: ast.if_body) {
         elt->Accept(*this);
     }
 
     current_scope = current_scope->GetParent();
 
     if (ast.hasElseIf()) {
-        auto &else_if_vec = ast.GetElseIfStatements();
+        auto &else_if_vec = ast.else_if_ast;
 
         for (const auto &elt: else_if_vec) {
-            ExpressionAST &else_if_condition = elt->GetCondition();
+            ExpressionAST &else_if_condition = *elt->condition;
 
             else_if_condition.Accept(*this);
 
             Scope else_if_scope(current_scope, ScopeType::BRANCH);
             current_scope = &else_if_scope;
 
-            for (auto &stmt: elt->GetBody()) {
+            for (auto &stmt: elt->else_if_body) {
                 stmt->Accept(*this);
             }
             current_scope = current_scope->GetParent();
@@ -443,11 +417,11 @@ void SemanticAnalyzer::Visit(IfStatementAST &ast) {
     }
 
     if (ast.hasElse()) {
-        auto &else_stmt = ast.GetElseStatement();
+        auto &else_stmt = ast.else_ast;
 
         Scope else_scope(current_scope, ScopeType::BRANCH);
         current_scope = &else_scope;
-        for (auto &body: else_stmt.GetBody()) {
+        for (auto &body: else_stmt->else_body) {
             body->Accept(*this);
         }
         current_scope = current_scope->GetParent();
@@ -456,7 +430,7 @@ void SemanticAnalyzer::Visit(IfStatementAST &ast) {
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseIfStatementAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] ElseStatementAST &ast) {}
 void SemanticAnalyzer::Visit(MatchStatementAST &ast) {
-    for (const auto &elt: ast.getArms()) {
+    for (const auto &elt: ast.arms) {
         elt->Accept(*this);
     }
 }
@@ -468,14 +442,14 @@ void SemanticAnalyzer::Visit(MatchArmAST &ast) {
         return;
     }
 
-    auto &condition = ast.getCondition();
+    auto &condition = *ast.cond;
 
     condition.Accept(*this);
 
     Scope arm_scope(current_scope, ScopeType::BRANCH);
 
     current_scope = &arm_scope;
-    for (auto &elt: ast.getBody()) {
+    for (auto &elt: ast.body) {
         elt->Accept(*this);
     }
 
@@ -489,17 +463,17 @@ void SemanticAnalyzer::Visit(FunctionCallExprAST &ast) {
         IncrementErrorCount();
         return;
     }
-    const auto fn_name = ast.getIdentifier().GetName();
+    const auto fn_name = ast.fn_name->name;
 
     if (const auto fn_info = FindSymbolTable(fn_name); fn_info.has_value()) {
         const auto& [params_type, ret_type]  = fn_info.value();
 
-        ast.SetType(ret_type);
+        ast.type =  ret_type;
 
-        auto& args = ast.getArguments();
+        auto& args = ast.args;
 
         const auto param_size = params_type.size();
-        const auto args_size = args.GetFunctionArguments().size();
+        const auto args_size = args->GetFunctionArguments().size();
 
         if (param_size != args_size) {
             const std::string msg = std::format("Function {} expects {} arguments but {} were provided", fn_name, param_size, args_size);
@@ -508,19 +482,21 @@ void SemanticAnalyzer::Visit(FunctionCallExprAST &ast) {
             return;
         }
         auto count = 0;
-        for (const auto& arg: args.GetFunctionArguments()) {
+        for (const auto& arg: args->GetFunctionArguments()) {
             arg->Accept(*this);
-            std::string arg_type = arg->GetType();
-            const std::string param_type = params_type[count++];
+            auto inferred_type = infer(*arg);
 
-            if (arg_type == "int") {
-                arg->SetType("i32");
-                arg_type = param_type;
-            }
+            Type arg_type = inferred_type;
+            Type param_type = params_type[count++];
 
-            if (arg_type != param_type) {
-                const std::string msg = std::format("Expected argument of type {} but got {} ", param_type, arg_type);
-                Error(msg, arg->GetSourceLocation()[0].GetLine(), arg->GetSourceLocation()[0].GetColumn());
+            auto unifyError = inferEngine.unify(arg_type, param_type);
+
+            if (unifyError.has_value()){
+                if (unifyError == UnifyError::Mismatch){
+
+                    const std::string msg = std::format("Expected argument of type {} but got {} ", param_type.to_string(), arg_type.to_string());
+                    Error(msg, arg->GetSourceLocation()[0].GetLine(), arg->GetSourceLocation()[0].GetColumn());
+                }
             }
         }
     }
@@ -542,19 +518,20 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
     Scope fn_scope(current_scope, ScopeType::FUNCTION);
 
     // add the fn arguments to the fn scope
-    auto &opt_args = ast.GetFunctionArguments();
-    std::vector<std::string> arg_types;
+    auto &opt_args = ast.arguments;
+    std::vector<Type> arg_types;
 
     for (const auto &arg: opt_args) {
-        fn_scope.AddSymbol(arg->GetIdName(), arg->GetTypeName());
-        arg_types.push_back(arg->GetTypeName());
+        auto annotated_type = typeTable.resolve(arg->annotated_type).value();
+        fn_scope.AddSymbol(arg->idName, annotated_type);
+        arg_types.push_back(annotated_type);
     }
 
     current_scope = &fn_scope;
 
     // auto args = ast.GetFunctionArguments();
 
-    const FunctionInfo fn_info(arg_types, ast.GetFunctionReturnType());
+    const FunctionInfo fn_info(arg_types, ast.ret_type);
 
 
     if (const auto val = FindSymbolTable(ast.GetFunctionName()); val.has_value()) {
@@ -571,35 +548,27 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
     // Add the function to the function's symbol table
     AddFunctionToSymbolTable(ast.GetFunctionName(), fn_info);
     // Visit the function body
-    for (auto &elt: ast.GetFunctionBody()) {
+    for (auto &elt: ast.function_body) {
         elt->Accept(*this);
         if (const auto returnAST = dynamic_cast<ReturnStatementAST *>(elt.get())) {
             auto &returnExpr = returnAST->GetReturnExpression();
 
-            if (returnExpr.GetType() == "int" &&
-                (ast.GetFunctionReturnType() == "i32" || ast.GetFunctionReturnType() == "i64")) {
-                returnExpr.SetType(ast.GetFunctionReturnType());
-            } else if (returnExpr.GetType() == "float" &&
-                       (ast.GetFunctionReturnType() == "f32" || ast.GetFunctionReturnType() == "f64")) {
-                returnExpr.SetType(ast.GetFunctionReturnType());
-            } else {
-                if (returnExpr.GetType() == "int") {
-                    // Defaults to i64
-                    returnExpr.SetType("i64");
-                } else if (returnExpr.GetType() == "float") {
-                    // Defaults to f64;
-                    returnExpr.SetType("f64");
-                }
-                if (returnExpr.GetType() == "i32" || returnExpr.GetType() == "i64" || returnExpr.GetType() == "f32" ||
-                    returnExpr.GetType() == "f64") {
-                    if (returnExpr.GetType() != ast.GetFunctionReturnType()) {
-                        Unexpected(std::format("Cannot return a {} from function whose return type is {}",
-                                               returnExpr.GetType(), ast.GetFunctionReturnType()),
+            auto returnExprType = infer(returnExpr);
+
+            // TODO: handle void 
+            auto fnReturnType = typeTable.resolve(ast.annotated_ret_type.value());
+
+            auto unifyError = inferEngine.unify(returnExprType, fnReturnType.value());
+
+            if(unifyError.has_value()){
+                if (unifyError == UnifyError::Mismatch){
+                    Unexpected(std::format("Cannot return a {} from function whose return type is {}",
+                                               returnExprType.to_string(), ast.annotated_ret_type.value()),
                                    returnAST->GetSourceLocation().GetLine(), returnAST->GetSourceLocation().GetColumn(),
                                    1);
-                        IncrementErrorCount();
-                        return;
-                    }
+                    IncrementErrorCount();
+                    return;
+
                 }
             }
         }
@@ -613,8 +582,8 @@ void SemanticAnalyzer::Visit(FunctionDefinitionAST &ast) {
 void SemanticAnalyzer::Visit([[maybe_unused]] FunctionArgumentAST &ast) {}
 void SemanticAnalyzer::Visit([[maybe_unused]] BreakStatementAST &ast) {}
 void SemanticAnalyzer::Visit(RangeAST &ast) {
-    ExpressionAST &start = ast.GetStart();
-    ExpressionAST &end = ast.GetEnd();
+    ExpressionAST &start = *ast.start;
+    ExpressionAST &end = *ast.end;
 
     start.Accept(*this);
     end.Accept(*this);

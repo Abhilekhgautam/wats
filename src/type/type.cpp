@@ -1,6 +1,6 @@
 #include "type.hpp"
 
-inline std::string Type::to_string(){
+std::string Type::to_string(){
     switch(kind){
         case TypeKind::I32    :  {return "i32";}
         case TypeKind::I64    :  {return "i64";}
@@ -11,7 +11,7 @@ inline std::string Type::to_string(){
     }
 }
 
-inline std::string Type::to_string() const {
+std::string Type::to_string() const {
     switch(kind){
         case TypeKind::I32    :  {return "i32";}
         case TypeKind::I64    :  {return "i64";}

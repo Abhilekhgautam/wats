@@ -34,6 +34,7 @@ enum class TokenName {
     ASSIGN,
     COLON,
     NUMBER,
+    STRING,
     // Keywords
     EXPORT,
     IMPORT,
@@ -41,6 +42,7 @@ enum class TokenName {
     I64,
     F32,
     F64,
+    STRING_T,
     LOOP,
     FOR,
     WHILE,
